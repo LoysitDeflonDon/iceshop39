@@ -192,7 +192,6 @@
             margin-bottom: 30px;
         }
 
-        /* 🔥 3 КАТЕГОРИИ В РЯД НА ПК 🔥 */
         .categories-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -201,14 +200,12 @@
             margin: 0 auto;
         }
 
-        /* На планшетах — 2 колонки */
         @media (max-width: 900px) {
             .categories-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
         }
 
-        /* На телефонах — 1 колонка */
         @media (max-width: 550px) {
             .categories-grid {
                 grid-template-columns: 1fr;
@@ -228,7 +225,6 @@
             min-width: 0;
         }
 
-        /* Улучшенный фон — яркий и видный */
         .category-card::before {
             content: '';
             position: absolute;
@@ -245,7 +241,6 @@
             z-index: 0;
         }
 
-        /* Тёмная подложка для читаемости текста */
         .category-card::after {
             content: '';
             position: absolute;
@@ -405,6 +400,64 @@
             font-size: 1rem;
         }
 
+        /* БЛОК МЕНЕДЖЕРОВ */
+        .managers-section {
+            padding: 50px 20px 30px;
+            background: var(--bg-deep);
+            border-top: 1px solid var(--border-dim);
+        }
+
+        .managers-title {
+            text-align: center;
+            font-size: clamp(1.3rem, 5vw, 1.8rem);
+            margin-bottom: 30px;
+            color: var(--text-primary);
+        }
+
+        .managers-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 700px) {
+            .managers-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
+
+        .manager-card {
+            background: var(--card-dark);
+            border: 1px solid var(--border-dim);
+            border-radius: 60px;
+            padding: 14px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .manager-card:hover {
+            background: var(--blue-accent);
+            border-color: var(--blue-accent);
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
+        }
+
+        .manager-icon {
+            font-size: 1.5rem;
+        }
+
         footer {
             text-align: center;
             padding: 25px 20px;
@@ -537,7 +590,26 @@
     <div class="products-grid" id="productsContainer"></div>
 </div>
 
-<footer>⚡ ICESHOP39. Все права защищены. Продажа только совершеннолетним. 2026 </footer>
+<!-- БЛОК МЕНЕДЖЕРОВ -->
+<div class="managers-section">
+    <h3 class="managers-title">📱 Наши менеджеры в городах</h3>
+    <div class="managers-grid">
+        <a href="https://t.me/ICE_SHOP39" target="_blank" class="manager-card">
+            <span class="manager-icon">🏢</span>
+            <span>КСиПТ</span>
+        </a>
+        <a href="https://t.me/IceShop_Gur" target="_blank" class="manager-card">
+            <span class="manager-icon">🏘️</span>
+            <span>Гурьевск</span>
+        </a>
+        <a href="https://t.me/IceShop_KLND" target="_blank" class="manager-card">
+            <span class="manager-icon">🌆</span>
+            <span>Калининград</span>
+        </a>
+    </div>
+</div>
+
+<footer>⚡ ICESHOP39. Все права защищены. Продажа только совершеннолетним. 2026</footer>
 
 <div id="adminModal" class="admin-modal">
     <div class="admin-card">
@@ -569,7 +641,6 @@
 </div>
 
 <script>
-    // ОБНОВЛЁННЫЕ КАТЕГОРИИ (+ Одноразки)
     const categories = [
         { id: "Жидкости", name: "Жидкости", icon: "💧" },
         { id: "Испарители", name: "Испарители", icon: "🔥" },
@@ -579,7 +650,6 @@
         { id: "Одноразки", name: "Одноразки", icon: "🔄" }
     ];
 
-    // ТОВАРЫ ПО УМОЛЧАНИЮ (добавил пару одноразок)
     const defaultProducts = [
         { id: 1, name: "Хаски Соль 20мг", category: "Жидкости", price: 550, desc: "Тархун, 30мл", image: "https://placehold.co/400x300/1E293B/3B82F6?text=Husky" },
         { id: 2, name: "OXVA Xlim Pro 2", category: "Вейпы", price: 3490, desc: "Регулировка обдува", image: "https://placehold.co/400x300/1E293B/3B82F6?text=OXVA" },
