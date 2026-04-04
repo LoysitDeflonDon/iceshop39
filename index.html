@@ -114,7 +114,7 @@
             border-bottom: 1px solid var(--border-dim);
             padding: 12px 20px;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             position: fixed;
             top: 0;
@@ -162,23 +162,6 @@
         .logo:hover::after {
             opacity: 1;
             transition-delay: 1.5s;
-        }
-
-        .admin-panel-btn {
-            background: var(--card-dark);
-            border: 1px solid var(--border-dim);
-            padding: 6px 16px;
-            border-radius: 60px;
-            color: white;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: clamp(0.8rem, 4vw, 1rem);
-        }
-
-        .admin-panel-btn:hover {
-            background: var(--blue-accent);
-            transform: scale(1.05);
         }
 
         .categories-section {
@@ -400,7 +383,6 @@
             font-size: 1rem;
         }
 
-        /* БЛОК МЕНЕДЖЕРОВ */
         .managers-section {
             padding: 50px 20px 30px;
             background: var(--bg-deep);
@@ -466,97 +448,11 @@
             font-size: 0.8rem;
         }
 
-        .admin-modal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95);
-            backdrop-filter: blur(8px);
-            z-index: 200;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .admin-card {
-            background: #0F172A;
-            border: 1px solid #2D3A5E;
-            border-radius: 28px;
-            width: 90%;
-            max-width: 500px;
-            max-height: 85vh;
-            overflow-y: auto;
-            padding: 24px 20px;
-            color: white;
-        }
-
-        .admin-card h2, .admin-card h3 {
-            margin-bottom: 18px;
+        .loader {
             text-align: center;
-        }
-
-        .admin-card input, .admin-card select, .admin-card textarea {
-            width: 100%;
-            padding: 10px 14px;
-            margin: 8px 0;
-            background: #1E293B;
-            border: 1px solid #334155;
-            border-radius: 20px;
-            color: white;
-            font-size: 0.9rem;
-        }
-
-        .admin-card button {
-            background: var(--blue-accent);
-            border: none;
-            padding: 10px;
-            border-radius: 40px;
-            font-weight: bold;
-            width: 100%;
-            margin-top: 10px;
-            color: white;
-            cursor: pointer;
-        }
-
-        .close-admin {
-            background: #334155;
-        }
-
-        .product-list-mini {
-            max-height: 200px;
-            overflow-y: auto;
-            margin: 12px 0;
-            background: #0A0F1E;
-            border-radius: 18px;
-            padding: 8px;
-        }
-
-        .mini-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px;
-            border-bottom: 1px solid #1E293B;
-            gap: 8px;
-            flex-wrap: wrap;
-            font-size: 0.8rem;
-        }
-
-        .mini-img {
-            width: 35px;
-            height: 35px;
-            object-fit: cover;
-            border-radius: 8px;
-        }
-
-        .admin-del-btn {
-            background: #EF4444;
-            border: none;
-            color: white;
-            border-radius: 25px;
-            padding: 4px 10px;
-            cursor: pointer;
-            font-size: 0.75rem;
+            padding: 50px;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
         }
     </style>
 </head>
@@ -566,7 +462,6 @@
     <div class="logo" id="homeLogoBtn">
         <h2>ICESHOP39</h2>
     </div>
-    <button class="admin-panel-btn" id="openAdminBtn">🔐 Админ-панель</button>
 </div>
 
 <div id="mainPage">
@@ -579,18 +474,21 @@
     </div>
 
     <div class="categories-section" id="categoriesSection">
-        <h2 class="section-title"> Категории</h2>
-        <div class="categories-grid" id="categoriesGrid"></div>
+        <h2 class="section-title">📦 Категории</h2>
+        <div class="categories-grid" id="categoriesGrid">
+            <div class="loader">Загрузка категорий...</div>
+        </div>
     </div>
 </div>
 
 <div id="productsPage" class="products-page">
     <button class="back-home" id="backHomeBtn">← На главную</button>
     <h2 class="page-title" id="productsPageTitle">Вейпы</h2>
-    <div class="products-grid" id="productsContainer"></div>
+    <div class="products-grid" id="productsContainer">
+        <div class="loader">Загрузка товаров...</div>
+    </div>
 </div>
 
-<!-- БЛОК МЕНЕДЖЕРОВ -->
 <div class="managers-section">
     <h3 class="managers-title">📱 Наши менеджеры в городах</h3>
     <div class="managers-grid">
@@ -611,35 +509,6 @@
 
 <footer>⚡ ICESHOP39. Все права защищены. Продажа только совершеннолетним. 2026</footer>
 
-<div id="adminModal" class="admin-modal">
-    <div class="admin-card">
-        <h2>🔐 Вход в админ-панель</h2>
-        <input type="password" id="adminPassword" placeholder="Пароль">
-        <button id="loginAdminBtn">Войти</button>
-        <div id="adminPanelContent" style="display: none;">
-            <hr style="margin: 15px 0;">
-            <h2>🎮 Управление товарами</h2>
-            <input type="text" id="productName" placeholder="Название товара">
-            <select id="productCategory">
-                <option value="Жидкости">💧 Жидкости</option>
-                <option value="Испарители">🔥 Испарители</option>
-                <option value="Картриджи">⚡ Картриджи</option>
-                <option value="Вейпы">💨 Вейпы</option>
-                <option value="Снюс">👅 Снюс</option>
-                <option value="Одноразки">🔄 Одноразки</option>
-            </select>
-            <input type="text" id="productPrice" placeholder="Цена (₽)">
-            <textarea id="productDesc" rows="2" placeholder="Описание товара"></textarea>
-            <input type="file" id="productImage" accept="image/*">
-            <button id="addProductBtn">➕ Добавить товар</button>
-            
-            <h3 style="margin-top: 15px;">🗑 Удалить товары</h3>
-            <div id="adminProductList" class="product-list-mini"></div>
-            <button id="closeAdminBtn" class="close-admin">✖️ Закрыть</button>
-        </div>
-    </div>
-</div>
-
 <script>
     const categories = [
         { id: "Жидкости", name: "Жидкости", icon: "💧" },
@@ -650,33 +519,22 @@
         { id: "Одноразки", name: "Одноразки", icon: "🔄" }
     ];
 
-    const defaultProducts = [
-        { id: 1, name: "Хаски Соль 20мг", category: "Жидкости", price: 550, desc: "Тархун, 30мл", image: "https://placehold.co/400x300/1E293B/3B82F6?text=Husky" },
-        { id: 2, name: "OXVA Xlim Pro 2", category: "Вейпы", price: 3490, desc: "Регулировка обдува", image: "https://placehold.co/400x300/1E293B/3B82F6?text=OXVA" },
-        { id: 3, name: "Aspire Nautilus 3", category: "Испарители", price: 1250, desc: "0.7 Ом, испаритель", image: "https://placehold.co/400x300/1E293B/3B82F6?text=Aspire" },
-        { id: 4, name: "Siberia White Fox", category: "Снюс", price: 450, desc: "20 порций", image: "https://placehold.co/400x300/1E293B/3B82F6?text=Siberia" },
-        { id: 5, name: "Nasty Juice 50мг", category: "Жидкости", price: 690, desc: "Манго 30мл", image: "https://placehold.co/400x300/1E293B/3B82F6?text=Nasty" },
-        { id: 6, name: "Vaporesso XROS 3", category: "Вейпы", price: 2790, desc: "Компактный под", image: "https://placehold.co/400x300/1E293B/3B82F6?text=XROS" },
-        { id: 7, name: "Pablo Exclusive", category: "Снюс", price: 390, desc: "Ягодный микс", image: "https://placehold.co/400x300/1E293B/3B82F6?text=Pablo" },
-        { id: 8, name: "GeekVape Wenax Картридж", category: "Картриджи", price: 650, desc: "1.2 Ом, 2шт", image: "https://placehold.co/400x300/1E293B/3B82F6?text=Wenax+Cartridge" },
-        { id: 9, name: "HQD Cuvie Plus", category: "Одноразки", price: 990, desc: "1200 затяжек, клубника", image: "https://placehold.co/400x300/1E293B/3B82F6?text=HQD" },
-        { id: 10, name: "Elf Bar 5000", category: "Одноразки", price: 1290, desc: "5000 затяжек, ледяная мята", image: "https://placehold.co/400x300/1E293B/3B82F6?text=Elf+Bar" }
-    ];
-
     let products = [];
-    let isAdminLoggedIn = false;
     let currentCategory = null;
 
-    function loadProducts() {
-        const stored = localStorage.getItem("iceshop39_products");
-        products = stored ? JSON.parse(stored) : [...defaultProducts];
-        saveProducts();
-        renderCategories();
-    }
-
-    function saveProducts() {
-        localStorage.setItem("iceshop39_products", JSON.stringify(products));
-        renderCategories();
+    async function loadProducts() {
+        const url = 'https://raw.githubusercontent.com/LoysitDeflonDon/iceshop39-data/refs/heads/main/products.json';
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Ошибка загрузки');
+            products = await response.json();
+            renderCategories();
+        } catch (error) {
+            console.error(error);
+            document.getElementById('categoriesGrid').innerHTML = '<div class="empty-msg">❌ Ошибка загрузки товаров. Проверьте интернет.</div>';
+            products = [];
+            renderCategories();
+        }
     }
 
     function getCount(catName) {
@@ -685,7 +543,8 @@
 
     function renderCategories() {
         const container = document.getElementById("categoriesGrid");
-        if(!container) return;
+        if (!container) return;
+        
         container.innerHTML = categories.map(cat => `
             <div class="category-card" data-category="${cat.name}">
                 <div class="category-icon">${cat.icon}</div>
@@ -693,6 +552,7 @@
                 <div class="category-count">${getCount(cat.name)} товаров</div>
             </div>
         `).join('');
+        
         document.querySelectorAll('.category-card').forEach(card => {
             card.addEventListener('click', () => openProductsPage(card.getAttribute('data-category')));
         });
@@ -710,7 +570,7 @@
     function renderProductsByCategory() {
         const container = document.getElementById('productsContainer');
         const filtered = products.filter(p => p.category === currentCategory);
-        if(filtered.length === 0) {
+        if (filtered.length === 0) {
             container.innerHTML = `<div class="empty-msg">📭 Товары отсутствуют.</div>`;
             return;
         }
@@ -724,110 +584,28 @@
         `).join('');
     }
 
-    function deleteProductById(id) {
-        if(!isAdminLoggedIn) return;
-        if(confirm('🗑 Точно удалить товар?')) {
-            products = products.filter(p => p.id !== id);
-            saveProducts();
-            if(currentCategory) renderProductsByCategory();
-            renderAdminProductList();
-        }
+    function escapeHtml(str) {
+        return str?.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) || '';
     }
 
-    function addProduct(name, category, price, desc, imageData) {
-        if(!name.trim() || !price || isNaN(parseFloat(price))) {
-            alert("❌ Название и цена обязательны!");
-            return false;
-        }
-        const newId = products.length ? Math.max(...products.map(p => p.id)) + 1 : 101;
-        products.push({
-            id: newId, name: name.trim(), category, price: parseFloat(price),
-            desc: desc.trim() || "🔥 ICESHOP39", image: imageData || "https://placehold.co/400x300/1E293B/3B82F6?text=New"
-        });
-        saveProducts();
-        if(currentCategory === category) renderProductsByCategory();
-        renderAdminProductList();
-        return true;
-    }
-
-    function renderAdminProductList() {
-        const container = document.getElementById("adminProductList");
-        if(!container || !isAdminLoggedIn) return;
-        if(!products.length) { container.innerHTML = "<div style='padding:12px'>✨ Нет товаров</div>"; return; }
-        container.innerHTML = products.map(p => `
-            <div class="mini-item">
-                <img class="mini-img" src="${p.image || 'https://placehold.co/40x40/1E293B/3B82F6?text=No'}" onerror="this.src='https://placehold.co/40x40/1E293B/3B82F6?text=No'">
-                <span><strong>${escapeHtml(p.name)}</strong> — ${p.price}₽ (${p.category})</span>
-                <button class="admin-del-btn" data-id="${p.id}">🗑 Удалить</button>
-            </div>
-        `).join('');
-        document.querySelectorAll('.admin-del-btn').forEach(btn => {
-            btn.addEventListener('click', () => deleteProductById(parseInt(btn.dataset.id)));
-        });
-    }
-
-    function escapeHtml(str) { return str?.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) || ''; }
-    
     function goToHome() {
         document.getElementById('mainPage').style.display = 'block';
         document.getElementById('productsPage').classList.remove('active');
         currentCategory = null;
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
-    
+
     function handleScroll() {
         const header = document.getElementById('header');
-        if(window.scrollY > 100) header.classList.add('visible');
+        if (window.scrollY > 100) header.classList.add('visible');
         else header.classList.remove('visible');
     }
-
-    const modal = document.getElementById('adminModal');
-    document.getElementById('openAdminBtn').onclick = () => {
-        if(isAdminLoggedIn) { renderAdminProductList(); modal.style.display = 'flex'; }
-        else { document.getElementById('adminPassword').value = ''; document.getElementById('adminPanelContent').style.display = 'none'; modal.style.display = 'flex'; }
-    };
-    document.getElementById('loginAdminBtn').onclick = () => {
-        if(document.getElementById('adminPassword').value === 'LiniX071') {
-            isAdminLoggedIn = true;
-            document.getElementById('adminPanelContent').style.display = 'block';
-            renderAdminProductList();
-        } else alert('❌ Неверный пароль!');
-    };
-    document.getElementById('closeAdminBtn').onclick = () => modal.style.display = 'none';
-    window.onclick = (e) => { if(e.target === modal) modal.style.display = 'none'; };
-    document.getElementById('addProductBtn').onclick = () => {
-        if(!isAdminLoggedIn) return;
-        const name = document.getElementById('productName').value;
-        const category = document.getElementById('productCategory').value;
-        const price = document.getElementById('productPrice').value;
-        const desc = document.getElementById('productDesc').value;
-        const file = document.getElementById('productImage').files[0];
-        if(file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                addProduct(name, category, price, desc, e.target.result);
-                document.getElementById('productName').value = '';
-                document.getElementById('productPrice').value = '';
-                document.getElementById('productDesc').value = '';
-                document.getElementById('productImage').value = '';
-                alert('✅ Товар с картинкой добавлен!');
-            };
-            reader.readAsDataURL(file);
-        } else {
-            if(addProduct(name, category, price, desc, null)) {
-                document.getElementById('productName').value = '';
-                document.getElementById('productPrice').value = '';
-                document.getElementById('productDesc').value = '';
-                alert('✅ Товар добавлен!');
-            }
-        }
-    };
 
     document.getElementById('backHomeBtn').onclick = goToHome;
     document.getElementById('homeLogoBtn').onclick = goToHome;
     document.getElementById('scrollHint').onclick = () => document.getElementById('categoriesSection').scrollIntoView({ behavior: 'smooth' });
     window.addEventListener('scroll', handleScroll);
-    
+
     loadProducts();
     handleScroll();
 </script>
