@@ -114,7 +114,7 @@
             border-bottom: 1px solid var(--border-dim);
             padding: 12px 20px;
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
             position: fixed;
             top: 0;
@@ -162,6 +162,25 @@
         .logo:hover::after {
             opacity: 1;
             transition-delay: 1.5s;
+        }
+
+        .favorites-icon {
+            background: var(--card-dark);
+            border: 1px solid var(--border-dim);
+            border-radius: 60px;
+            padding: 6px 16px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .favorites-icon:hover {
+            background: var(--blue-accent);
+            transform: scale(1.05);
         }
 
         .categories-section {
@@ -286,13 +305,13 @@
             border-color: var(--blue-accent);
         }
 
-        .products-page, .flavors-page {
+        .products-page, .flavors-page, .favorites-page {
             display: none;
             padding: 90px 20px 50px;
             min-height: 100vh;
         }
 
-        .products-page.active, .flavors-page.active {
+        .products-page.active, .flavors-page.active, .favorites-page.active {
             display: block;
             animation: fadeIn 0.5s ease;
         }
@@ -329,7 +348,7 @@
 
         .products-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 20px;
             max-width: 1300px;
             margin: 0 auto;
@@ -345,11 +364,38 @@
             flex-direction: column;
             gap: 10px;
             cursor: pointer;
+            position: relative;
         }
 
         .product-card:hover {
             transform: translateY(-6px);
             border-color: var(--blue-accent);
+        }
+
+        .favorite-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(0,0,0,0.5);
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .favorite-btn.active {
+            color: #EF4444;
+        }
+
+        .favorite-btn:hover {
+            transform: scale(1.1);
         }
 
         .product-image {
@@ -375,6 +421,23 @@
             color: var(--text-secondary);
             font-size: 0.85rem;
             line-height: 1.4;
+        }
+
+        .order-btn {
+            background: #10B981;
+            border: none;
+            border-radius: 40px;
+            padding: 10px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: 0.3s;
+        }
+
+        .order-btn:hover {
+            background: #059669;
+            transform: scale(1.02);
         }
 
         .empty-msg {
@@ -410,6 +473,38 @@
         .stock-low {
             color: #EF4444;
             font-weight: 600;
+        }
+
+        .manager-select {
+            background: #1E293B;
+            border: 1px solid var(--border-dim);
+            border-radius: 40px;
+            padding: 8px 16px;
+            color: white;
+            font-size: 0.9rem;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+        .order-with-manager {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .order-with-manager select {
+            flex: 1;
+            background: #1E293B;
+            border: 1px solid var(--border-dim);
+            border-radius: 40px;
+            padding: 10px;
+            color: white;
+        }
+
+        .order-with-manager button {
+            flex: 2;
         }
 
         .managers-section {
@@ -491,6 +586,9 @@
     <div class="logo" id="homeLogoBtn">
         <h2>ICESHOP39</h2>
     </div>
+    <div class="favorites-icon" id="favoritesIcon">
+        ❤️ <span id="favoritesCount">0</span>
+    </div>
 </div>
 
 <div id="mainPage">
@@ -524,6 +622,12 @@
     <div id="flavorsContainer"></div>
 </div>
 
+<div id="favoritesPage" class="favorites-page">
+    <button class="back-home" id="backFavoritesBtn">← На главную</button>
+    <h2 class="page-title">❤️ Избранное</h2>
+    <div class="products-grid" id="favoritesContainer"></div>
+</div>
+
 <div class="managers-section">
     <h3 class="managers-title">📱 Наши менеджеры в городах</h3>
     <div class="managers-grid">
@@ -554,9 +658,97 @@
         { id: "Одноразки", name: "Одноразки", icon: "🔄" }
     ];
 
+    const managers = [
+        { name: "КСиПТ", tg: "ICE_SHOP39" },
+        { name: "Гурьевск", tg: "IceShop_Gur" },
+        { name: "Калининград", tg: "IceShop_KLND" }
+    ];
+
     let allItems = [];
     let currentCategory = null;
     let currentParent = null;
+    let favorites = [];
+
+    function loadFavorites() {
+        const saved = localStorage.getItem("iceshop39_favorites");
+        if (saved) favorites = JSON.parse(saved);
+        updateFavoritesCount();
+    }
+
+    function saveFavorites() {
+        localStorage.setItem("iceshop39_favorites", JSON.stringify(favorites));
+        updateFavoritesCount();
+    }
+
+    function updateFavoritesCount() {
+        document.getElementById('favoritesCount').innerText = favorites.length;
+    }
+
+    function isFavorite(itemId, flavorIndex = null) {
+        if (flavorIndex !== null) {
+            return favorites.some(f => f.id === itemId && f.flavorIndex === flavorIndex);
+        }
+        return favorites.some(f => f.id === itemId && f.flavorIndex === undefined);
+    }
+
+    function addToFavorites(item, flavor = null, flavorIndex = null) {
+        if (flavor) {
+            const exists = favorites.some(f => f.id === item.id && f.flavorIndex === flavorIndex);
+            if (!exists) {
+                favorites.push({
+                    id: item.id,
+                    name: item.name,
+                    variant: flavor.name,
+                    price: flavor.price,
+                    image: item.image,
+                    flavorIndex: flavorIndex
+                });
+            }
+        } else {
+            const exists = favorites.some(f => f.id === item.id && f.flavorIndex === undefined);
+            if (!exists) {
+                favorites.push({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    image: item.image,
+                    desc: item.desc
+                });
+            }
+        }
+        saveFavorites();
+    }
+
+    function removeFromFavorites(itemId, flavorIndex = null) {
+        if (flavorIndex !== null) {
+            favorites = favorites.filter(f => !(f.id === itemId && f.flavorIndex === flavorIndex));
+        } else {
+            favorites = favorites.filter(f => !(f.id === itemId && f.flavorIndex === undefined));
+        }
+        saveFavorites();
+    }
+
+    function toggleFavorite(item, flavor = null, flavorIndex = null) {
+        if (flavor) {
+            if (isFavorite(item.id, flavorIndex)) {
+                removeFromFavorites(item.id, flavorIndex);
+            } else {
+                addToFavorites(item, flavor, flavorIndex);
+            }
+        } else {
+            if (isFavorite(item.id)) {
+                removeFromFavorites(item.id);
+            } else {
+                addToFavorites(item);
+            }
+        }
+    }
+
+    function orderViaTelegram(productName, variant, price, managerTg) {
+        const message = `Здравствуйте! Хочу заказать: ${productName}, ${variant} — ${price} ₽`;
+        const url = `https://t.me/${managerTg}?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank');
+    }
 
     async function loadData() {
         const url = 'https://raw.githubusercontent.com/LoysitDeflonDon/iceshop39-data/refs/heads/main/products.json';
@@ -606,12 +798,19 @@
         
         container.innerHTML = items.map(item => `
             <div class="product-card" data-id="${item.id}">
+                <button class="favorite-btn ${isFavorite(item.id) ? 'active' : ''}" data-fav-id="${item.id}">❤️</button>
                 <img class="product-image" src="${item.image || 'https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
                 <div class="product-title">${escapeHtml(item.name)}</div>
                 ${item.flavors ? 
                     `<div class="product-price">от ${Math.min(...item.flavors.map(f => f.price))} ₽</div>` :
                     `<div class="product-price">${item.price} ₽</div>
-                     <div class="product-desc">${escapeHtml(item.desc || '')}</div>`
+                     <div class="product-desc">${escapeHtml(item.desc || '')}</div>
+                     <div class="order-with-manager">
+                         <select class="manager-select" data-id="${item.id}">
+                            ${managers.map(m => `<option value="${m.tg}">${m.name}</option>`).join('')}
+                         </select>
+                         <button class="order-btn" data-order-name="${escapeHtml(item.name)}" data-order-price="${item.price}">📦 Заказать</button>
+                     </div>`
                 }
             </div>
         `).join('');
@@ -619,6 +818,29 @@
         document.querySelectorAll('.product-card').forEach(card => {
             const id = parseInt(card.dataset.id);
             const item = allItems.find(i => i.id === id);
+            
+            const favBtn = card.querySelector('.favorite-btn');
+            if (favBtn) {
+                favBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleFavorite(item);
+                    favBtn.classList.toggle('active');
+                    renderCategories();
+                });
+            }
+            
+            const orderBtn = card.querySelector('.order-btn');
+            const managerSelect = card.querySelector('.manager-select');
+            if (orderBtn && managerSelect) {
+                orderBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const name = orderBtn.dataset.orderName;
+                    const price = orderBtn.dataset.orderPrice;
+                    const managerTg = managerSelect.value;
+                    orderViaTelegram(name, 'стандарт', price, managerTg);
+                });
+            }
+            
             card.addEventListener('click', () => {
                 if (item.flavors) {
                     openFlavors(item);
@@ -633,13 +855,13 @@
         currentParent = parentItem;
         document.getElementById('productsPage').classList.remove('active');
         document.getElementById('flavorsPage').classList.add('active');
-        document.getElementById('flavorsPageTitle').textContent = `${parentItem.name} — все вкусы`;
+        document.getElementById('flavorsPageTitle').textContent = `${parentItem.name} — все варианты`;
         
         const container = document.getElementById('flavorsContainer');
         const flavors = parentItem.flavors;
         
         if (!flavors || flavors.length === 0) {
-            container.innerHTML = `<div class="empty-msg">📭 Список вкусов пуст.</div>`;
+            container.innerHTML = `<div class="empty-msg">📭 Список вариантов пуст.</div>`;
             return;
         }
         
@@ -647,20 +869,88 @@
             <div class="flavors-table-container">
                 <table class="flavors-table">
                     <thead>
-                        <tr><th>Вкус / Наименование</th><th>Цена</th><th>Остаток</th></tr>
+                        <tr><th>Название</th><th>Цена</th><th>Остаток</th><th></th><th>Менеджер</th><th></th></tr>
                     </thead>
                     <tbody>
-                        ${flavors.map(f => `
+                        ${flavors.map((f, idx) => `
                             <tr>
                                 <td>${escapeHtml(f.name)}</td>
                                 <td class="product-price" style="font-size:1.2rem">${f.price} ₽</td>
                                 <td class="${f.stock < 5 ? 'stock-low' : ''}">${f.stock} шт</td>
+                                <td><button class="favorite-btn-flavor ${isFavorite(parentItem.id, idx) ? 'active' : ''}" data-flavor-index="${idx}" style="background:none;font-size:1.3rem;cursor:pointer">❤️</button></td>
+                                <td>
+                                    <select class="manager-select-flavor" data-flavor-index="${idx}" style="background:#1E293B;border:1px solid #334155;border-radius:40px;padding:6px 10px;color:white">
+                                        ${managers.map(m => `<option value="${m.tg}">${m.name}</option>`).join('')}
+                                    </select>
+                                </td>
+                                <td>
+                                    <button class="order-flavor-btn" data-flavor-name="${escapeHtml(f.name)}" data-flavor-price="${f.price}" style="background:#10B981;border:none;border-radius:40px;padding:6px 12px;color:white;cursor:pointer">📦 Заказать</button>
+                                </td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
             </div>
         `;
+        
+        document.querySelectorAll('.favorite-btn-flavor').forEach(btn => {
+            const idx = parseInt(btn.dataset.flavorIndex);
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggleFavorite(parentItem, flavors[idx], idx);
+                btn.classList.toggle('active');
+            });
+        });
+        
+        document.querySelectorAll('.order-flavor-btn').forEach(btn => {
+            const idx = parseInt(btn.closest('tr').querySelector('.manager-select-flavor').dataset.flavorIndex);
+            const select = btn.closest('tr').querySelector('.manager-select-flavor');
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const name = btn.dataset.flavorName;
+                const price = btn.dataset.flavorPrice;
+                const managerTg = select.value;
+                orderViaTelegram(parentItem.name, name, price, managerTg);
+            });
+        });
+    }
+
+    function openFavorites() {
+        document.getElementById('mainPage').style.display = 'none';
+        document.getElementById('productsPage').classList.remove('active');
+        document.getElementById('flavorsPage').classList.remove('active');
+        document.getElementById('favoritesPage').classList.add('active');
+        
+        const container = document.getElementById('favoritesContainer');
+        if (favorites.length === 0) {
+            container.innerHTML = '<div class="empty-msg">💔 Нет избранных товаров</div>';
+            return;
+        }
+        
+        container.innerHTML = favorites.map(fav => `
+            <div class="product-card">
+                <img class="product-image" src="${fav.image || 'https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
+                <div class="product-title">${escapeHtml(fav.name)} ${fav.variant ? '(' + escapeHtml(fav.variant) + ')' : ''}</div>
+                <div class="product-price">${fav.price} ₽</div>
+                <div class="order-with-manager">
+                    <select class="manager-select-fav" data-fav-id="${fav.id}" style="background:#1E293B;border:1px solid #334155;border-radius:40px;padding:10px;color:white">
+                        ${managers.map(m => `<option value="${m.tg}">${m.name}</option>`).join('')}
+                    </select>
+                    <button class="order-fav-btn" data-order-name="${escapeHtml(fav.name)}" data-order-variant="${escapeHtml(fav.variant || '')}" data-order-price="${fav.price}">📦 Заказать</button>
+                </div>
+            </div>
+        `).join('');
+        
+        document.querySelectorAll('.order-fav-btn').forEach(btn => {
+            const select = btn.closest('.product-card').querySelector('.manager-select-fav');
+            btn.addEventListener('click', () => {
+                const name = btn.dataset.orderName;
+                const variant = btn.dataset.orderVariant || 'стандарт';
+                const price = btn.dataset.orderPrice;
+                const managerTg = select.value;
+                orderViaTelegram(name, variant, price, managerTg);
+            });
+        });
     }
 
     function escapeHtml(str) {
@@ -672,27 +962,33 @@
         document.getElementById('mainPage').style.display = 'block';
         document.getElementById('productsPage').classList.remove('active');
         document.getElementById('flavorsPage').classList.remove('active');
+        document.getElementById('favoritesPage').classList.remove('active');
         currentCategory = null;
         currentParent = null;
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // НОВАЯ ФУНКЦИЯ: возврат в категорию (не на главную)
     function goBackToCategory() {
         document.getElementById('flavorsPage').classList.remove('active');
         document.getElementById('productsPage').classList.add('active');
-        // Перерисовываем товары текущей категории (чтобы обновить остатки)
         if (currentCategory) {
             const items = allItems.filter(item => item.category === currentCategory);
             const container = document.getElementById('productsContainer');
             container.innerHTML = items.map(item => `
                 <div class="product-card" data-id="${item.id}">
+                    <button class="favorite-btn ${isFavorite(item.id) ? 'active' : ''}" data-fav-id="${item.id}">❤️</button>
                     <img class="product-image" src="${item.image || 'https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
                     <div class="product-title">${escapeHtml(item.name)}</div>
                     ${item.flavors ? 
                         `<div class="product-price">от ${Math.min(...item.flavors.map(f => f.price))} ₽</div>` :
                         `<div class="product-price">${item.price} ₽</div>
-                         <div class="product-desc">${escapeHtml(item.desc || '')}</div>`
+                         <div class="product-desc">${escapeHtml(item.desc || '')}</div>
+                         <div class="order-with-manager">
+                             <select class="manager-select" data-id="${item.id}">
+                                ${managers.map(m => `<option value="${m.tg}">${m.name}</option>`).join('')}
+                             </select>
+                             <button class="order-btn" data-order-name="${escapeHtml(item.name)}" data-order-price="${item.price}">📦 Заказать</button>
+                         </div>`
                     }
                 </div>
             `).join('');
@@ -700,6 +996,26 @@
             document.querySelectorAll('.product-card').forEach(card => {
                 const id = parseInt(card.dataset.id);
                 const item = allItems.find(i => i.id === id);
+                const favBtn = card.querySelector('.favorite-btn');
+                if (favBtn) {
+                    favBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        toggleFavorite(item);
+                        favBtn.classList.toggle('active');
+                        renderCategories();
+                    });
+                }
+                const orderBtn = card.querySelector('.order-btn');
+                const managerSelect = card.querySelector('.manager-select');
+                if (orderBtn && managerSelect) {
+                    orderBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const name = orderBtn.dataset.orderName;
+                        const price = orderBtn.dataset.orderPrice;
+                        const managerTg = managerSelect.value;
+                        orderViaTelegram(name, 'стандарт', price, managerTg);
+                    });
+                }
                 card.addEventListener('click', () => {
                     if (item.flavors) {
                         openFlavors(item);
@@ -718,10 +1034,13 @@
 
     document.getElementById('backHomeBtn').onclick = goToHome;
     document.getElementById('backFlavorsHomeBtn').onclick = goBackToCategory;
+    document.getElementById('backFavoritesBtn').onclick = goToHome;
     document.getElementById('homeLogoBtn').onclick = goToHome;
+    document.getElementById('favoritesIcon').onclick = openFavorites;
     document.getElementById('scrollHint').onclick = () => document.getElementById('categoriesSection').scrollIntoView({ behavior: 'smooth' });
     window.addEventListener('scroll', handleScroll);
 
+    loadFavorites();
     loadData();
     handleScroll();
 </script>
