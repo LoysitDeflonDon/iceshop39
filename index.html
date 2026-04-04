@@ -609,12 +609,12 @@
 
 <script>
     const categories = [
-        { id: "Жидкости", name: "Жидкости", icon: "💧" },
-        { id: "Испарители", name: "Испарители", icon: "🔥" },
-        { id: "Картриджи", name: "Картриджи", icon: "⚡" },
-        { id: "Вейпы", name: "Вейпы", icon: "💨" },
-        { id: "Снюс", name: "Снюс", icon: "👅" },
-        { id: "Одноразки", name: "Одноразки", icon: "🔄" }
+        { id: "Жидкости", name: "Жидкости", icon: "💧", file: "Zhitkosty.json" },
+        { id: "Испарители", name: "Испарители", icon: "🔥", file: "Ispariteli.json" },
+        { id: "Картриджи", name: "Картриджи", icon: "⚡", file: "Kartdritzhy.json" },
+        { id: "Вейпы", name: "Вейпы", icon: "💨", file: "Vapes.json" },
+        { id: "Снюс", name: "Снюс", icon: "👅", file: "Snus.json" },
+        { id: "Одноразки", name: "Одноразки", icon: "🔄", file: "Odnorazki.json" }
     ];
 
     const managers = [
@@ -623,50 +623,45 @@
         { name: "Калининград", tg: "IceShop_KLND" }
     ];
 
-    let allItems = [];
+    // Хранилище товаров по категориям
+    let categoryData = {
+        "Жидкости": [],
+        "Испарители": [],
+        "Картриджи": [],
+        "Вейпы": [],
+        "Снюс": [],
+        "Одноразки": []
+    };
+    
     let currentCategory = null;
+    let currentItems = [];
 
-    function showManagerModal(productName, variant, price, callback) {
-        const modal = document.getElementById('managerModal');
-        const optionsContainer = document.getElementById('managerOptions');
-        optionsContainer.innerHTML = managers.map(m => `
-            <div class="manager-option" data-tg="${m.tg}">
-                <span>${m.name === "КСиПТ" ? "🏢" : m.name === "Гурьевск" ? "🏘️" : "🌆"}</span>
-                <span>${m.name}</span>
-            </div>
-        `).join('');
-        modal.style.display = 'flex';
-        document.querySelectorAll('.manager-option').forEach(opt => {
-            opt.addEventListener('click', () => {
-                modal.style.display = 'none';
-                callback(opt.dataset.tg);
-            });
-        });
-    }
-
-    function closeModal() {
-        document.getElementById('managerModal').style.display = 'none';
-    }
-
-    function orderViaTelegram(productName, variant, price, managerTg) {
-        const message = `Здравствуйте! Хочу заказать: ${productName}, ${variant} — ${price} ₽`;
-        window.open(`https://t.me/${managerTg}?text=${encodeURIComponent(message)}`, '_blank');
-    }
-
-    async function loadData() {
-        const url = 'https://raw.githubusercontent.com/LoysitDeflonDon/iceshop39-data/refs/heads/main/products.json';
+    async function loadCategory(category) {
+        const catInfo = categories.find(c => c.name === category);
+        if (!catInfo) return [];
+        
+        const url = `https://raw.githubusercontent.com/LoysitDeflonDon/iceshop39-data/refs/heads/main/${catInfo.file}`;
         try {
             const res = await fetch(url);
             if (!res.ok) throw new Error();
-            allItems = await res.json();
-            renderCategories();
+            const data = await res.json();
+            categoryData[category] = data;
+            return data;
         } catch(e) {
-            document.getElementById('categoriesGrid').innerHTML = '<div class="empty-msg">❌ Ошибка загрузки товаров. Проверьте интернет.</div>';
+            console.error(`Ошибка загрузки ${category}:`, e);
+            categoryData[category] = [];
+            return [];
         }
     }
 
+    async function loadAllCategories() {
+        const promises = categories.map(cat => loadCategory(cat.name));
+        await Promise.all(promises);
+        renderCategories();
+    }
+
     function getCount(catName) {
-        return allItems.filter(i => i.category === catName).length;
+        return categoryData[catName]?.length || 0;
     }
 
     function renderCategories() {
@@ -678,21 +673,39 @@
                 <div class="category-count">${getCount(cat.name)} товаров</div>
             </div>
         `).join('');
+        
         document.querySelectorAll('.category-card').forEach(card => {
             card.addEventListener('click', () => openCategory(card.dataset.category));
         });
     }
 
-    function openCategory(catName) {
+    async function openCategory(catName) {
         currentCategory = catName;
-        const items = allItems.filter(i => i.category === catName);
+        
+        // Если данные ещё не загружены, загружаем
+        if (!categoryData[catName] || categoryData[catName].length === 0) {
+            const container = document.getElementById('productsContainer');
+            container.innerHTML = '<div class="loader">Загрузка товаров...</div>';
+            document.getElementById('mainPage').style.display = 'none';
+            document.getElementById('productsPage').classList.add('active');
+            document.getElementById('productsPageTitle').textContent = catName;
+            
+            await loadCategory(catName);
+        }
+        
+        currentItems = categoryData[catName] || [];
+        
         document.getElementById('mainPage').style.display = 'none';
         document.getElementById('productsPage').classList.add('active');
         document.getElementById('productsPageTitle').textContent = catName;
-        const container = document.getElementById('productsContainer');
-        if (!items.length) { container.innerHTML = '<div class="empty-msg">📭 Товары отсутствуют.</div>'; return; }
         
-        container.innerHTML = items.map(item => {
+        const container = document.getElementById('productsContainer');
+        if (!currentItems.length) {
+            container.innerHTML = '<div class="empty-msg">📭 Товары отсутствуют.</div>';
+            return;
+        }
+        
+        container.innerHTML = currentItems.map(item => {
             if (item.flavors) {
                 return `
                     <div class="product-card" data-id="${item.id}">
@@ -724,7 +737,7 @@
                     showManagerModal(name, 'стандарт', price, (tg) => orderViaTelegram(name, 'стандарт', price, tg));
                 } else if (btn.dataset.orderType === 'flavors') {
                     const id = parseInt(btn.dataset.itemId);
-                    const item = allItems.find(i => i.id === id);
+                    const item = currentItems.find(i => i.id === id);
                     if (item && item.flavors) openFlavors(item);
                 }
             });
@@ -732,7 +745,7 @@
         
         document.querySelectorAll('.product-card').forEach(card => {
             const id = parseInt(card.dataset.id);
-            const item = allItems.find(i => i.id === id);
+            const item = currentItems.find(i => i.id === id);
             if (item?.flavors) {
                 card.addEventListener('click', () => openFlavors(item));
             }
@@ -749,7 +762,7 @@
         container.innerHTML = `
             <div class="flavors-table-container">
                 <table class="flavors-table">
-                    <thead><tr><th>Вкус</th><th>Цена</th><th>Остаток</th><th></th></thead>
+                    <thead><tr><th>Вкус</th><th>Цена</th><th>Остаток</th><th></th></tr></thead>
                     <tbody>
                         ${parentItem.flavors.map(f => `
                             <tr>
@@ -772,7 +785,37 @@
         });
     }
 
-    function escapeHtml(str) { return str?.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) || ''; }
+    function showManagerModal(productName, variant, price, callback) {
+        const modal = document.getElementById('managerModal');
+        const optionsContainer = document.getElementById('managerOptions');
+        optionsContainer.innerHTML = managers.map(m => `
+            <div class="manager-option" data-tg="${m.tg}">
+                <span>${m.name === "КСиПТ" ? "🏢" : m.name === "Гурьевск" ? "🏘️" : "🌆"}</span>
+                <span>${m.name}</span>
+            </div>
+        `).join('');
+        modal.style.display = 'flex';
+        document.querySelectorAll('.manager-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                modal.style.display = 'none';
+                callback(opt.dataset.tg);
+            });
+        });
+    }
+
+    function closeModal() {
+        document.getElementById('managerModal').style.display = 'none';
+    }
+
+    function orderViaTelegram(productName, variant, price, managerTg) {
+        const message = `Здравствуйте! Хочу заказать: ${productName}, ${variant} — ${price} ₽`;
+        window.open(`https://t.me/${managerTg}?text=${encodeURIComponent(message)}`, '_blank');
+    }
+
+    function escapeHtml(str) { 
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); 
+    }
     
     function goToHome() {
         document.getElementById('mainPage').style.display = 'block';
@@ -801,7 +844,8 @@
     window.onclick = (e) => { if (e.target === document.getElementById('managerModal')) closeModal(); };
     window.addEventListener('scroll', handleScroll);
 
-    loadData();
+    // Загружаем все категории при старте
+    loadAllCategories();
     handleScroll();
 </script>
 </body>
