@@ -511,7 +511,7 @@
 </div>
 
 <div id="productsPage" class="products-page">
-    <button class="back-home" id="backHomeBtn">← На главную</button>
+    <button class="back-home" id="backHomeBtn">← Назад</button>
     <h2 class="page-title" id="productsPageTitle">Вейпы</h2>
     <div class="products-grid" id="productsContainer">
         <div class="loader">Загрузка товаров...</div>
@@ -677,6 +677,39 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    // НОВАЯ ФУНКЦИЯ: возврат в категорию (не на главную)
+    function goBackToCategory() {
+        document.getElementById('flavorsPage').classList.remove('active');
+        document.getElementById('productsPage').classList.add('active');
+        // Перерисовываем товары текущей категории (чтобы обновить остатки)
+        if (currentCategory) {
+            const items = allItems.filter(item => item.category === currentCategory);
+            const container = document.getElementById('productsContainer');
+            container.innerHTML = items.map(item => `
+                <div class="product-card" data-id="${item.id}">
+                    <img class="product-image" src="${item.image || 'https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
+                    <div class="product-title">${escapeHtml(item.name)}</div>
+                    ${item.flavors ? 
+                        `<div class="product-price">от ${Math.min(...item.flavors.map(f => f.price))} ₽</div>` :
+                        `<div class="product-price">${item.price} ₽</div>
+                         <div class="product-desc">${escapeHtml(item.desc || '')}</div>`
+                    }
+                </div>
+            `).join('');
+            
+            document.querySelectorAll('.product-card').forEach(card => {
+                const id = parseInt(card.dataset.id);
+                const item = allItems.find(i => i.id === id);
+                card.addEventListener('click', () => {
+                    if (item.flavors) {
+                        openFlavors(item);
+                    }
+                });
+            });
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
     function handleScroll() {
         const header = document.getElementById('header');
         if (window.scrollY > 100) header.classList.add('visible');
@@ -684,7 +717,7 @@
     }
 
     document.getElementById('backHomeBtn').onclick = goToHome;
-    document.getElementById('backFlavorsHomeBtn').onclick = goToHome;
+    document.getElementById('backFlavorsHomeBtn').onclick = goBackToCategory;
     document.getElementById('homeLogoBtn').onclick = goToHome;
     document.getElementById('scrollHint').onclick = () => document.getElementById('categoriesSection').scrollIntoView({ behavior: 'smooth' });
     window.addEventListener('scroll', handleScroll);
