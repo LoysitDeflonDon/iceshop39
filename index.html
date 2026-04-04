@@ -9,25 +9,20 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
         }
-
         body {
             background: #0A0F1E;
             color: #EDF2FF;
             overflow-x: hidden;
         }
-
         :root {
             --bg-deep: #0A0F1E;
             --card-dark: #111827;
             --blue-accent: #3B82F6;
             --border-dim: #1F2A44;
-            --text-primary: #F1F5F9;
             --text-secondary: #94A3B8;
-            --danger: #EF4444;
         }
-
         .hero-section {
             min-height: 100vh;
             display: flex;
@@ -39,75 +34,37 @@
             position: relative;
             background-size: cover;
             background-position: center;
-            background-repeat: no-repeat;
             background-image: url('https://i.ibb.co/5hYz909b/istockphoto-1399967405-612x612.jpg');
         }
-
         .hero-section::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(10, 15, 30, 0.7);
             backdrop-filter: blur(3px);
         }
-
         .hero-content {
             position: relative;
             z-index: 2;
-            max-width: 800px;
         }
-
         .hero-title {
-            font-size: clamp(2.5rem, 10vw, 5.5rem);
+            font-size: clamp(2.5rem, 10vw, 5rem);
             font-weight: 900;
-            letter-spacing: 0.05em;
             color: #2563EB;
-            display: inline-block;
-            user-select: none;
-            transform: translateY(50px);
-            opacity: 0;
-            animation: slideUpFade 0.8s ease forwards;
-            text-shadow: 0 0 4px #1D4ED8, 0 0 8px #1E3A8A, 0 0 12px #172554;
-            transition: text-shadow 0.3s ease;
+            text-shadow: 0 0 8px #1D4ED8;
         }
-
-        .hero-title:hover {
-            text-shadow: 0 0 6px #3B82F6, 0 0 12px #2563EB, 0 0 18px #1D4ED8, 0 0 24px #1E3A8A;
-        }
-
-        @keyframes slideUpFade {
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        .hero-desc {
-            font-size: clamp(1rem, 5vw, 1.5rem);
-            color: var(--text-secondary);
-            margin-top: 20px;
-            transform: translateY(50px);
-            opacity: 0;
-            animation: slideUpFade 0.8s ease 0.4s forwards;
-            text-shadow: 0 0 10px rgba(0,0,0,0.5);
-        }
-
         .scroll-hint {
             position: absolute;
             bottom: 30px;
             left: 50%;
             transform: translateX(-50%);
-            z-index: 2;
-            color: var(--text-secondary);
             animation: bounce 2s infinite;
             cursor: pointer;
         }
-
         @keyframes bounce {
             0%, 100% { transform: translateX(-50%) translateY(0); }
             50% { transform: translateX(-50%) translateY(10px); }
         }
-
         .header {
             background: rgba(10, 15, 30, 0.96);
             backdrop-filter: blur(12px);
@@ -115,66 +72,21 @@
             padding: 12px 20px;
             display: flex;
             justify-content: center;
-            align-items: center;
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 0; left: 0; right: 0;
             z-index: 100;
             transform: translateY(-100%);
-            transition: transform 0.3s ease;
+            transition: transform 0.3s;
         }
-
-        .header.visible {
-            transform: translateY(0);
-        }
-
-        .logo {
-            cursor: pointer;
-            position: relative;
-        }
-
+        .header.visible { transform: translateY(0); }
         .logo h2 {
-            font-size: clamp(1rem, 5vw, 1.5rem);
             color: #3B82F6;
-            text-shadow: 0 0 3px #1D4ED8, 0 0 5px #1E3A8A;
-            font-weight: 800;
+            cursor: pointer;
+            font-size: 1.5rem;
         }
-
-        .logo::after {
-            content: "Главная";
-            position: absolute;
-            bottom: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--blue-accent);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            white-space: nowrap;
-            opacity: 0;
-            transition: opacity 0.3s;
-            transition-delay: 0s;
-            pointer-events: none;
-        }
-
-        .logo:hover::after {
-            opacity: 1;
-            transition-delay: 1.5s;
-        }
-
         .categories-section {
             padding: 50px 20px;
-            background: var(--bg-deep);
         }
-
-        .section-title {
-            text-align: center;
-            font-size: clamp(1.5rem, 6vw, 2rem);
-            margin-bottom: 30px;
-        }
-
         .categories-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -182,19 +94,12 @@
             max-width: 1200px;
             margin: 0 auto;
         }
-
         @media (max-width: 900px) {
-            .categories-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
+            .categories-grid { grid-template-columns: repeat(2, 1fr); }
         }
-
         @media (max-width: 550px) {
-            .categories-grid {
-                grid-template-columns: 1fr;
-            }
+            .categories-grid { grid-template-columns: 1fr; }
         }
-
         .category-card {
             background: var(--card-dark);
             border: 1px solid var(--border-dim);
@@ -202,312 +107,145 @@
             padding: 30px 15px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.4s;
+            transition: 0.3s;
             position: relative;
             overflow: hidden;
-            min-width: 0;
         }
-
         .category-card::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            top: 0; left: 0; right: 0; bottom: 0;
             background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            opacity: 0.35;
+            opacity: 0.3;
             filter: blur(2px);
-            transition: opacity 0.3s;
             z-index: 0;
         }
-
-        .category-card::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.3);
-            z-index: 0;
-            pointer-events: none;
-        }
-
-        .category-card[data-category="Жидкости"]::before {
-            background-image: url('https://i.ibb.co/ZRJWzFgY/i.webp');
-        }
-        .category-card[data-category="Испарители"]::before {
-            background-image: url('https://i.ibb.co/xKG5BxjK/2026-04-04-124034203.png');
-        }
-        .category-card[data-category="Картриджи"]::before {
-            background-image: url('https://i.ibb.co/k284RcWN/2026-04-04-123830912.png');
-        }
-        .category-card[data-category="Вейпы"]::before {
-            background-image: url('https://i.ibb.co/3Xgr0v8/2026-04-04-124326975.png');
-        }
-        .category-card[data-category="Снюс"]::before {
-            background-image: url('https://i.ibb.co/kgQk6Rp7/2026-04-04-124535497.png');
-        }
-        .category-card[data-category="Одноразки"]::before {
-            background-image: url('https://i.ibb.co/W4hXLFkr/2026-04-04-124758580.png');
-        }
-
-        .category-card:hover::before {
-            opacity: 0.5;
-        }
-
-        .category-card > * {
-            position: relative;
-            z-index: 2;
-        }
-
-        .category-icon {
-            font-size: clamp(2.5rem, 8vw, 4rem);
-            margin-bottom: 15px;
-        }
-
-        .category-name {
-            font-size: clamp(1rem, 5vw, 1.3rem);
-            font-weight: 700;
-            margin-bottom: 10px;
-            word-break: break-word;
-        }
-
-        .category-count {
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-        }
-
-        .category-card:hover {
-            transform: translateY(-8px);
-            border-color: var(--blue-accent);
-        }
-
-        .products-page {
+        .category-card[data-category="Жидкости"]::before { background-image: url('https://i.ibb.co/ZRJWzFgY/i.webp'); }
+        .category-card[data-category="Снюс"]::before { background-image: url('https://i.ibb.co/kgQk6Rp7/2026-04-04-124535497.png'); }
+        .category-card > * { position: relative; z-index: 1; }
+        .category-icon { font-size: 3rem; }
+        .category-name { font-weight: 700; margin: 10px 0; }
+        .category-card:hover { transform: translateY(-5px); border-color: var(--blue-accent); }
+        .products-page, .flavors-page {
             display: none;
             padding: 90px 20px 50px;
-            min-height: 100vh;
         }
-
-        .products-page.active {
+        .products-page.active, .flavors-page.active {
             display: block;
-            animation: fadeIn 0.5s ease;
         }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
         .back-home {
             background: var(--card-dark);
             border: 1px solid var(--border-dim);
             padding: 8px 20px;
             border-radius: 40px;
-            color: white;
             cursor: pointer;
             margin-bottom: 25px;
-            transition: all 0.3s;
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            color: white;
         }
-
-        .back-home:hover {
-            background: var(--blue-accent);
-            transform: translateX(-5px);
-        }
-
-        .page-title {
-            font-size: clamp(1.5rem, 6vw, 2rem);
-            margin-bottom: 25px;
-            text-align: center;
-        }
-
         .products-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
             gap: 20px;
-            max-width: 1300px;
-            margin: 0 auto;
         }
-
-        .product-card {
+        .product-card, .flavor-card {
             background: var(--card-dark);
             border: 1px solid var(--border-dim);
             border-radius: 24px;
             padding: 16px;
-            transition: all 0.4s;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+            cursor: pointer;
+            transition: 0.3s;
         }
-
-        .product-card:hover {
-            transform: translateY(-6px);
+        .product-card:hover, .flavor-card:hover {
+            transform: translateY(-5px);
             border-color: var(--blue-accent);
         }
-
         .product-image {
             width: 100%;
             height: 180px;
             object-fit: cover;
             border-radius: 18px;
-            background: #1E293B;
         }
-
-        .product-title {
-            font-size: clamp(1rem, 4vw, 1.2rem);
-            font-weight: 700;
-        }
-
         .product-price {
-            font-size: clamp(1.3rem, 5vw, 1.7rem);
+            font-size: 1.5rem;
             font-weight: 800;
             color: #FACC15;
         }
-
-        .product-desc {
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            line-height: 1.4;
+        .flavor-stock {
+            font-size: 0.9rem;
+            color: #94A3B8;
+            margin-top: 8px;
         }
-
-        .empty-msg {
-            text-align: center;
-            color: var(--text-secondary);
-            padding: 50px 20px;
-            font-size: 1rem;
+        .stock-low {
+            color: #EF4444;
         }
-
         .managers-section {
-            padding: 50px 20px 30px;
-            background: var(--bg-deep);
+            padding: 40px 20px;
             border-top: 1px solid var(--border-dim);
         }
-
-        .managers-title {
-            text-align: center;
-            font-size: clamp(1.3rem, 5vw, 1.8rem);
-            margin-bottom: 30px;
-            color: var(--text-primary);
-        }
-
         .managers-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            display: flex;
+            justify-content: center;
             gap: 20px;
-            max-width: 900px;
-            margin: 0 auto;
+            flex-wrap: wrap;
         }
-
-        @media (max-width: 700px) {
-            .managers-grid {
-                grid-template-columns: 1fr;
-                gap: 15px;
-            }
-        }
-
         .manager-card {
             background: var(--card-dark);
-            border: 1px solid var(--border-dim);
             border-radius: 60px;
-            padding: 14px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
+            padding: 12px 24px;
+            text-decoration: none;
+            color: white;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 12px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            text-decoration: none;
+            gap: 10px;
+            transition: 0.3s;
         }
-
         .manager-card:hover {
             background: var(--blue-accent);
-            border-color: var(--blue-accent);
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(59, 130, 246, 0.3);
         }
-
-        .manager-icon {
-            font-size: 1.5rem;
-        }
-
         footer {
             text-align: center;
-            padding: 25px 20px;
+            padding: 25px;
             color: #4B5563;
             border-top: 1px solid var(--border-dim);
-            font-size: 0.8rem;
         }
-
         .loader {
             text-align: center;
             padding: 50px;
-            color: var(--text-secondary);
-            font-size: 1.2rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-dark);
+            border-radius: 24px;
+            overflow: hidden;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-dim);
+        }
+        th {
+            background: #1E293B;
         }
     </style>
 </head>
 <body>
-
-<div class="header" id="header">
-    <div class="logo" id="homeLogoBtn">
-        <h2>ICESHOP39</h2>
-    </div>
-</div>
+<div class="header" id="header"><div class="logo" id="homeLogoBtn"><h2>ICESHOP39</h2></div></div>
 
 <div id="mainPage">
-    <div class="hero-section">
-        <div class="hero-content">
-            <div class="hero-title">ICESHOP39</div>
-            <div class="hero-desc">🔥 Вейпы · Жидкости · Испарители · Картриджи · Снюс · Одноразки 🔥</div>
-        </div>
-        <div class="scroll-hint" id="scrollHint">↓ Листай вниз ↓</div>
-    </div>
-
-    <div class="categories-section" id="categoriesSection">
-        <h2 class="section-title">📦 Категории</h2>
-        <div class="categories-grid" id="categoriesGrid">
-            <div class="loader">Загрузка категорий...</div>
-        </div>
-    </div>
+    <div class="hero-section"><div class="hero-content"><div class="hero-title">ICESHOP39</div><div class="hero-desc" style="color:#94A3B8">Вейпы · Жидкости · Испарители · Картриджи · Снюс · Одноразки</div></div><div class="scroll-hint" id="scrollHint">↓ Листай ↓</div></div>
+    <div class="categories-section"><h2 class="section-title" style="text-align:center">📦 Категории</h2><div class="categories-grid" id="categoriesGrid"><div class="loader">Загрузка...</div></div></div>
 </div>
 
-<div id="productsPage" class="products-page">
-    <button class="back-home" id="backHomeBtn">← На главную</button>
-    <h2 class="page-title" id="productsPageTitle">Вейпы</h2>
-    <div class="products-grid" id="productsContainer">
-        <div class="loader">Загрузка товаров...</div>
-    </div>
-</div>
+<div id="productsPage" class="products-page"><button class="back-home" id="backHomeBtn">← На главную</button><h2 class="page-title" id="productsPageTitle" style="text-align:center"></h2><div class="products-grid" id="productsContainer"></div></div>
 
-<div class="managers-section">
-    <h3 class="managers-title">📱 Наши менеджеры в городах</h3>
-    <div class="managers-grid">
-        <a href="https://t.me/ICE_SHOP39" target="_blank" class="manager-card">
-            <span class="manager-icon">🏢</span>
-            <span>КСиПТ</span>
-        </a>
-        <a href="https://t.me/IceShop_Gur" target="_blank" class="manager-card">
-            <span class="manager-icon">🏘️</span>
-            <span>Гурьевск</span>
-        </a>
-        <a href="https://t.me/IceShop_KLND" target="_blank" class="manager-card">
-            <span class="manager-icon">🌆</span>
-            <span>Калининград</span>
-        </a>
-    </div>
-</div>
+<div id="flavorsPage" class="flavors-page"><button class="back-home" id="backFlavorsHomeBtn">← Назад к категориям</button><h2 class="page-title" id="flavorsPageTitle" style="text-align:center"></h2><div id="flavorsContainer"></div></div>
 
-<footer>⚡ ICESHOP39. Все права защищены. Продажа только совершеннолетним. 2026</footer>
+<div class="managers-section"><h3 style="text-align:center">📱 Наши менеджеры</h3><div class="managers-grid"><a href="https://t.me/ICE_SHOP39" class="manager-card">🏢 КСиПТ</a><a href="https://t.me/IceShop_Gur" class="manager-card">🏘️ Гурьевск</a><a href="https://t.me/IceShop_KLND" class="manager-card">🌆 Калининград</a></div></div>
+<footer>⚡ ICESHOP39. Продажа только совершеннолетним. 2026</footer>
 
 <script>
     const categories = [
@@ -519,32 +257,53 @@
         { id: "Одноразки", name: "Одноразки", icon: "🔄" }
     ];
 
-    let products = [];
-    let currentCategory = null;
+    let products = []; // обычные товары
+    let flavors = [];  // { parentName, parentCategory, flavorName, price, stock }
 
-    async function loadProducts() {
+    let currentCategory = null;
+    let currentFlavorParent = null;
+
+    async function loadData() {
         const url = 'https://raw.githubusercontent.com/LoysitDeflonDon/iceshop39-data/refs/heads/main/products.json';
         try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Ошибка загрузки');
-            products = await response.json();
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            // Разделяем: обычные товары и многовариантные (жидкости/снюс)
+            products = data.filter(item => !item.flavors);
+            flavors = [];
+            data.forEach(item => {
+                if (item.flavors && Array.isArray(item.flavors)) {
+                    item.flavors.forEach(f => {
+                        flavors.push({
+                            parentId: item.id,
+                            parentName: item.name,
+                            parentCategory: item.category,
+                            parentImage: item.image,
+                            flavorName: f.name,
+                            price: f.price,
+                            stock: f.stock
+                        });
+                    });
+                }
+            });
             renderCategories();
-        } catch (error) {
-            console.error(error);
-            document.getElementById('categoriesGrid').innerHTML = '<div class="empty-msg">❌ Ошибка загрузки товаров. Проверьте интернет.</div>';
-            products = [];
-            renderCategories();
+        } catch(e) {
+            console.error(e);
+            document.getElementById('categoriesGrid').innerHTML = '<div class="loader">Ошибка загрузки</div>';
         }
     }
 
     function getCount(catName) {
+        if (catName === "Жидкости" || catName === "Снюс") {
+            const parents = products.filter(p => p.category === catName && p.flavors);
+            return parents.length;
+        }
         return products.filter(p => p.category === catName).length;
     }
 
     function renderCategories() {
-        const container = document.getElementById("categoriesGrid");
-        if (!container) return;
-        
+        const container = document.getElementById('categoriesGrid');
         container.innerHTML = categories.map(cat => `
             <div class="category-card" data-category="${cat.name}">
                 <div class="category-icon">${cat.icon}</div>
@@ -552,62 +311,107 @@
                 <div class="category-count">${getCount(cat.name)} товаров</div>
             </div>
         `).join('');
-        
         document.querySelectorAll('.category-card').forEach(card => {
-            card.addEventListener('click', () => openProductsPage(card.getAttribute('data-category')));
+            card.addEventListener('click', () => openCategory(card.dataset.category));
         });
     }
 
-    function openProductsPage(categoryName) {
-        currentCategory = categoryName;
-        document.getElementById('mainPage').style.display = 'none';
-        document.getElementById('productsPage').classList.add('active');
-        document.getElementById('productsPageTitle').textContent = categoryName;
-        renderProductsByCategory();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    function openCategory(catName) {
+        currentCategory = catName;
+        if (catName === "Жидкости" || catName === "Снюс") {
+            // Показываем родительские карточки (без вкусов)
+            const filtered = products.filter(p => p.category === catName && p.flavors);
+            document.getElementById('mainPage').style.display = 'none';
+            document.getElementById('productsPage').classList.add('active');
+            document.getElementById('productsPageTitle').innerText = catName;
+            const container = document.getElementById('productsContainer');
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-msg">Нет позиций</div>';
+                return;
+            }
+            container.innerHTML = filtered.map(p => `
+                <div class="product-card" data-parent-id="${p.id}">
+                    <img class="product-image" src="${p.image}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
+                    <div class="product-title">${escapeHtml(p.name)}</div>
+                    <div class="product-price">от ${Math.min(...p.flavors.map(f=>f.price))} ₽</div>
+                </div>
+            `).join('');
+            document.querySelectorAll('.product-card[data-parent-id]').forEach(card => {
+                card.addEventListener('click', () => openFlavors(parseInt(card.dataset.parentId)));
+            });
+        } else {
+            // Обычные товары
+            const filtered = products.filter(p => p.category === catName && !p.flavors);
+            document.getElementById('mainPage').style.display = 'none';
+            document.getElementById('productsPage').classList.add('active');
+            document.getElementById('productsPageTitle').innerText = catName;
+            const container = document.getElementById('productsContainer');
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-msg">Нет товаров</div>';
+                return;
+            }
+            container.innerHTML = filtered.map(p => `
+                <div class="product-card">
+                    <img class="product-image" src="${p.image}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
+                    <div class="product-title">${escapeHtml(p.name)}</div>
+                    <div class="product-price">${p.price} ₽</div>
+                    <div class="product-desc">${escapeHtml(p.desc)}</div>
+                </div>
+            `).join('');
+        }
+        window.scrollTo({ top: 0 });
     }
 
-    function renderProductsByCategory() {
-        const container = document.getElementById('productsContainer');
-        const filtered = products.filter(p => p.category === currentCategory);
-        if (filtered.length === 0) {
-            container.innerHTML = `<div class="empty-msg">📭 Товары отсутствуют.</div>`;
+    function openFlavors(parentId) {
+        const parent = products.find(p => p.id === parentId);
+        if (!parent) return;
+        currentFlavorParent = parent;
+        const flavorList = flavors.filter(f => f.parentId === parentId);
+        document.getElementById('productsPage').classList.remove('active');
+        document.getElementById('flavorsPage').classList.add('active');
+        document.getElementById('flavorsPageTitle').innerText = `${parent.name} — вкусы`;
+        const container = document.getElementById('flavorsContainer');
+        if (flavorList.length === 0) {
+            container.innerHTML = '<div class="empty-msg">Нет вкусов</div>';
             return;
         }
-        container.innerHTML = filtered.map(p => `
-            <div class="product-card">
-                <img class="product-image" src="${p.image || 'https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
-                <div class="product-title">${escapeHtml(p.name)}</div>
-                <div class="product-price">${p.price} ₽</div>
-                <div class="product-desc">${escapeHtml(p.desc)}</div>
-            </div>
-        `).join('');
+        container.innerHTML = `
+            <table>
+                <thead><tr><th>Вкус</th><th>Цена</th><th>Остаток</th></tr></thead>
+                <tbody>
+                    ${flavorList.map(f => `
+                        <tr>
+                            <td>${escapeHtml(f.flavorName)}</td>
+                            <td>${f.price} ₽</td>
+                            <td class="${f.stock < 5 ? 'stock-low' : ''}">${f.stock} шт</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
     }
 
-    function escapeHtml(str) {
-        return str?.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])) || '';
-    }
+    function escapeHtml(str) { return str?.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) || ''; }
 
     function goToHome() {
         document.getElementById('mainPage').style.display = 'block';
         document.getElementById('productsPage').classList.remove('active');
+        document.getElementById('flavorsPage').classList.remove('active');
         currentCategory = null;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
-    function handleScroll() {
-        const header = document.getElementById('header');
-        if (window.scrollY > 100) header.classList.add('visible');
-        else header.classList.remove('visible');
+        window.scrollTo({ top: 0 });
     }
 
     document.getElementById('backHomeBtn').onclick = goToHome;
+    document.getElementById('backFlavorsHomeBtn').onclick = goToHome;
     document.getElementById('homeLogoBtn').onclick = goToHome;
     document.getElementById('scrollHint').onclick = () => document.getElementById('categoriesSection').scrollIntoView({ behavior: 'smooth' });
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', () => {
+        const header = document.getElementById('header');
+        if (window.scrollY > 100) header.classList.add('visible');
+        else header.classList.remove('visible');
+    });
 
-    loadProducts();
-    handleScroll();
+    loadData();
 </script>
 </body>
 </html>
