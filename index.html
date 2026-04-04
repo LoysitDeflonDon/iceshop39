@@ -115,7 +115,7 @@
             border-bottom: 1px solid var(--border-dim);
             padding: 12px 20px;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
             position: fixed;
             top: 0;
@@ -142,24 +142,27 @@
             font-weight: 800;
         }
 
-        .favorites-btn {
+        .logo::after {
+            content: "Главная";
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
             background: var(--blue-accent);
-            border: none;
-            border-radius: 60px;
-            padding: 8px 18px;
             color: white;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+            transition-delay: 0s;
+            pointer-events: none;
         }
 
-        .favorites-btn:hover {
-            background: #2563EB;
-            transform: scale(1.02);
+        .logo:hover::after {
+            opacity: 1;
+            transition-delay: 1.5s;
         }
 
         .categories-section {
@@ -284,13 +287,13 @@
             border-color: var(--blue-accent);
         }
 
-        .products-page, .flavors-page, .favorites-page {
+        .products-page, .flavors-page {
             display: none;
             padding: 90px 20px 50px;
             min-height: 100vh;
         }
 
-        .products-page.active, .flavors-page.active, .favorites-page.active {
+        .products-page.active, .flavors-page.active {
             display: block;
             animation: fadeIn 0.5s ease;
         }
@@ -349,31 +352,6 @@
         .product-card:hover {
             transform: translateY(-6px);
             border-color: var(--blue-accent);
-        }
-
-        .favorite-action-btn {
-            background: var(--blue-accent);
-            border: none;
-            border-radius: 60px;
-            padding: 8px 12px;
-            color: white;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            width: 100%;
-            margin-top: 5px;
-        }
-
-        .favorite-action-btn.in-favorite {
-            background: #1E293B;
-            border: 1px solid var(--blue-accent);
-            color: var(--blue-accent);
-        }
-
-        .favorite-action-btn:hover {
-            transform: scale(1.02);
-            opacity: 0.9;
         }
 
         .product-image {
@@ -466,23 +444,11 @@
             cursor: pointer;
             white-space: nowrap;
         }
-        .favorite-flavor-btn {
-            background: var(--blue-accent);
-            border: none;
-            border-radius: 60px;
-            padding: 4px 12px;
-            color: white;
-            font-size: 0.75rem;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        .favorite-flavor-btn.in-favorite {
-            background: #1E293B;
-            border: 1px solid var(--blue-accent);
-            color: var(--blue-accent);
+        .order-pill-small:hover {
+            background: #059669;
         }
 
-        /* Модальное окно */
+        /* Модальное окно выбора менеджера */
         .modal {
             display: none;
             position: fixed;
@@ -490,7 +456,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.85);
+            background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(8px);
             z-index: 1000;
             justify-content: center;
@@ -507,6 +473,7 @@
         }
         .modal-content h3 {
             margin-bottom: 20px;
+            font-size: 1.3rem;
         }
         .manager-option {
             background: var(--card-dark);
@@ -531,50 +498,6 @@
             margin-top: 15px;
             width: 100%;
             font-weight: 600;
-        }
-
-        /* Избранное с количеством */
-        .favorite-item {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .quantity-control {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            margin-top: 8px;
-        }
-        .quantity-btn {
-            background: var(--blue-accent);
-            border: none;
-            border-radius: 40px;
-            width: 36px;
-            height: 36px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: white;
-            cursor: pointer;
-        }
-        .quantity-btn:disabled {
-            background: #334155;
-            cursor: not-allowed;
-        }
-        .quantity-value {
-            font-size: 1.2rem;
-            font-weight: 600;
-            min-width: 40px;
-            text-align: center;
-        }
-        .remove-fav-btn {
-            background: var(--danger);
-            border: none;
-            border-radius: 60px;
-            padding: 8px;
-            color: white;
-            cursor: pointer;
-            margin-top: 8px;
         }
 
         .managers-section {
@@ -640,7 +563,6 @@
     <div class="logo" id="homeLogoBtn">
         <h2>ICESHOP39</h2>
     </div>
-    <button class="favorites-btn" id="favoritesIcon">⭐ Избранные <span id="favoritesCount">0</span></button>
 </div>
 
 <div id="mainPage">
@@ -669,12 +591,7 @@
     <div id="flavorsContainer"></div>
 </div>
 
-<div id="favoritesPage" class="favorites-page">
-    <button class="back-home" id="backFavoritesBtn">← На главную</button>
-    <h2 class="page-title">⭐ Избранные товары</h2>
-    <div class="products-grid" id="favoritesContainer"></div>
-</div>
-
+<!-- Модальное окно выбора менеджера -->
 <div id="managerModal" class="modal">
     <div class="modal-content">
         <h3>📱 Выберите менеджера</h3>
@@ -712,80 +629,6 @@
 
     let allItems = [];
     let currentCategory = null;
-    let favorites = []; // { id, flavorIndex, quantity, maxStock, name, variant, price, image }
-
-    function loadFavorites() {
-        const saved = localStorage.getItem("iceshop39_favorites_v2");
-        if (saved) favorites = JSON.parse(saved);
-        updateFavoritesCount();
-    }
-
-    function saveFavorites() {
-        localStorage.setItem("iceshop39_favorites_v2", JSON.stringify(favorites));
-        updateFavoritesCount();
-        renderFavoritesPage();
-    }
-
-    function updateFavoritesCount() {
-        const count = favorites.reduce((sum, f) => sum + f.quantity, 0);
-        document.getElementById('favoritesCount').innerText = count;
-    }
-
-    function isFavorite(itemId, flavorIndex = null) {
-        return favorites.some(f => f.id === itemId && f.flavorIndex === flavorIndex);
-    }
-
-    function getFavoriteQuantity(itemId, flavorIndex = null) {
-        const fav = favorites.find(f => f.id === itemId && f.flavorIndex === flavorIndex);
-        return fav ? fav.quantity : 0;
-    }
-
-    function addToFavorites(item, flavor = null, flavorIndex = null, maxStock = null) {
-        const existing = favorites.find(f => f.id === item.id && f.flavorIndex === flavorIndex);
-        const currentQty = existing ? existing.quantity : 0;
-        const limit = maxStock !== null ? maxStock : (flavor ? flavor.stock : 999);
-        
-        if (currentQty < limit) {
-            if (existing) {
-                existing.quantity++;
-            } else {
-                favorites.push({
-                    id: item.id,
-                    flavorIndex: flavorIndex,
-                    quantity: 1,
-                    maxStock: limit,
-                    name: item.name,
-                    variant: flavor ? flavor.name : null,
-                    price: flavor ? flavor.price : item.price,
-                    image: item.image
-                });
-            }
-            saveFavorites();
-            return true;
-        }
-        alert(`❌ Нельзя добавить больше ${limit} шт. (остаток на складе)`);
-        return false;
-    }
-
-    function removeFromFavorites(itemId, flavorIndex = null) {
-        favorites = favorites.filter(f => !(f.id === itemId && f.flavorIndex === flavorIndex));
-        saveFavorites();
-    }
-
-    function updateFavoriteQuantity(itemId, flavorIndex, delta) {
-        const fav = favorites.find(f => f.id === itemId && f.flavorIndex === flavorIndex);
-        if (fav) {
-            const newQty = fav.quantity + delta;
-            if (newQty <= 0) {
-                removeFromFavorites(itemId, flavorIndex);
-            } else if (newQty <= fav.maxStock) {
-                fav.quantity = newQty;
-                saveFavorites();
-            } else {
-                alert(`❌ Нельзя добавить больше ${fav.maxStock} шт.`);
-            }
-        }
-    }
 
     function showManagerModal(productName, variant, price, callback) {
         const modal = document.getElementById('managerModal');
@@ -822,7 +665,7 @@
             allItems = await res.json();
             renderCategories();
         } catch(e) {
-            document.getElementById('categoriesGrid').innerHTML = '<div class="empty-msg">❌ Ошибка загрузки</div>';
+            document.getElementById('categoriesGrid').innerHTML = '<div class="empty-msg">❌ Ошибка загрузки товаров. Проверьте интернет.</div>';
         }
     }
 
@@ -851,64 +694,30 @@
         document.getElementById('productsPage').classList.add('active');
         document.getElementById('productsPageTitle').textContent = catName;
         const container = document.getElementById('productsContainer');
-        if (!items.length) { container.innerHTML = '<div class="empty-msg">📭 Нет товаров</div>'; return; }
+        if (!items.length) { container.innerHTML = '<div class="empty-msg">📭 Товары отсутствуют.</div>'; return; }
         
         container.innerHTML = items.map(item => {
-            const inFav = isFavorite(item.id);
-            const favBtnText = inFav ? '⭐ В избранном' : '☆ В избранное';
-            const favBtnClass = inFav ? 'favorite-action-btn in-favorite' : 'favorite-action-btn';
             if (item.flavors) {
                 return `
                     <div class="product-card" data-id="${item.id}">
                         <img class="product-image" src="${item.image}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
                         <div class="product-title">${escapeHtml(item.name)}</div>
                         <div class="product-price">от ${Math.min(...item.flavors.map(f => f.price))} ₽</div>
-                        <button class="${favBtnClass}" data-fav-id="${item.id}">${favBtnText}</button>
                         <button class="order-pill" data-order-type="flavors" data-item-id="${item.id}">📦 Заказать</button>
                     </div>
                 `;
             } else {
-                const inFavSpecific = isFavorite(item.id);
-                const btnText = inFavSpecific ? '⭐ В избранном' : '☆ В избранное';
-                const btnClass = inFavSpecific ? 'favorite-action-btn in-favorite' : 'favorite-action-btn';
                 return `
                     <div class="product-card" data-id="${item.id}">
                         <img class="product-image" src="${item.image}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
                         <div class="product-title">${escapeHtml(item.name)}</div>
                         <div class="product-price">${item.price} ₽</div>
                         <div class="product-desc">${escapeHtml(item.desc || '')}</div>
-                        <button class="${btnClass}" data-fav-id="${item.id}" data-fav-simple="true">${btnText}</button>
                         <button class="order-pill" data-order-type="simple" data-order-name="${escapeHtml(item.name)}" data-order-price="${item.price}">📦 Заказать</button>
                     </div>
                 `;
             }
         }).join('');
-        
-        attachProductEvents();
-        window.scrollTo({ top: 0 });
-    }
-
-    function attachProductEvents() {
-        document.querySelectorAll('.favorite-action-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const id = parseInt(btn.dataset.favId);
-                const item = allItems.find(i => i.id === id);
-                if (!item) return;
-                const isSimple = btn.dataset.favSimple === 'true';
-                if (isSimple) {
-                    if (isFavorite(id)) {
-                        removeFromFavorites(id);
-                    } else {
-                        addToFavorites(item, null, null, 999);
-                    }
-                } else {
-                    openFlavorsForFavorite(item);
-                }
-                renderCategories();
-                if (currentCategory) openCategory(currentCategory);
-            });
-        });
         
         document.querySelectorAll('.order-pill').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -932,32 +741,8 @@
                 card.addEventListener('click', () => openFlavors(item));
             }
         });
-    }
-
-    function openFlavorsForFavorite(parentItem) {
-        const modal = document.getElementById('managerModal');
-        const optionsContainer = document.getElementById('managerOptions');
-        optionsContainer.innerHTML = parentItem.flavors.map((f, idx) => `
-            <div class="manager-option" data-flavor-index="${idx}" data-flavor-name="${escapeHtml(f.name)}" data-flavor-price="${f.price}" data-flavor-stock="${f.stock}">
-                <span>${escapeHtml(f.name)} — ${f.price} ₽ (остаток: ${f.stock})</span>
-            </div>
-        `).join('');
-        modal.style.display = 'flex';
-        document.querySelectorAll('#managerOptions .manager-option').forEach(opt => {
-            opt.addEventListener('click', () => {
-                const idx = parseInt(opt.dataset.flavorIndex);
-                const flavor = parentItem.flavors[idx];
-                const existingQty = getFavoriteQuantity(parentItem.id, idx);
-                if (existingQty < flavor.stock) {
-                    addToFavorites(parentItem, flavor, idx, flavor.stock);
-                } else {
-                    alert(`❌ Нельзя добавить больше ${flavor.stock} шт.`);
-                }
-                modal.style.display = 'none';
-                if (currentCategory) openCategory(currentCategory);
-                renderFavoritesPage();
-            });
-        });
+        
+        window.scrollTo({ top: 0 });
     }
 
     function openFlavors(parentItem) {
@@ -968,44 +753,20 @@
         container.innerHTML = `
             <div class="flavors-table-container">
                 <table class="flavors-table">
-                    <thead><tr><th>Вкус</th><th>Цена</th><th>Остаток</th><th></th><th></th></thead>
+                    <thead><tr><th>Вкус</th><th>Цена</th><th>Остаток</th><th></th></thead>
                     <tbody>
-                        ${parentItem.flavors.map((f, idx) => {
-                            const inFav = isFavorite(parentItem.id, idx);
-                            const btnText = inFav ? 'В избранном' : 'В избранное';
-                            const btnClass = inFav ? 'favorite-flavor-btn in-favorite' : 'favorite-flavor-btn';
-                            return `
-                                <tr>
-                                    <td>${escapeHtml(f.name)}</td>
-                                    <td class="product-price" style="font-size:1.2rem">${f.price} ₽</td>
-                                    <td class="${f.stock < 5 ? 'stock-low' : ''}">${f.stock} шт</td>
-                                    <td><button class="${btnClass}" data-flavor-idx="${idx}">${btnText}</button></td>
-                                    <td><button class="order-pill-small" data-flavor-name="${escapeHtml(f.name)}" data-flavor-price="${f.price}">Заказать</button></td>
-                                </tr>
-                            `;
-                        }).join('')}
+                        ${parentItem.flavors.map(f => `
+                            <tr>
+                                <td>${escapeHtml(f.name)}</td>
+                                <td class="product-price" style="font-size:1.2rem">${f.price} ₽</td>
+                                <td class="${f.stock < 5 ? 'stock-low' : ''}">${f.stock} шт</td>
+                                <td><button class="order-pill-small" data-flavor-name="${escapeHtml(f.name)}" data-flavor-price="${f.price}">📦 Заказать</button></td>
+                            </tr>
+                        `).join('')}
                     </tbody>
                 </table>
             </div>
         `;
-        document.querySelectorAll('.favorite-flavor-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const idx = parseInt(btn.dataset.flavorIdx);
-                const flavor = parentItem.flavors[idx];
-                if (isFavorite(parentItem.id, idx)) {
-                    removeFromFavorites(parentItem.id, idx);
-                } else {
-                    if (getFavoriteQuantity(parentItem.id, idx) < flavor.stock) {
-                        addToFavorites(parentItem, flavor, idx, flavor.stock);
-                    } else {
-                        alert(`❌ Нельзя добавить больше ${flavor.stock} шт.`);
-                    }
-                }
-                openFlavors(parentItem);
-                if (currentCategory) openCategory(currentCategory);
-                renderFavoritesPage();
-            });
-        });
         document.querySelectorAll('.order-pill-small').forEach(btn => {
             btn.addEventListener('click', () => {
                 const name = btn.dataset.flavorName;
@@ -1015,80 +776,21 @@
         });
     }
 
-    function renderFavoritesPage() {
-        const container = document.getElementById('favoritesContainer');
-        if (!container) return;
-        if (!favorites.length) {
-            container.innerHTML = '<div class="empty-msg">⭐ Нет избранных товаров</div>';
-            return;
-        }
-        container.innerHTML = favorites.map(fav => `
-            <div class="product-card">
-                <img class="product-image" src="${fav.image || 'https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
-                <div class="product-title">${escapeHtml(fav.name)}${fav.variant ? ` (${escapeHtml(fav.variant)})` : ''}</div>
-                <div class="product-price">${fav.price} ₽</div>
-                <div class="quantity-control">
-                    <button class="quantity-btn" data-action="minus" data-id="${fav.id}" data-flavor="${fav.flavorIndex ?? ''}">-</button>
-                    <span class="quantity-value">${fav.quantity}</span>
-                    <button class="quantity-btn" data-action="plus" data-id="${fav.id}" data-flavor="${fav.flavorIndex ?? ''}" ${fav.quantity >= fav.maxStock ? 'disabled' : ''}>+</button>
-                </div>
-                <button class="order-pill" data-order-name="${escapeHtml(fav.name)}" data-order-variant="${escapeHtml(fav.variant || 'стандарт')}" data-order-price="${fav.price}">📦 Заказать</button>
-                <button class="remove-fav-btn" data-remove-id="${fav.id}" data-remove-flavor="${fav.flavorIndex ?? ''}">🗑 Удалить</button>
-            </div>
-        `).join('');
-        
-        document.querySelectorAll('.quantity-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const id = parseInt(btn.dataset.id);
-                const flavor = btn.dataset.flavor === '' ? null : parseInt(btn.dataset.flavor);
-                const delta = btn.dataset.action === 'plus' ? 1 : -1;
-                updateFavoriteQuantity(id, flavor, delta);
-                renderFavoritesPage();
-                if (currentCategory) openCategory(currentCategory);
-            });
-        });
-        document.querySelectorAll('.remove-fav-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const id = parseInt(btn.dataset.removeId);
-                const flavor = btn.dataset.removeFlavor === '' ? null : parseInt(btn.dataset.removeFlavor);
-                removeFromFavorites(id, flavor);
-                renderFavoritesPage();
-                if (currentCategory) openCategory(currentCategory);
-            });
-        });
-        document.querySelectorAll('.order-pill').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const name = btn.dataset.orderName;
-                const variant = btn.dataset.orderVariant;
-                const price = btn.dataset.orderPrice;
-                showManagerModal(name, variant, price, (tg) => orderViaTelegram(name, variant, price, tg));
-            });
-        });
-    }
-
-    function openFavorites() {
-        document.getElementById('mainPage').style.display = 'none';
-        document.getElementById('productsPage').classList.remove('active');
-        document.getElementById('flavorsPage').classList.remove('active');
-        document.getElementById('favoritesPage').classList.add('active');
-        renderFavoritesPage();
-    }
-
     function escapeHtml(str) { return str?.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) || ''; }
+    
     function goToHome() {
         document.getElementById('mainPage').style.display = 'block';
         document.getElementById('productsPage').classList.remove('active');
         document.getElementById('flavorsPage').classList.remove('active');
-        document.getElementById('favoritesPage').classList.remove('active');
         window.scrollTo({ top: 0 });
     }
+    
     function goBackToCategory() {
         document.getElementById('flavorsPage').classList.remove('active');
         document.getElementById('productsPage').classList.add('active');
         if (currentCategory) openCategory(currentCategory);
     }
+    
     function handleScroll() {
         const header = document.getElementById('header');
         if (window.scrollY > 100) header.classList.add('visible');
@@ -1097,15 +799,12 @@
 
     document.getElementById('backHomeBtn').onclick = goToHome;
     document.getElementById('backFlavorsHomeBtn').onclick = goBackToCategory;
-    document.getElementById('backFavoritesBtn').onclick = goToHome;
     document.getElementById('homeLogoBtn').onclick = goToHome;
-    document.getElementById('favoritesIcon').onclick = openFavorites;
     document.getElementById('scrollHint').onclick = () => document.getElementById('categoriesSection').scrollIntoView({ behavior: 'smooth' });
     document.getElementById('cancelModalBtn').onclick = closeModal;
     window.onclick = (e) => { if (e.target === document.getElementById('managerModal')) closeModal(); };
     window.addEventListener('scroll', handleScroll);
 
-    loadFavorites();
     loadData();
     handleScroll();
 </script>
