@@ -26,6 +26,7 @@
             --text-primary: #F1F5F9;
             --text-secondary: #94A3B8;
             --danger: #EF4444;
+            --success: #10B981;
         }
 
         .hero-section {
@@ -324,8 +325,8 @@
         .back-home {
             background: var(--card-dark);
             border: 1px solid var(--border-dim);
-            padding: 8px 20px;
             border-radius: 40px;
+            padding: 8px 20px;
             color: white;
             cursor: pointer;
             margin-bottom: 25px;
@@ -388,6 +389,7 @@
             align-items: center;
             justify-content: center;
             color: white;
+            z-index: 10;
         }
 
         .favorite-btn.active {
@@ -396,6 +398,30 @@
 
         .favorite-btn:hover {
             transform: scale(1.1);
+        }
+
+        /* Анимация сердечка */
+        .heart-animation {
+            position: fixed;
+            font-size: 2rem;
+            pointer-events: none;
+            z-index: 1000;
+            animation: floatHeart 0.8s ease-out forwards;
+        }
+
+        @keyframes floatHeart {
+            0% {
+                transform: scale(0.5) translateY(0);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.3) translateY(-30px);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(0.8) translateY(-80px);
+                opacity: 0;
+            }
         }
 
         .product-image {
@@ -423,21 +449,27 @@
             line-height: 1.4;
         }
 
-        .order-btn {
-            background: #10B981;
+        /* Кнопка заказа в виде таблетки */
+        .order-pill {
+            background: var(--success);
             border: none;
-            border-radius: 40px;
-            padding: 10px;
+            border-radius: 60px;
+            padding: 12px 20px;
             color: white;
-            font-weight: 600;
+            font-weight: 700;
+            font-size: 1rem;
             cursor: pointer;
+            transition: all 0.3s;
             margin-top: 8px;
-            transition: 0.3s;
+            width: 100%;
+            text-align: center;
+            letter-spacing: 0.5px;
         }
 
-        .order-btn:hover {
+        .order-pill:hover {
             background: #059669;
             transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
 
         .empty-msg {
@@ -475,36 +507,79 @@
             font-weight: 600;
         }
 
-        .manager-select {
-            background: #1E293B;
-            border: 1px solid var(--border-dim);
-            border-radius: 40px;
-            padding: 8px 16px;
-            color: white;
-            font-size: 0.9rem;
-            margin-left: 10px;
-            cursor: pointer;
-        }
-
-        .order-with-manager {
-            display: flex;
-            gap: 10px;
+        /* Модальное окно выбора менеджера */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            justify-content: center;
             align-items: center;
-            flex-wrap: wrap;
-            margin-top: 8px;
         }
 
-        .order-with-manager select {
-            flex: 1;
+        .modal-content {
             background: #1E293B;
             border: 1px solid var(--border-dim);
-            border-radius: 40px;
-            padding: 10px;
-            color: white;
+            border-radius: 32px;
+            padding: 24px;
+            max-width: 320px;
+            width: 90%;
+            text-align: center;
+            animation: modalFadeIn 0.3s ease;
         }
 
-        .order-with-manager button {
-            flex: 2;
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .manager-option {
+            background: var(--card-dark);
+            border: 1px solid var(--border-dim);
+            border-radius: 60px;
+            padding: 12px 16px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            font-weight: 600;
+        }
+
+        .manager-option:hover {
+            background: var(--blue-accent);
+            border-color: var(--blue-accent);
+            transform: scale(1.02);
+        }
+
+        .cancel-modal {
+            background: #334155;
+            border: none;
+            border-radius: 60px;
+            padding: 10px 20px;
+            color: white;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+            font-weight: 600;
         }
 
         .managers-section {
@@ -628,6 +703,15 @@
     <div class="products-grid" id="favoritesContainer"></div>
 </div>
 
+<!-- Модальное окно выбора менеджера -->
+<div id="managerModal" class="modal">
+    <div class="modal-content">
+        <h3>📱 Выберите менеджера</h3>
+        <div id="managerOptions"></div>
+        <button class="cancel-modal" id="cancelModalBtn">Отмена</button>
+    </div>
+</div>
+
 <div class="managers-section">
     <h3 class="managers-title">📱 Наши менеджеры в городах</h3>
     <div class="managers-grid">
@@ -668,6 +752,19 @@
     let currentCategory = null;
     let currentParent = null;
     let favorites = [];
+    
+    // Переменные для модального окна
+    let pendingOrder = null;
+
+    function showHeartAnimation(x, y) {
+        const heart = document.createElement('div');
+        heart.className = 'heart-animation';
+        heart.innerHTML = '❤️';
+        heart.style.left = (x - 20) + 'px';
+        heart.style.top = (y - 20) + 'px';
+        document.body.appendChild(heart);
+        setTimeout(() => heart.remove(), 800);
+    }
 
     function loadFavorites() {
         const saved = localStorage.getItem("iceshop39_favorites");
@@ -691,7 +788,12 @@
         return favorites.some(f => f.id === itemId && f.flavorIndex === undefined);
     }
 
-    function addToFavorites(item, flavor = null, flavorIndex = null) {
+    function addToFavorites(item, flavor = null, flavorIndex = null, event = null) {
+        if (event) {
+            const rect = event.target.getBoundingClientRect();
+            showHeartAnimation(rect.left + rect.width/2, rect.top + rect.height/2);
+        }
+        
         if (flavor) {
             const exists = favorites.some(f => f.id === item.id && f.flavorIndex === flavorIndex);
             if (!exists) {
@@ -728,20 +830,51 @@
         saveFavorites();
     }
 
-    function toggleFavorite(item, flavor = null, flavorIndex = null) {
+    function toggleFavorite(item, flavor = null, flavorIndex = null, event = null) {
         if (flavor) {
             if (isFavorite(item.id, flavorIndex)) {
                 removeFromFavorites(item.id, flavorIndex);
             } else {
-                addToFavorites(item, flavor, flavorIndex);
+                addToFavorites(item, flavor, flavorIndex, event);
             }
         } else {
             if (isFavorite(item.id)) {
                 removeFromFavorites(item.id);
             } else {
-                addToFavorites(item);
+                addToFavorites(item, null, null, event);
             }
         }
+    }
+
+    function showManagerModal(productName, variant, price, callback) {
+        pendingOrder = { productName, variant, price, callback };
+        const modal = document.getElementById('managerModal');
+        const optionsContainer = document.getElementById('managerOptions');
+        
+        optionsContainer.innerHTML = managers.map(manager => `
+            <div class="manager-option" data-tg="${manager.tg}">
+                <span>${manager.name === "КСиПТ" ? "🏢" : manager.name === "Гурьевск" ? "🏘️" : "🌆"}</span>
+                <span>${manager.name}</span>
+            </div>
+        `).join('');
+        
+        modal.style.display = 'flex';
+        
+        document.querySelectorAll('.manager-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                const tg = opt.dataset.tg;
+                modal.style.display = 'none';
+                if (pendingOrder) {
+                    pendingOrder.callback(tg);
+                    pendingOrder = null;
+                }
+            });
+        });
+    }
+
+    function closeModal() {
+        document.getElementById('managerModal').style.display = 'none';
+        pendingOrder = null;
     }
 
     function orderViaTelegram(productName, variant, price, managerTg) {
@@ -802,15 +935,11 @@
                 <img class="product-image" src="${item.image || 'https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
                 <div class="product-title">${escapeHtml(item.name)}</div>
                 ${item.flavors ? 
-                    `<div class="product-price">от ${Math.min(...item.flavors.map(f => f.price))} ₽</div>` :
+                    `<div class="product-price">от ${Math.min(...item.flavors.map(f => f.price))} ₽</div>
+                     <button class="order-pill" data-order-type="flavors" data-item-id="${item.id}">📦 Заказать</button>` :
                     `<div class="product-price">${item.price} ₽</div>
                      <div class="product-desc">${escapeHtml(item.desc || '')}</div>
-                     <div class="order-with-manager">
-                         <select class="manager-select" data-id="${item.id}">
-                            ${managers.map(m => `<option value="${m.tg}">${m.name}</option>`).join('')}
-                         </select>
-                         <button class="order-btn" data-order-name="${escapeHtml(item.name)}" data-order-price="${item.price}">📦 Заказать</button>
-                     </div>`
+                     <button class="order-pill" data-order-type="simple" data-order-name="${escapeHtml(item.name)}" data-order-price="${item.price}">📦 Заказать</button>`
                 }
             </div>
         `).join('');
@@ -823,21 +952,29 @@
             if (favBtn) {
                 favBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    toggleFavorite(item);
+                    toggleFavorite(item, null, null, e);
                     favBtn.classList.toggle('active');
                     renderCategories();
                 });
             }
             
-            const orderBtn = card.querySelector('.order-btn');
-            const managerSelect = card.querySelector('.manager-select');
-            if (orderBtn && managerSelect) {
-                orderBtn.addEventListener('click', (e) => {
+            const orderPill = card.querySelector('.order-pill');
+            if (orderPill) {
+                orderPill.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const name = orderBtn.dataset.orderName;
-                    const price = orderBtn.dataset.orderPrice;
-                    const managerTg = managerSelect.value;
-                    orderViaTelegram(name, 'стандарт', price, managerTg);
+                    if (orderPill.dataset.orderType === 'simple') {
+                        const name = orderPill.dataset.orderName;
+                        const price = orderPill.dataset.orderPrice;
+                        showManagerModal(name, 'стандарт', price, (tg) => {
+                            orderViaTelegram(name, 'стандарт', price, tg);
+                        });
+                    } else if (orderPill.dataset.orderType === 'flavors') {
+                        const itemId = parseInt(orderPill.dataset.itemId);
+                        const targetItem = allItems.find(i => i.id === itemId);
+                        if (targetItem && targetItem.flavors) {
+                            openFlavors(targetItem);
+                        }
+                    }
                 });
             }
             
@@ -869,7 +1006,7 @@
             <div class="flavors-table-container">
                 <table class="flavors-table">
                     <thead>
-                        <tr><th>Название</th><th>Цена</th><th>Остаток</th><th></th><th>Менеджер</th><th></th></tr>
+                        <tr><th>Название</th><th>Цена</th><th>Остаток</th><th></th><th></th></tr>
                     </thead>
                     <tbody>
                         ${flavors.map((f, idx) => `
@@ -877,15 +1014,8 @@
                                 <td>${escapeHtml(f.name)}</td>
                                 <td class="product-price" style="font-size:1.2rem">${f.price} ₽</td>
                                 <td class="${f.stock < 5 ? 'stock-low' : ''}">${f.stock} шт</td>
-                                <td><button class="favorite-btn-flavor ${isFavorite(parentItem.id, idx) ? 'active' : ''}" data-flavor-index="${idx}" style="background:none;font-size:1.3rem;cursor:pointer">❤️</button></td>
-                                <td>
-                                    <select class="manager-select-flavor" data-flavor-index="${idx}" style="background:#1E293B;border:1px solid #334155;border-radius:40px;padding:6px 10px;color:white">
-                                        ${managers.map(m => `<option value="${m.tg}">${m.name}</option>`).join('')}
-                                    </select>
-                                </td>
-                                <td>
-                                    <button class="order-flavor-btn" data-flavor-name="${escapeHtml(f.name)}" data-flavor-price="${f.price}" style="background:#10B981;border:none;border-radius:40px;padding:6px 12px;color:white;cursor:pointer">📦 Заказать</button>
-                                </td>
+                                <td><button class="favorite-btn-flavor ${isFavorite(parentItem.id, idx) ? 'active' : ''}" data-flavor-index="${idx}" style="background:none;border:none;font-size:1.3rem;cursor:pointer">❤️</button></td>
+                                <td><button class="order-pill-small" data-flavor-name="${escapeHtml(f.name)}" data-flavor-price="${f.price}" style="background:#10B981;border:none;border-radius:60px;padding:8px 16px;color:white;font-weight:600;cursor:pointer">📦 Заказать</button></td>
                             </tr>
                         `).join('')}
                     </tbody>
@@ -897,20 +1027,19 @@
             const idx = parseInt(btn.dataset.flavorIndex);
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                toggleFavorite(parentItem, flavors[idx], idx);
+                toggleFavorite(parentItem, flavors[idx], idx, e);
                 btn.classList.toggle('active');
             });
         });
         
-        document.querySelectorAll('.order-flavor-btn').forEach(btn => {
-            const idx = parseInt(btn.closest('tr').querySelector('.manager-select-flavor').dataset.flavorIndex);
-            const select = btn.closest('tr').querySelector('.manager-select-flavor');
+        document.querySelectorAll('.order-pill-small').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const name = btn.dataset.flavorName;
                 const price = btn.dataset.flavorPrice;
-                const managerTg = select.value;
-                orderViaTelegram(parentItem.name, name, price, managerTg);
+                showManagerModal(parentItem.name, name, price, (tg) => {
+                    orderViaTelegram(parentItem.name, name, price, tg);
+                });
             });
         });
     }
@@ -932,23 +1061,18 @@
                 <img class="product-image" src="${fav.image || 'https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
                 <div class="product-title">${escapeHtml(fav.name)} ${fav.variant ? '(' + escapeHtml(fav.variant) + ')' : ''}</div>
                 <div class="product-price">${fav.price} ₽</div>
-                <div class="order-with-manager">
-                    <select class="manager-select-fav" data-fav-id="${fav.id}" style="background:#1E293B;border:1px solid #334155;border-radius:40px;padding:10px;color:white">
-                        ${managers.map(m => `<option value="${m.tg}">${m.name}</option>`).join('')}
-                    </select>
-                    <button class="order-fav-btn" data-order-name="${escapeHtml(fav.name)}" data-order-variant="${escapeHtml(fav.variant || '')}" data-order-price="${fav.price}">📦 Заказать</button>
-                </div>
+                <button class="order-pill" data-order-name="${escapeHtml(fav.name)}" data-order-variant="${escapeHtml(fav.variant || '')}" data-order-price="${fav.price}">📦 Заказать</button>
             </div>
         `).join('');
         
-        document.querySelectorAll('.order-fav-btn').forEach(btn => {
-            const select = btn.closest('.product-card').querySelector('.manager-select-fav');
+        document.querySelectorAll('.order-pill').forEach(btn => {
             btn.addEventListener('click', () => {
                 const name = btn.dataset.orderName;
                 const variant = btn.dataset.orderVariant || 'стандарт';
                 const price = btn.dataset.orderPrice;
-                const managerTg = select.value;
-                orderViaTelegram(name, variant, price, managerTg);
+                showManagerModal(name, variant, price, (tg) => {
+                    orderViaTelegram(name, variant, price, tg);
+                });
             });
         });
     }
@@ -980,15 +1104,11 @@
                     <img class="product-image" src="${item.image || 'https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
                     <div class="product-title">${escapeHtml(item.name)}</div>
                     ${item.flavors ? 
-                        `<div class="product-price">от ${Math.min(...item.flavors.map(f => f.price))} ₽</div>` :
+                        `<div class="product-price">от ${Math.min(...item.flavors.map(f => f.price))} ₽</div>
+                         <button class="order-pill" data-order-type="flavors" data-item-id="${item.id}">📦 Заказать</button>` :
                         `<div class="product-price">${item.price} ₽</div>
                          <div class="product-desc">${escapeHtml(item.desc || '')}</div>
-                         <div class="order-with-manager">
-                             <select class="manager-select" data-id="${item.id}">
-                                ${managers.map(m => `<option value="${m.tg}">${m.name}</option>`).join('')}
-                             </select>
-                             <button class="order-btn" data-order-name="${escapeHtml(item.name)}" data-order-price="${item.price}">📦 Заказать</button>
-                         </div>`
+                         <button class="order-pill" data-order-type="simple" data-order-name="${escapeHtml(item.name)}" data-order-price="${item.price}">📦 Заказать</button>`
                     }
                 </div>
             `).join('');
@@ -1000,20 +1120,28 @@
                 if (favBtn) {
                     favBtn.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        toggleFavorite(item);
+                        toggleFavorite(item, null, null, e);
                         favBtn.classList.toggle('active');
                         renderCategories();
                     });
                 }
-                const orderBtn = card.querySelector('.order-btn');
-                const managerSelect = card.querySelector('.manager-select');
-                if (orderBtn && managerSelect) {
-                    orderBtn.addEventListener('click', (e) => {
+                const orderPill = card.querySelector('.order-pill');
+                if (orderPill) {
+                    orderPill.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        const name = orderBtn.dataset.orderName;
-                        const price = orderBtn.dataset.orderPrice;
-                        const managerTg = managerSelect.value;
-                        orderViaTelegram(name, 'стандарт', price, managerTg);
+                        if (orderPill.dataset.orderType === 'simple') {
+                            const name = orderPill.dataset.orderName;
+                            const price = orderPill.dataset.orderPrice;
+                            showManagerModal(name, 'стандарт', price, (tg) => {
+                                orderViaTelegram(name, 'стандарт', price, tg);
+                            });
+                        } else if (orderPill.dataset.orderType === 'flavors') {
+                            const itemId = parseInt(orderPill.dataset.itemId);
+                            const targetItem = allItems.find(i => i.id === itemId);
+                            if (targetItem && targetItem.flavors) {
+                                openFlavors(targetItem);
+                            }
+                        }
                     });
                 }
                 card.addEventListener('click', () => {
@@ -1038,6 +1166,8 @@
     document.getElementById('homeLogoBtn').onclick = goToHome;
     document.getElementById('favoritesIcon').onclick = openFavorites;
     document.getElementById('scrollHint').onclick = () => document.getElementById('categoriesSection').scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('cancelModalBtn').onclick = closeModal;
+    window.onclick = (e) => { if (e.target === document.getElementById('managerModal')) closeModal(); };
     window.addEventListener('scroll', handleScroll);
 
     loadFavorites();
