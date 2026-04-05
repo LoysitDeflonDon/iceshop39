@@ -73,6 +73,7 @@ const PASSWORD = "LiniX071";
 const REPO_OWNER = "LoysitDeflonDon";
 const REPO_NAME = "iceshop39-data";
 const BRANCH = "main";
+const TOKEN_STORAGE_KEY = "github_token_iceshop39";
 
 const categories = [
     { file: "Zhitkosty", name: "Жидкости", icon: "💧" },
@@ -89,11 +90,47 @@ let editId = null;
 let currentFlavors = [];
 let githubToken = null;
 
+// ========== РАБОТА С ТОКЕНОМ ==========
+function loadToken() {
+    const savedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (savedToken) {
+        githubToken = savedToken;
+        return true;
+    }
+    return false;
+}
+
+function saveToken(token) {
+    localStorage.setItem(TOKEN_STORAGE_KEY, token);
+    githubToken = token;
+}
+
+async function getToken() {
+    if (githubToken) return githubToken;
+    
+    const saved = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (saved) {
+        githubToken = saved;
+        return githubToken;
+    }
+    
+    const token = prompt("🔐 Введите GitHub токен:\n(Создай на github.com/settings/tokens, выбери repo)\nТокен сохранится в браузере и больше не спросится!");
+    if (token) {
+        saveToken(token);
+        showToast("✅ Токен сохранён в браузере!", false);
+        return token;
+    }
+    showToast("❌ Токен обязателен для сохранения!", true);
+    return null;
+}
+
+// ========== ОСТАЛЬНЫЕ ФУНКЦИИ ==========
 function login() {
     const pwd = document.getElementById('password').value;
     if (pwd === PASSWORD) {
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
+        loadToken();
         loadCategories();
         showToast("Добро пожаловать!", false);
     } else {
@@ -286,10 +323,8 @@ async function saveProduct() {
     if (!currentFlavors.length) { showToast("Добавьте вариант!", true); return; }
     if (!currentCategory) { showToast("Выберите категорию!", true); return; }
     
-    if (!githubToken) {
-        githubToken = prompt("🔐 Введите GitHub токен:");
-        if (!githubToken) { showToast("Токен обязателен!", true); return; }
-    }
+    const token = await getToken();
+    if (!token) return;
     
     const categoryName = categories.find(c => c.file === currentCategory)?.name || currentCategory;
     
@@ -325,18 +360,18 @@ async function saveProduct() {
         currentProducts.push(newProduct);
     }
     
-    await saveToGitHub(currentProducts);
+    await saveToGitHub(currentProducts, token);
     cancelEdit();
     await loadProducts();
     showToast("✅ Товар сохранён!", false);
 }
 
-async function saveToGitHub(products) {
+async function saveToGitHub(products, token) {
     const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${currentCategory}.json`;
     let sha = "";
     try {
         const getRes = await fetch(url, {
-            headers: { 'Authorization': `token ${githubToken}` }
+            headers: { 'Authorization': `token ${token}` }
         });
         if (getRes.ok) {
             const data = await getRes.json();
@@ -355,7 +390,7 @@ async function saveToGitHub(products) {
     const res = await fetch(url, {
         method: 'PUT',
         headers: {
-            'Authorization': `token ${githubToken}`,
+            'Authorization': `token ${token}`,
             'Content-Type': 'application/json'
         },
         body: JSON.stringify(body)
@@ -364,8 +399,9 @@ async function saveToGitHub(products) {
     if (!res.ok) {
         const err = await res.json();
         if (err.message === "Bad credentials") {
+            localStorage.removeItem(TOKEN_STORAGE_KEY);
             githubToken = null;
-            showToast("Токен недействителен!", true);
+            showToast("❌ Токен недействителен! Введите новый при следующем сохранении", true);
         }
         throw new Error(err.message);
     }
@@ -374,15 +410,13 @@ async function saveToGitHub(products) {
 async function deleteProduct(id) {
     if (!confirm("🗑️ Точно удалить товар?")) return;
     
-    if (!githubToken) {
-        githubToken = prompt("🔐 Введите GitHub токен:");
-        if (!githubToken) { showToast("Токен обязателен!", true); return; }
-    }
+    const token = await getToken();
+    if (!token) return;
     
     currentProducts = currentProducts.filter(p => p.id !== id);
     
     try {
-        await saveToGitHub(currentProducts);
+        await saveToGitHub(currentProducts, token);
         await loadProducts();
         if (editId === id) cancelEdit();
         showToast("✅ Товар удалён!", false);
