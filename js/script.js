@@ -33,10 +33,9 @@ let allItems = {
 };
 let currentCategory = null;
 
-// ========== TELEGRAM БОТ ДЛЯ АДМИНА ==========
-// ВСТАВЬ СВОЙ ТОКЕН И CHAT ID:
-const ADMIN_BOT_TOKEN = "8274152549:AAFFGogKy9HKwyq1Afe-4ovzJ-V44AVtG_w";  // От @BotFather
-const ADMIN_CHAT_ID = "6919484181";       // От @userinfobot
+// ========== TELEGRAM БОТ ДЛЯ УВЕДОМЛЕНИЙ АДМИНА ==========
+const ADMIN_BOT_TOKEN = "8552470788:AAGB1Q36M-gPlnTebMXJWw8e8GmcCXk00y4";
+const ADMIN_CHAT_ID = "6919484181";
 
 // ========== КОРЗИНА ==========
 let cart = [];
@@ -288,11 +287,11 @@ async function sendCartToTelegram(managerTg) {
     // Отправка менеджеру
     window.open(`https://t.me/${managerTg}?text=${encodeURIComponent(message)}`, '_blank');
     
-    // Отправка уведомления админу (ботом)
-    if (ADMIN_BOT_TOKEN && ADMIN_BOT_TOKEN !== "8274152549:AAFFGogKy9HKwyq1Afe-4ovzJ-V44AVtG_w") {
+    // ========== ОТПРАВКА УВЕДОМЛЕНИЯ ТЕБЕ (АДМИНУ) ==========
+    if (ADMIN_BOT_TOKEN && ADMIN_BOT_TOKEN !== "") {
         try {
             const notifyMessage = `🔔 *НОВЫЙ ЗАКАЗ!*\n\nМенеджер: @${managerTg}\nСумма: ${totalPrice} ₽\nТоваров: ${cart.length}\n\nНажми на ссылку, чтобы ответить: https://t.me/${managerTg}`;
-            await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, {
+            const response = await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -301,8 +300,14 @@ async function sendCartToTelegram(managerTg) {
                     parse_mode: 'Markdown'
                 })
             });
+            const result = await response.json();
+            if (result.ok) {
+                console.log('✅ Уведомление админу отправлено!');
+            } else {
+                console.error('❌ Ошибка Telegram:', result.description);
+            }
         } catch(e) {
-            console.error('Ошибка уведомления админа:', e);
+            console.error('❌ Ошибка отправки:', e);
         }
     }
     
