@@ -405,7 +405,7 @@
             font-size: 1rem;
         }
 
-        /* Стили для страницы вкусов — без горизонтального скролла */
+        /* Стили для страницы вкусов */
         .flavors-list {
             display: flex;
             flex-direction: column;
@@ -455,6 +455,11 @@
         }
         .flavor-order-btn:hover {
             background: #059669;
+        }
+        .flavor-order-btn:disabled {
+            background: #4B5563;
+            cursor: not-allowed;
+            opacity: 0.6;
         }
 
         @media (max-width: 550px) {
@@ -633,14 +638,14 @@
 <footer>⚡ ICESHOP39. Все права защищены. Продажа только совершеннолетним. 2026</footer>
 
 <script>
-    // СООТВЕТСТВИЕ КАТЕГОРИЙ → JSON-ФАЙЛАМ
+    // Соответствие категорий файлам (исправлены имена файлов)
     const categoryFiles = {
-        "Жидкости": "zhidkosti.json",
-        "Снюс": "snus.json",
-        "Вейпы": "veypy.json",
-        "Испарители": "ispariteli.json",
-        "Картриджи": "kartridzhi.json",
-        "Одноразки": "odnorazki.json"
+        "Жидкости": "Zhitkosty.json",
+        "Снюс": "Snus.json",
+        "Вейпы": "Vapes.json",
+        "Испарители": "Ispariteli.json",
+        "Картриджи": "Kartdritzhy.json",
+        "Одноразки": "Odnorazki.json"
     };
 
     const categories = [
@@ -658,9 +663,10 @@
         { name: "Калининград", tg: "IceShop_KLND" }
     ];
 
-    let allItems = {};      // { "Жидкости": [...], "Вейпы": [...] }
+    let allItems = { "Жидкости": [], "Снюс": [], "Вейпы": [], "Испарители": [], "Картриджи": [], "Одноразки": [] };
     let currentCategory = null;
 
+    // Функция для отображения остатка
     function formatStock(stock) {
         if (stock === undefined || stock === null) return { text: "Нет в наличии", isOutOfStock: true };
         if (typeof stock === "number") {
@@ -713,11 +719,30 @@
     async function loadCategory(categoryName) {
         const fileName = categoryFiles[categoryName];
         if (!fileName) return [];
-        const url = `https://raw.githubusercontent.com/LoysitDeflonDon/iceshop39-data/main/${fileName}`;
+        const url = `https://raw.githubusercontent.com/LoysitDeflonDon/iceshop39-data/refs/heads/main/${fileName}`;
         try {
             const res = await fetch(url);
             if (!res.ok) return [];
-            return await res.json();
+            const text = await res.text();
+            // Очищаем возможные BOM-символы и лишние запятые/скобки
+            let cleanedText = text.trim();
+            // Простая очистка от лишних символов в начале/конце
+            if (cleanedText.startsWith('\uFEFF')) cleanedText = cleanedText.substring(1);
+            // Пробуем распарсить
+            try {
+                return JSON.parse(cleanedText);
+            } catch(e) {
+                console.error(`Ошибка парсинга ${categoryName}:`, e);
+                // Пробуем починить особенно проблемный файл Ispariteli.json
+                if (fileName === "Ispariteli.json") {
+                    // Удаляем всё после первого закрывающего массива
+                    const match = cleanedText.match(/\[\s*\{[\s\S]*?\}\s*\]/);
+                    if (match) {
+                        return JSON.parse(match[0]);
+                    }
+                }
+                return [];
+            }
         } catch(e) {
             console.error(`Ошибка загрузки ${categoryName}:`, e);
             return [];
@@ -725,17 +750,15 @@
     }
 
     async function loadAllData() {
-        const promises = categories.map(async cat => {
+        for (const cat of categories) {
             const data = await loadCategory(cat.name);
             allItems[cat.name] = data;
-        });
-        await Promise.all(promises);
+        }
         renderCategories();
     }
 
     function getCount(catName) {
-        const items = allItems[catName] || [];
-        return items.length;
+        return allItems[catName]?.length || 0;
     }
 
     function renderCategories() {
@@ -762,17 +785,19 @@
         if (!items.length) { container.innerHTML = '<div class="empty-msg">📭 Товары отсутствуют.</div>'; return; }
         
         container.innerHTML = items.map(item => {
-            // Если у товара есть flavors → НЕТ кнопки "Заказать" на карточке
+            // Если есть flavors — показываем как многовариантный товар (кнопки заказа нет на карточке)
             if (item.flavors && item.flavors.length > 0) {
+                // Находим минимальную цену среди вкусов для отображения "от X ₽"
+                const minPrice = Math.min(...item.flavors.map(f => f.price));
                 return `
                     <div class="product-card" data-id="${item.id}" data-has-flavors="true">
                         <img class="product-image" src="${item.image}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
                         <div class="product-title">${escapeHtml(item.name)}</div>
-                        <div class="product-price">от ${Math.min(...item.flavors.map(f => f.price))} ₽</div>
+                        <div class="product-price">от ${minPrice} ₽</div>
                     </div>
                 `;
             } else {
-                // Обычный товар — кнопка "Заказать" есть
+                // Обычный товар — с кнопкой заказа
                 return `
                     <div class="product-card" data-id="${item.id}" data-has-flavors="false">
                         <img class="product-image" src="${item.image}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
@@ -795,7 +820,7 @@
             });
         });
         
-        // Обработка кликов по карточкам товаров с flavors
+        // Обработка кликов по карточкам товаров с вариантами
         document.querySelectorAll('.product-card').forEach(card => {
             const hasFlavors = card.dataset.hasFlavors === 'true';
             if (hasFlavors) {
@@ -832,7 +857,7 @@
                             <span class="flavor-name">${escapeHtml(f.name)}</span>
                             <span class="flavor-price">${f.price} ₽</span>
                             <span class="flavor-stock ${stockClass}">${stockText}</span>
-                            <button class="flavor-order-btn" data-flavor-name="${escapeHtml(f.name)}" data-flavor-price="${f.price}" ${stockInfo.isOutOfStock ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''}>📦 Заказать</button>
+                            <button class="flavor-order-btn" data-flavor-name="${escapeHtml(f.name)}" data-flavor-price="${f.price}" ${stockInfo.isOutOfStock ? 'disabled' : ''}>📦 Заказать</button>
                         </div>
                     `;
                 }).join('')}
@@ -849,7 +874,10 @@
         });
     }
 
-    function escapeHtml(str) { return str?.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) || ''; }
+    function escapeHtml(str) { 
+        if (!str) return '';
+        return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+    }
     
     function goToHome() {
         document.getElementById('mainPage').style.display = 'block';
