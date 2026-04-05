@@ -26,6 +26,7 @@
             --text-primary: #F1F5F9;
             --text-secondary: #94A3B8;
             --success: #10B981;
+            --danger: #EF4444;
         }
 
         .hero-section {
@@ -404,46 +405,70 @@
             font-size: 1rem;
         }
 
-        .flavors-table-container {
+        /* Стили для страницы вкусов — без горизонтального скролла */
+        .flavors-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .flavor-item {
             background: var(--card-dark);
-            border-radius: 24px;
-            overflow-x: auto;
             border: 1px solid var(--border-dim);
+            border-radius: 20px;
+            padding: 14px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
         }
-        .flavors-table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 400px;
-        }
-        .flavors-table th, .flavors-table td {
-            padding: 12px 10px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-dim);
-        }
-        .flavors-table th {
-            background: #1E293B;
-            color: var(--text-primary);
+        .flavor-name {
             font-weight: 600;
+            flex: 2;
+            min-width: 120px;
+            word-break: break-word;
         }
-        .flavors-table tr:last-child td {
-            border-bottom: none;
+        .flavor-price {
+            color: #FACC15;
+            font-weight: 700;
+            font-size: 1.1rem;
+            min-width: 70px;
+        }
+        .flavor-stock {
+            min-width: 80px;
+            font-size: 0.85rem;
         }
         .stock-low {
             color: #EF4444;
             font-weight: 600;
         }
-        .order-pill-small {
+        .flavor-order-btn {
             background: var(--success);
             border: none;
-            border-radius: 60px;
-            padding: 6px 14px;
+            border-radius: 40px;
+            padding: 8px 16px;
             color: white;
             font-weight: 600;
             cursor: pointer;
+            transition: 0.2s;
             white-space: nowrap;
         }
-        .order-pill-small:hover {
+        .flavor-order-btn:hover {
             background: #059669;
+        }
+
+        @media (max-width: 550px) {
+            .flavor-item {
+                flex-direction: column;
+                align-items: stretch;
+                text-align: center;
+            }
+            .flavor-name, .flavor-price, .flavor-stock {
+                text-align: center;
+            }
+            .flavor-order-btn {
+                margin-top: 5px;
+            }
         }
 
         .modal {
@@ -608,13 +633,23 @@
 <footer>⚡ ICESHOP39. Все права защищены. Продажа только совершеннолетним. 2026</footer>
 
 <script>
+    // СООТВЕТСТВИЕ КАТЕГОРИЙ → JSON-ФАЙЛАМ
+    const categoryFiles = {
+        "Жидкости": "zhidkosti.json",
+        "Снюс": "snus.json",
+        "Вейпы": "veypy.json",
+        "Испарители": "ispariteli.json",
+        "Картриджи": "kartridzhi.json",
+        "Одноразки": "odnorazki.json"
+    };
+
     const categories = [
-        { id: "Жидкости", name: "Жидкости", icon: "💧", file: "Zhitkosty.json" },
-        { id: "Испарители", name: "Испарители", icon: "🔥", file: "Ispariteli.json" },
-        { id: "Картриджи", name: "Картриджи", icon: "⚡", file: "Kartdritzhy.json" },
-        { id: "Вейпы", name: "Вейпы", icon: "💨", file: "Vapes.json" },
-        { id: "Снюс", name: "Снюс", icon: "👅", file: "Snus.json" },
-        { id: "Одноразки", name: "Одноразки", icon: "🔄", file: "Odnorazki.json" }
+        { id: "Жидкости", name: "Жидкости", icon: "💧" },
+        { id: "Снюс", name: "Снюс", icon: "👅" },
+        { id: "Вейпы", name: "Вейпы", icon: "💨" },
+        { id: "Испарители", name: "Испарители", icon: "🔥" },
+        { id: "Картриджи", name: "Картриджи", icon: "⚡" },
+        { id: "Одноразки", name: "Одноразки", icon: "🔄" }
     ];
 
     const managers = [
@@ -623,166 +658,29 @@
         { name: "Калининград", tg: "IceShop_KLND" }
     ];
 
-    // Хранилище товаров по категориям
-    let categoryData = {
-        "Жидкости": [],
-        "Испарители": [],
-        "Картриджи": [],
-        "Вейпы": [],
-        "Снюс": [],
-        "Одноразки": []
-    };
-    
+    let allItems = {};      // { "Жидкости": [...], "Вейпы": [...] }
     let currentCategory = null;
-    let currentItems = [];
 
-    async function loadCategory(category) {
-        const catInfo = categories.find(c => c.name === category);
-        if (!catInfo) return [];
-        
-        const url = `https://raw.githubusercontent.com/LoysitDeflonDon/iceshop39-data/refs/heads/main/${catInfo.file}`;
-        try {
-            const res = await fetch(url);
-            if (!res.ok) throw new Error();
-            const data = await res.json();
-            categoryData[category] = data;
-            return data;
-        } catch(e) {
-            console.error(`Ошибка загрузки ${category}:`, e);
-            categoryData[category] = [];
-            return [];
+    function formatStock(stock) {
+        if (stock === undefined || stock === null) return { text: "Нет в наличии", isOutOfStock: true };
+        if (typeof stock === "number") {
+            if (stock <= 0) return { text: "Нет в наличии", isOutOfStock: true };
+            if (stock < 5) return { text: stock + " шт", isLow: true, isOutOfStock: false };
+            return { text: stock + " шт", isOutOfStock: false };
         }
-    }
-
-    async function loadAllCategories() {
-        const promises = categories.map(cat => loadCategory(cat.name));
-        await Promise.all(promises);
-        renderCategories();
-    }
-
-    function getCount(catName) {
-        return categoryData[catName]?.length || 0;
-    }
-
-    function renderCategories() {
-        const container = document.getElementById("categoriesGrid");
-        container.innerHTML = categories.map(cat => `
-            <div class="category-card" data-category="${cat.name}">
-                <div class="category-icon">${cat.icon}</div>
-                <div class="category-name">${cat.name}</div>
-                <div class="category-count">${getCount(cat.name)} товаров</div>
-            </div>
-        `).join('');
-        
-        document.querySelectorAll('.category-card').forEach(card => {
-            card.addEventListener('click', () => openCategory(card.dataset.category));
-        });
-    }
-
-    async function openCategory(catName) {
-        currentCategory = catName;
-        
-        // Если данные ещё не загружены, загружаем
-        if (!categoryData[catName] || categoryData[catName].length === 0) {
-            const container = document.getElementById('productsContainer');
-            container.innerHTML = '<div class="loader">Загрузка товаров...</div>';
-            document.getElementById('mainPage').style.display = 'none';
-            document.getElementById('productsPage').classList.add('active');
-            document.getElementById('productsPageTitle').textContent = catName;
-            
-            await loadCategory(catName);
-        }
-        
-        currentItems = categoryData[catName] || [];
-        
-        document.getElementById('mainPage').style.display = 'none';
-        document.getElementById('productsPage').classList.add('active');
-        document.getElementById('productsPageTitle').textContent = catName;
-        
-        const container = document.getElementById('productsContainer');
-        if (!currentItems.length) {
-            container.innerHTML = '<div class="empty-msg">📭 Товары отсутствуют.</div>';
-            return;
-        }
-        
-        container.innerHTML = currentItems.map(item => {
-            if (item.flavors) {
-                return `
-                    <div class="product-card" data-id="${item.id}">
-                        <img class="product-image" src="${item.image}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
-                        <div class="product-title">${escapeHtml(item.name)}</div>
-                        <div class="product-price">от ${Math.min(...item.flavors.map(f => f.price))} ₽</div>
-                        <button class="order-pill" data-order-type="flavors" data-item-id="${item.id}">📦 Заказать</button>
-                    </div>
-                `;
-            } else {
-                return `
-                    <div class="product-card" data-id="${item.id}">
-                        <img class="product-image" src="${item.image}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
-                        <div class="product-title">${escapeHtml(item.name)}</div>
-                        <div class="product-price">${item.price} ₽</div>
-                        <div class="product-desc">${escapeHtml(item.desc || '')}</div>
-                        <button class="order-pill" data-order-type="simple" data-order-name="${escapeHtml(item.name)}" data-order-price="${item.price}">📦 Заказать</button>
-                    </div>
-                `;
+        if (typeof stock === "string") {
+            if (stock.toLowerCase() === "нет в наличии" || stock === "0") {
+                return { text: "Нет в наличии", isOutOfStock: true };
             }
-        }).join('');
-        
-        document.querySelectorAll('.order-pill').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (btn.dataset.orderType === 'simple') {
-                    const name = btn.dataset.orderName;
-                    const price = btn.dataset.orderPrice;
-                    showManagerModal(name, 'стандарт', price, (tg) => orderViaTelegram(name, 'стандарт', price, tg));
-                } else if (btn.dataset.orderType === 'flavors') {
-                    const id = parseInt(btn.dataset.itemId);
-                    const item = currentItems.find(i => i.id === id);
-                    if (item && item.flavors) openFlavors(item);
-                }
-            });
-        });
-        
-        document.querySelectorAll('.product-card').forEach(card => {
-            const id = parseInt(card.dataset.id);
-            const item = currentItems.find(i => i.id === id);
-            if (item?.flavors) {
-                card.addEventListener('click', () => openFlavors(item));
+            const num = parseInt(stock);
+            if (!isNaN(num)) {
+                if (num <= 0) return { text: "Нет в наличии", isOutOfStock: true };
+                if (num < 5) return { text: num + " шт", isLow: true, isOutOfStock: false };
+                return { text: num + " шт", isOutOfStock: false };
             }
-        });
-        
-        window.scrollTo({ top: 0 });
-    }
-
-    function openFlavors(parentItem) {
-        document.getElementById('productsPage').classList.remove('active');
-        document.getElementById('flavorsPage').classList.add('active');
-        document.getElementById('flavorsPageTitle').textContent = `${parentItem.name} — все варианты`;
-        const container = document.getElementById('flavorsContainer');
-        container.innerHTML = `
-            <div class="flavors-table-container">
-                <table class="flavors-table">
-                    <thead><tr><th>Вкус</th><th>Цена</th><th>Остаток</th><th></th></tr></thead>
-                    <tbody>
-                        ${parentItem.flavors.map(f => `
-                            <tr>
-                                <td>${escapeHtml(f.name)}</td>
-                                <td class="product-price" style="font-size:1.2rem">${f.price} ₽</td>
-                                <td class="${f.stock < 5 ? 'stock-low' : ''}">${f.stock} шт</td>
-                                <td><button class="order-pill-small" data-flavor-name="${escapeHtml(f.name)}" data-flavor-price="${f.price}">📦 Заказать</button></td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-        document.querySelectorAll('.order-pill-small').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const name = btn.dataset.flavorName;
-                const price = btn.dataset.flavorPrice;
-                showManagerModal(parentItem.name, name, price, (tg) => orderViaTelegram(parentItem.name, name, price, tg));
-            });
-        });
+            return { text: stock, isOutOfStock: true };
+        }
+        return { text: "Нет в наличии", isOutOfStock: true };
     }
 
     function showManagerModal(productName, variant, price, callback) {
@@ -812,10 +710,146 @@
         window.open(`https://t.me/${managerTg}?text=${encodeURIComponent(message)}`, '_blank');
     }
 
-    function escapeHtml(str) { 
-        if (!str) return '';
-        return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); 
+    async function loadCategory(categoryName) {
+        const fileName = categoryFiles[categoryName];
+        if (!fileName) return [];
+        const url = `https://raw.githubusercontent.com/LoysitDeflonDon/iceshop39-data/main/${fileName}`;
+        try {
+            const res = await fetch(url);
+            if (!res.ok) return [];
+            return await res.json();
+        } catch(e) {
+            console.error(`Ошибка загрузки ${categoryName}:`, e);
+            return [];
+        }
     }
+
+    async function loadAllData() {
+        const promises = categories.map(async cat => {
+            const data = await loadCategory(cat.name);
+            allItems[cat.name] = data;
+        });
+        await Promise.all(promises);
+        renderCategories();
+    }
+
+    function getCount(catName) {
+        const items = allItems[catName] || [];
+        return items.length;
+    }
+
+    function renderCategories() {
+        const container = document.getElementById("categoriesGrid");
+        container.innerHTML = categories.map(cat => `
+            <div class="category-card" data-category="${cat.name}">
+                <div class="category-icon">${cat.icon}</div>
+                <div class="category-name">${cat.name}</div>
+                <div class="category-count">${getCount(cat.name)} товаров</div>
+            </div>
+        `).join('');
+        document.querySelectorAll('.category-card').forEach(card => {
+            card.addEventListener('click', () => openCategory(card.dataset.category));
+        });
+    }
+
+    function openCategory(catName) {
+        currentCategory = catName;
+        const items = allItems[catName] || [];
+        document.getElementById('mainPage').style.display = 'none';
+        document.getElementById('productsPage').classList.add('active');
+        document.getElementById('productsPageTitle').textContent = catName;
+        const container = document.getElementById('productsContainer');
+        if (!items.length) { container.innerHTML = '<div class="empty-msg">📭 Товары отсутствуют.</div>'; return; }
+        
+        container.innerHTML = items.map(item => {
+            // Если у товара есть flavors → НЕТ кнопки "Заказать" на карточке
+            if (item.flavors && item.flavors.length > 0) {
+                return `
+                    <div class="product-card" data-id="${item.id}" data-has-flavors="true">
+                        <img class="product-image" src="${item.image}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
+                        <div class="product-title">${escapeHtml(item.name)}</div>
+                        <div class="product-price">от ${Math.min(...item.flavors.map(f => f.price))} ₽</div>
+                    </div>
+                `;
+            } else {
+                // Обычный товар — кнопка "Заказать" есть
+                return `
+                    <div class="product-card" data-id="${item.id}" data-has-flavors="false">
+                        <img class="product-image" src="${item.image}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
+                        <div class="product-title">${escapeHtml(item.name)}</div>
+                        <div class="product-price">${item.price} ₽</div>
+                        <div class="product-desc">${escapeHtml(item.desc || '')}</div>
+                        <button class="order-pill" data-order-type="simple" data-order-name="${escapeHtml(item.name)}" data-order-price="${item.price}">📦 Заказать</button>
+                    </div>
+                `;
+            }
+        }).join('');
+        
+        // Обработка кнопок заказа для обычных товаров
+        document.querySelectorAll('.order-pill').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const name = btn.dataset.orderName;
+                const price = btn.dataset.orderPrice;
+                showManagerModal(name, 'стандарт', price, (tg) => orderViaTelegram(name, 'стандарт', price, tg));
+            });
+        });
+        
+        // Обработка кликов по карточкам товаров с flavors
+        document.querySelectorAll('.product-card').forEach(card => {
+            const hasFlavors = card.dataset.hasFlavors === 'true';
+            if (hasFlavors) {
+                const id = parseInt(card.dataset.id);
+                const item = items.find(i => i.id === id);
+                if (item && item.flavors) {
+                    card.addEventListener('click', () => openFlavors(item));
+                }
+            }
+        });
+        
+        window.scrollTo({ top: 0 });
+    }
+
+    function openFlavors(parentItem) {
+        document.getElementById('productsPage').classList.remove('active');
+        document.getElementById('flavorsPage').classList.add('active');
+        document.getElementById('flavorsPageTitle').textContent = `${parentItem.name} — все варианты`;
+        const container = document.getElementById('flavorsContainer');
+        
+        if (!parentItem.flavors || parentItem.flavors.length === 0) {
+            container.innerHTML = '<div class="empty-msg">📭 Список вариантов пуст.</div>';
+            return;
+        }
+        
+        container.innerHTML = `
+            <div class="flavors-list">
+                ${parentItem.flavors.map(f => {
+                    const stockInfo = formatStock(f.stock);
+                    const stockClass = stockInfo.isOutOfStock ? 'stock-low' : (stockInfo.isLow ? 'stock-low' : '');
+                    const stockText = stockInfo.text;
+                    return `
+                        <div class="flavor-item">
+                            <span class="flavor-name">${escapeHtml(f.name)}</span>
+                            <span class="flavor-price">${f.price} ₽</span>
+                            <span class="flavor-stock ${stockClass}">${stockText}</span>
+                            <button class="flavor-order-btn" data-flavor-name="${escapeHtml(f.name)}" data-flavor-price="${f.price}" ${stockInfo.isOutOfStock ? 'disabled style="opacity:0.5;cursor:not-allowed"' : ''}>📦 Заказать</button>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+        
+        document.querySelectorAll('.flavor-order-btn').forEach(btn => {
+            if (btn.disabled) return;
+            btn.addEventListener('click', () => {
+                const name = btn.dataset.flavorName;
+                const price = btn.dataset.flavorPrice;
+                showManagerModal(parentItem.name, name, price, (tg) => orderViaTelegram(parentItem.name, name, price, tg));
+            });
+        });
+    }
+
+    function escapeHtml(str) { return str?.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) || ''; }
     
     function goToHome() {
         document.getElementById('mainPage').style.display = 'block';
@@ -844,8 +878,7 @@
     window.onclick = (e) => { if (e.target === document.getElementById('managerModal')) closeModal(); };
     window.addEventListener('scroll', handleScroll);
 
-    // Загружаем все категории при старте
-    loadAllCategories();
+    loadAllData();
     handleScroll();
 </script>
 </body>
