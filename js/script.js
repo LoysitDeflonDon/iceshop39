@@ -39,15 +39,16 @@ function escapeHtml(str) {
     return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 }
 
+// ИСПРАВЛЕНО: корректно возвращаем available для любого количества
 function formatStock(stock) {
-    if (stock === undefined || stock === null) return { text: "Нет в наличии", isOutOfStock: true };
+    if (stock === undefined || stock === null) return { text: "Нет в наличии", isOutOfStock: true, available: 0 };
     let numStock = Number(stock);
     if (!isNaN(numStock) && typeof stock !== 'boolean') {
-        if (numStock <= 0) return { text: "Нет в наличии", isOutOfStock: true };
-        if (numStock < 5) return { text: numStock + " шт", isLow: true, isOutOfStock: false };
-        return { text: numStock + " шт", isOutOfStock: false };
+        if (numStock <= 0) return { text: "Нет в наличии", isOutOfStock: true, available: 0 };
+        if (numStock < 5) return { text: numStock + " шт", isLow: true, isOutOfStock: false, available: numStock };
+        return { text: numStock + " шт", isOutOfStock: false, available: numStock };
     }
-    return { text: "Нет в наличии", isOutOfStock: true };
+    return { text: "Нет в наличии", isOutOfStock: true, available: 0 };
 }
 
 function updateCartIcon() {
@@ -65,11 +66,16 @@ function updateCartIcon() {
     if (countSpan) countSpan.textContent = totalItems;
 }
 
+// ИСПРАВЛЕНО: теперь проверяем maxStock > 0 и текущее количество
 function addToCart(productName, variantName, price, image, maxStock) {
+    if (!maxStock || maxStock <= 0) {
+        showToast(`❌ Товар "${productName} (${variantName})" закончился`);
+        return false;
+    }
     const existingItem = cart.find(item => item.productName === productName && item.variantName === variantName);
     const currentQty = existingItem ? existingItem.quantity : 0;
     if (currentQty >= maxStock) {
-        showToast(`❌ Нельзя добавить больше ${maxStock} шт.`);
+        showToast(`❌ Нельзя добавить больше ${maxStock} шт. товара "${productName}"`);
         return false;
     }
     if (existingItem) {
@@ -78,7 +84,7 @@ function addToCart(productName, variantName, price, image, maxStock) {
         cart.push({ productName, variantName, price, image, quantity: 1, maxStock });
     }
     updateCartIcon();
-    showToast(`✅ ${productName} (${variantName}) добавлен`);
+    showToast(`✅ ${productName} (${variantName}) добавлен в корзину`);
     return true;
 }
 
@@ -98,12 +104,12 @@ function showCartModal() {
         cartHtml += `<div style="display:flex; gap:10px; padding:10px; border-bottom:1px solid #1F2A44; flex-wrap:wrap;">
             <img src="${item.image}" style="width:50px; height:50px; object-fit:cover; border-radius:10px;">
             <div style="flex:1;"><strong>${escapeHtml(item.productName)}</strong><br>${escapeHtml(item.variantName)}<br>${item.price}₽ × ${item.quantity} = ${itemTotal}₽</div>
-            <div><button onclick="updateQuantity(${idx}, -1)" style="background:#EF4444; border:none; width:30px; height:30px; border-radius:50%; color:white;">-</button> <button onclick="updateQuantity(${idx}, 1)" style="background:#10B981; border:none; width:30px; height:30px; border-radius:50%; color:white;">+</button></div>
+            <div><button onclick="updateQuantity(${idx}, -1)" style="background:#EF4444; border:none; width:30px; height:30px; border-radius:50%; color:white; cursor:pointer;">-</button> <button onclick="updateQuantity(${idx}, 1)" style="background:#10B981; border:none; width:30px; height:30px; border-radius:50%; color:white; cursor:pointer;">+</button></div>
         </div>`;
     });
     cartHtml += `<div style="text-align:right; padding:10px; font-weight:bold;">Итого: ${totalPrice}₽</div>
-        <button onclick="checkout()" style="background:#10B981; width:100%; padding:12px; border:none; border-radius:60px; color:white; font-weight:bold;">📤 Оформить</button>
-        <button onclick="this.parentElement.parentElement.remove()" style="background:#334155; width:100%; padding:10px; margin-top:10px; border:none; border-radius:60px; color:white;">Закрыть</button>
+        <button onclick="checkout()" style="background:#10B981; width:100%; padding:12px; border:none; border-radius:60px; color:white; font-weight:bold; cursor:pointer;">📤 Оформить</button>
+        <button onclick="this.closest('.modal').remove()" style="background:#334155; width:100%; padding:10px; margin-top:10px; border:none; border-radius:60px; color:white; cursor:pointer;">Закрыть</button>
     </div>`;
     modalDiv.innerHTML = cartHtml;
     document.body.appendChild(modalDiv);
@@ -117,7 +123,7 @@ window.updateQuantity = function(idx, delta) {
     } else if (newQty <= item.maxStock) {
         item.quantity = newQty;
     } else {
-        showToast(`❌ Нельзя добавить больше ${item.maxStock} шт.`);
+        showToast(`❌ Нельзя добавить больше ${item.maxStock} шт. товара "${item.productName}"`);
         return;
     }
     updateCartIcon();
@@ -147,7 +153,7 @@ function showToast(msg) {
     if (!toast) {
         toast = document.createElement('div');
         toast.id = 'toastMsg';
-        toast.style.cssText = 'position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:#10B981; color:white; padding:12px 20px; border-radius:60px; z-index:10000;';
+        toast.style.cssText = 'position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:#10B981; color:white; padding:12px 20px; border-radius:60px; z-index:10000; font-size:14px; white-space:nowrap;';
         document.body.appendChild(toast);
     }
     toast.textContent = msg;
@@ -190,6 +196,7 @@ function renderCategories() {
     document.querySelectorAll('.category-card').forEach(card => card.addEventListener('click', () => openCategory(card.dataset.category)));
 }
 
+// ИСПРАВЛЕНО: передаём правильный maxStock из stockInfo.available
 function openCategory(catName) {
     currentCategory = catName;
     const items = allItems[catName] || [];
@@ -207,7 +214,9 @@ function openCategory(catName) {
             return `<div class="product-card" data-id="${item.id}" data-has-flavors="true"><img class="product-image" src="${itemImage}" loading="lazy"><div class="product-title">${itemName}</div><div class="product-price">от ${minPrice} ₽</div><div class="product-desc">${itemDesc}</div></div>`;
         } else {
             const stockInfo = formatStock(item.stock);
-            return `<div class="product-card" data-id="${item.id}" data-has-flavors="false"><img class="product-image" src="${itemImage}" loading="lazy"><div class="product-title">${itemName}</div><div class="product-price">${item.price} ₽</div><div class="product-desc">${itemDesc}</div>${!stockInfo.isOutOfStock ? `<button class="order-pill" data-name="${itemName}" data-price="${item.price}" data-image="${itemImage}" data-maxstock="${stockInfo.available || 0}">📦 В корзину</button>` : '<div style="color:#EF4444;">❌ Нет</div>'}</div>`;
+            const availableQty = stockInfo.available;
+            const isAvailable = !stockInfo.isOutOfStock && availableQty > 0;
+            return `<div class="product-card" data-id="${item.id}" data-has-flavors="false"><img class="product-image" src="${itemImage}" loading="lazy"><div class="product-title">${itemName}</div><div class="product-price">${item.price} ₽</div><div class="product-desc">${itemDesc}</div>${isAvailable ? `<button class="order-pill" data-name="${itemName}" data-price="${item.price}" data-image="${itemImage}" data-maxstock="${availableQty}">📦 В корзину</button>` : `<div style="color:#EF4444; margin-top:8px;">❌ Нет в наличии</div>`}</div>`;
         }
     }).join('');
     document.querySelectorAll('.order-pill').forEach(btn => btn.addEventListener('click', (e) => {
@@ -222,6 +231,7 @@ function openCategory(catName) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ИСПРАВЛЕНО: для каждого вкуса тоже передаём available из stockInfo
 function openFlavors(parentItem) {
     document.getElementById('productsPage').classList.remove('active');
     document.getElementById('flavorsPage').classList.add('active');
@@ -230,7 +240,9 @@ function openFlavors(parentItem) {
     if (!parentItem.flavors?.length) { container.innerHTML = '<div class="empty-msg">Нет вариантов</div>'; return; }
     container.innerHTML = `<div class="flavors-list">${parentItem.flavors.map(f => {
         const stockInfo = formatStock(f.stock);
-        return `<div class="flavor-item"><div class="flavor-name">${escapeHtml(f.name)}</div><span class="flavor-price">${f.price} ₽</span><span class="flavor-stock ${stockInfo.isOutOfStock || stockInfo.isLow ? 'stock-low' : ''}">${stockInfo.text}</span><button class="flavor-order-btn" data-name="${escapeHtml(f.name)}" data-price="${f.price}" data-image="${parentItem.image}" data-maxstock="${stockInfo.available || 0}" ${stockInfo.isOutOfStock ? 'disabled' : ''}>📦 В корзину</button></div>`;
+        const availableQty = stockInfo.available;
+        const isAvailable = !stockInfo.isOutOfStock && availableQty > 0;
+        return `<div class="flavor-item"><div class="flavor-name">${escapeHtml(f.name)}</div><span class="flavor-price">${f.price} ₽</span><span class="flavor-stock ${stockInfo.isOutOfStock || stockInfo.isLow ? 'stock-low' : ''}">${stockInfo.text}</span>${isAvailable ? `<button class="flavor-order-btn" data-name="${escapeHtml(f.name)}" data-price="${f.price}" data-image="${parentItem.image}" data-maxstock="${availableQty}">📦 В корзину</button>` : `<button class="flavor-order-btn" disabled style="background:#4B5563; cursor:not-allowed;">❌ Нет</button>`}</div>`;
     }).join('')}</div>`;
     document.querySelectorAll('.flavor-order-btn:not([disabled])').forEach(btn => btn.addEventListener('click', () => addToCart(parentItem.name, btn.dataset.name, parseInt(btn.dataset.price), btn.dataset.image, parseInt(btn.dataset.maxstock))));
     window.scrollTo({ top: 0, behavior: 'smooth' });
