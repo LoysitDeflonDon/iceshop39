@@ -639,23 +639,12 @@ footer {
     background: #EF4444;
 }
 
-@media (max-width: 550px) {
-    .history-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 10px;
-    }
-    .history-image {
-        height: 80px;
-    }
-    .history-name {
-        font-size: 0.7rem;
-    }
-}
 /* ========== ПОПУЛЯРНЫЕ ТОВАРЫ ========== */
 .popular-section {
     padding: 50px 20px;
     background: var(--bg-deep);
     border-top: 1px solid var(--border-dim);
+    border-bottom: 1px solid var(--border-dim);
 }
 
 .popular-grid {
@@ -713,6 +702,15 @@ footer {
     white-space: nowrap;
 }
 
+.popular-variant {
+    font-size: 0.7rem;
+    color: #94A3B8;
+    margin-bottom: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .popular-price {
     color: #FACC15;
     font-weight: 700;
@@ -735,5 +733,18 @@ footer {
     }
     .popular-name {
         font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 550px) {
+    .history-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 10px;
+    }
+    .history-image {
+        height: 80px;
+    }
+    .history-name {
+        font-size: 0.7rem;
     }
 }
