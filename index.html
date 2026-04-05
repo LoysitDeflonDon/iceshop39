@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     
     <!-- SEO мета-теги -->
     <title>ICESHOP39 — Вейпы, жидкости и аксессуары в Калининграде | 18+</title>
@@ -12,7 +12,7 @@
     <meta name="robots" content="index, follow">
     <meta name="theme-color" content="#0A0F1E">
     
-    <!-- Telegram Preview (использует Open Graph) -->
+    <!-- Telegram Preview -->
     <meta property="og:title" content="ICESHOP39 — Вейпы, жидкости и аксессуары">
     <meta property="og:description" content="Широкий выбор вейпов, жидкостей, испарителей и аксессуаров. Быстрая доставка по Калининграду и области. Только 18+.">
     <meta property="og:image" content="https://i.ibb.co/5hYz909b/istockphoto-1399967405-612x612.jpg">
@@ -29,19 +29,8 @@
 </head>
 <body>
 
-<!-- Модальное окно 18+ -->
-<div id="ageModal" class="age-modal" style="display: flex;">
-    <div class="age-content">
-        <h1>18+</h1>
-        <p>⚠️ Товары только для совершеннолетних (18+) ⚠️</p>
-        <div class="age-checkbox">
-            <input type="checkbox" id="ageCheckbox">
-            <label for="ageCheckbox">Подтверждаю, что мне есть 18 лет</label>
-        </div>
-        <button class="age-btn" id="confirmAgeBtn" disabled>Войти на сайт</button>
-        <div class="warning">Курение вредит здоровью</div>
-    </div>
-</div>
+<!-- Баннер 18+ (маленький, не блокирует вход) -->
+<div class="age-banner">⚠️ 18+ Только для совершеннолетних ⚠️</div>
 
 <div class="header" id="header">
     <div class="logo" id="homeLogoBtn"><h2>ICESHOP39</h2></div>
@@ -79,7 +68,6 @@
 </div>
 
 <footer>⚡ ICESHOP39. 18+. Курение вредит здоровью. 2026</footer>
-<div class="age-banner">⚠️ 18+ Только для совершеннолетних ⚠️</div>
 
 <script src="script.js"></script>
 </body>
