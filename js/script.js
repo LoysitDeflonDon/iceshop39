@@ -5,15 +5,11 @@ const managers = [
     { name: "🌆 Калининград", tg: "IceShop_KLND" }
 ];
 
-const categoryFiles = {
-    "Жидкости": "Zhitkosty.json",
-    "Снюс": "Snus.json",
-    "Вейпы": "Vapes.json",
-    "Испарители": "Ispariteli.json",
-    "Картриджи": "Kartdritzhy.json",
-    "Одноразки": "Odnorazki.json"
-};
+// ========== НАСТРОЙКИ JSONBIN.IO (ТВОИ ДАННЫЕ) ==========
+const JSONBIN_BIN_ID = "69d2bd29856a682189011200";
+const JSONBIN_API_KEY = "$2a$10$8svHLhjJ9/K.QIVEyStHqO5J0YM6BqjnxmK.UUn2b.Axxicf3KCcK";
 
+// Категории остались без изменений
 const categories = [
     { id: "Жидкости", name: "Жидкости", icon: "💧" },
     { id: "Снюс", name: "Снюс", icon: "👅" },
@@ -22,6 +18,16 @@ const categories = [
     { id: "Картриджи", name: "Картриджи", icon: "⚡" },
     { id: "Одноразки", name: "Одноразки", icon: "🔄" }
 ];
+
+// Соответствие категорий для загрузки (без изменений)
+const categoryFiles = {
+    "Жидкости": "Zhitkosty",
+    "Снюс": "Snus",
+    "Вейпы": "Vapes",
+    "Испарители": "Ispariteli",
+    "Картриджи": "Kartdritzhy",
+    "Одноразки": "Odnorazki"
+};
 
 let allItems = {
     "Жидкости": [],
@@ -560,41 +566,30 @@ function renderPopularProducts() {
     });
 }
 
-// ========== ЗАГРУЗКА ДАННЫХ ==========
-async function loadCategory(catName) {
-    const file = categoryFiles[catName];
-    if (!file) return [];
-    const url = `https://raw.githubusercontent.com/LoysitDeflonDon/iceshop39-data/refs/heads/main/${file}`;
-    try {
-        const res = await fetch(url);
-        if (!res.ok) return [];
-        const text = await res.text();
-        let clean = text.trim();
-        if (clean.startsWith('\uFEFF')) clean = clean.substring(1);
-        try {
-            return JSON.parse(clean);
-        } catch(e) {
-            if (file === "Ispariteli.json") {
-                const match = clean.match(/\[\s*\{[\s\S]*?\}\s*\]/);
-                if (match) return JSON.parse(match[0]);
-            }
-            return [];
-        }
-    } catch(e) {
-        console.error(`Ошибка загрузки ${catName}:`, e);
-        return [];
-    }
-}
-
+// ========== ЗАГРУЗКА ДАННЫХ ЧЕРЕЗ JSONBIN.IO ==========
 async function loadAllData() {
-    for (const cat of categories) {
-        allItems[cat.name] = await loadCategory(cat.name);
+    try {
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+            headers: { 'X-Master-Key': JSONBIN_API_KEY }
+        });
+        const data = await response.json();
+        const allData = data.record;
+        
+        // Заполняем allItems из данных Jsonbin
+        for (const category of categories) {
+            const categoryKey = categoryFiles[category.name];
+            allItems[category.name] = allData[categoryKey] || [];
+        }
+        
+        renderCategories();
+        renderManagers();
+        updateCartIcon();
+        renderHistoryBlock();
+        renderPopularProducts();
+    } catch(e) {
+        console.error('Ошибка загрузки данных:', e);
+        showErrorToast("❌ Ошибка загрузки товаров");
     }
-    renderCategories();
-    renderManagers();
-    updateCartIcon();
-    renderHistoryBlock();
-    renderPopularProducts();
 }
 
 function renderManagers() {
@@ -916,6 +911,27 @@ function renderSearchResults(results) {
         });
     });
 }
+
+// ========== КНОПКА "НАВЕРХ" ==========
+function setupGoTop() {
+    const goTopBtn = document.getElementById('goTopBtn');
+    if (!goTopBtn) return;
+    
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 300) {
+            goTopBtn.style.display = 'flex';
+            goTopBtn.style.alignItems = 'center';
+            goTopBtn.style.justifyContent = 'center';
+        } else {
+            goTopBtn.style.display = 'none';
+        }
+    });
+    
+    goTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
+
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
 document.getElementById('backHomeBtn')?.addEventListener('click', goToHome);
 document.getElementById('backFlavorsHomeBtn')?.addEventListener('click', goBackToCategory);
