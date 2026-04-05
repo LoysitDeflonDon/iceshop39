@@ -35,7 +35,6 @@ let currentCategory = null;
 
 // ========== КОРЗИНА ==========
 let cart = [];
-let selectedManagerTg = null;
 
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 function escapeHtml(str) {
@@ -50,36 +49,45 @@ function escapeHtml(str) {
 
 function formatStock(stock) {
     if (stock === undefined || stock === null) {
-        return { text: "Нет в наличии", isOutOfStock: true };
+        return { text: "Нет в наличии", isOutOfStock: true, available: 0 };
     }
     
     let numStock = Number(stock);
     if (!isNaN(numStock) && typeof stock !== 'boolean') {
-        if (numStock <= 0) return { text: "Нет в наличии", isOutOfStock: true };
-        if (numStock < 5) return { text: numStock + " шт", isLow: true, isOutOfStock: false };
-        return { text: numStock + " шт", isOutOfStock: false };
+        if (numStock <= 0) return { text: "Нет в наличии", isOutOfStock: true, available: 0 };
+        if (numStock < 5) return { text: numStock + " шт", isLow: true, isOutOfStock: false, available: numStock };
+        return { text: numStock + " шт", isOutOfStock: false, available: numStock };
     }
     
     const stockStr = String(stock).toLowerCase().trim();
     if (stockStr === "нет в наличии" || stockStr === "0" || stockStr === "out of stock") {
-        return { text: "Нет в наличии", isOutOfStock: true };
+        return { text: "Нет в наличии", isOutOfStock: true, available: 0 };
     }
     
-    return { text: "Нет в наличии", isOutOfStock: true };
+    const parsed = parseInt(stockStr);
+    if (!isNaN(parsed)) {
+        if (parsed <= 0) return { text: "Нет в наличии", isOutOfStock: true, available: 0 };
+        if (parsed < 5) return { text: parsed + " шт", isLow: true, isOutOfStock: false, available: parsed };
+        return { text: parsed + " шт", isOutOfStock: false, available: parsed };
+    }
+    
+    return { text: "Нет в наличии", isOutOfStock: true, available: 0 };
+}
+
+function getCartQuantity(productName, variantName) {
+    const item = cart.find(i => i.productName === productName && i.variantName === variantName);
+    return item ? item.quantity : 0;
 }
 
 function updateCartIcon() {
     let cartBtn = document.getElementById('cartBtn');
     if (!cartBtn) {
-        const header = document.getElementById('header');
-        if (header) {
-            const cartHtml = `<div class="cart-icon" id="cartBtn" style="position:fixed; bottom:20px; right:20px; background:#3B82F6; width:55px; height:55px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 0 15px rgba(59,130,246,0.5); z-index:1000;">
-                <span style="font-size:24px;">🛒</span>
-                <span id="cartCount" style="position:absolute; top:-5px; right:-5px; background:#ff0040; color:white; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold;">0</span>
-            </div>`;
-            document.body.insertAdjacentHTML('beforeend', cartHtml);
-            document.getElementById('cartBtn').addEventListener('click', showCartModal);
-        }
+        const cartHtml = `<div class="cart-icon" id="cartBtn" style="position:fixed; bottom:20px; right:20px; background:#3B82F6; width:55px; height:55px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 0 15px rgba(59,130,246,0.5); z-index:1000;">
+            <span style="font-size:24px;">🛒</span>
+            <span id="cartCount" style="position:absolute; top:-5px; right:-5px; background:#ff0040; color:white; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold;">0</span>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', cartHtml);
+        document.getElementById('cartBtn').addEventListener('click', showCartModal);
     }
     const countSpan = document.getElementById('cartCount');
     if (countSpan) {
@@ -88,7 +96,15 @@ function updateCartIcon() {
     }
 }
 
-function addToCart(productName, variantName, price, image) {
+function addToCart(productName, variantName, price, image, maxStock) {
+    const currentQty = getCartQuantity(productName, variantName);
+    
+    // Проверка: нельзя добавить больше, чем есть в наличии
+    if (currentQty >= maxStock) {
+        showToast(`❌ Нельзя добавить больше ${maxStock} шт. товара "${variantName}"`);
+        return false;
+    }
+    
     const existingItem = cart.find(item => item.productName === productName && item.variantName === variantName);
     if (existingItem) {
         existingItem.quantity++;
@@ -98,11 +114,13 @@ function addToCart(productName, variantName, price, image) {
             variantName: variantName,
             price: price,
             image: image,
-            quantity: 1
+            quantity: 1,
+            maxStock: maxStock
         });
     }
     updateCartIcon();
     showToast(`✅ ${productName} (${variantName}) добавлен в корзину`);
+    return true;
 }
 
 function showCartModal() {
@@ -159,6 +177,12 @@ function showCartModal() {
     modalDiv.querySelectorAll('.cart-plus').forEach(btn => {
         btn.addEventListener('click', () => {
             const idx = parseInt(btn.dataset.index);
+            const item = cart[idx];
+            // Проверка при увеличении количества
+            if (item.quantity >= item.maxStock) {
+                showToast(`❌ Нельзя добавить больше ${item.maxStock} шт. товара "${item.variantName}"`);
+                return;
+            }
             cart[idx].quantity++;
             modalDiv.remove();
             showCartModal();
@@ -412,7 +436,7 @@ function openCategory(catName) {
                     <div class="product-title">${itemName}</div>
                     <div class="product-price">${itemPrice} ₽</div>
                     <div class="product-desc">${itemDesc}</div>
-                    ${!stockInfo.isOutOfStock ? '<button class="order-pill" data-order-name="' + itemName + '" data-order-price="' + itemPrice + '" data-order-image="' + itemImage + '">📦 В корзину</button>' : '<div class="stock-warning" style="color:#EF4444; font-size:0.8rem;">❌ Нет в наличии</div>'}
+                    ${!stockInfo.isOutOfStock ? '<button class="order-pill" data-order-name="' + itemName + '" data-order-price="' + itemPrice + '" data-order-image="' + itemImage + '" data-order-maxstock="' + stockInfo.available + '">📦 В корзину</button>' : '<div class="stock-warning" style="color:#EF4444; font-size:0.8rem;">❌ Нет в наличии</div>'}
                 </div>
             `;
         }
@@ -424,7 +448,8 @@ function openCategory(catName) {
             const name = btn.dataset.orderName;
             const price = btn.dataset.orderPrice;
             const image = btn.dataset.orderImage;
-            addToCart(name, 'стандарт', price, image);
+            const maxStock = parseInt(btn.dataset.orderMaxstock);
+            addToCart(name, 'стандарт', price, image, maxStock);
         });
     });
     
@@ -469,6 +494,7 @@ function openFlavors(parentItem) {
                                 data-flavor-price="${f.price}"
                                 data-product-name="${escapeHtml(parentItem.name)}"
                                 data-product-image="${parentItem.image || ''}"
+                                data-product-maxstock="${stockInfo.available}"
                                 ${stockInfo.isOutOfStock ? 'disabled' : ''}>
                             📦 В корзину
                         </button>
@@ -484,7 +510,8 @@ function openFlavors(parentItem) {
             const variantName = btn.dataset.flavorName;
             const price = parseInt(btn.dataset.flavorPrice);
             const image = btn.dataset.productImage;
-            addToCart(productName, variantName, price, image);
+            const maxStock = parseInt(btn.dataset.productMaxstock);
+            addToCart(productName, variantName, price, image, maxStock);
         });
     });
     
