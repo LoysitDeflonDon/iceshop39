@@ -3,6 +3,7 @@
     padding: 0;
     box-sizing: border-box;
     font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    -webkit-tap-highlight-color: transparent;
 }
 
 button, .category-card, .manager-card, .manager-option, .flavor-order-btn, .order-pill, .back-home, .age-btn, .order-submit, .cancel-order, .cancel-modal {
@@ -356,6 +357,7 @@ body {
 .product-title { font-size: clamp(1rem, 4vw, 1.2rem); font-weight: 700; }
 .product-price { font-size: clamp(1.3rem, 5vw, 1.7rem); font-weight: 800; color: #FACC15; }
 .product-desc { color: var(--text-secondary); font-size: 0.85rem; line-height: 1.4; }
+.product-stock { font-size: 0.8rem; color: #94A3B8; margin: 5px 0; }
 
 .order-pill { 
     background: var(--success);
@@ -374,6 +376,7 @@ body {
 }
 
 .order-pill:hover { background: #059669; transform: scale(1.02); }
+.order-pill:disabled { background: #4B5563; cursor: not-allowed; opacity: 0.6; transform: none; }
 
 .empty-msg { text-align: center; color: var(--text-secondary); padding: 50px 20px; font-size: 1rem; }
 
@@ -410,7 +413,7 @@ body {
 }
 
 .flavor-order-btn:hover { box-shadow: 0 0 8px rgba(16,185,129,0.6); transform: scale(1.02); }
-.flavor-order-btn:disabled { background: #4B5563; cursor: not-allowed; opacity: 0.6; }
+.flavor-order-btn:disabled { background: #4B5563; cursor: not-allowed; opacity: 0.6; box-shadow: none; transform: none; }
 
 @media (max-width: 550px) {
     .flavor-item { flex-direction: column; align-items: stretch; text-align: center; }
@@ -734,9 +737,6 @@ footer {
     .popular-name {
         font-size: 0.8rem;
     }
-}
-
-@media (max-width: 550px) {
     .history-grid {
         grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
         gap: 10px;
