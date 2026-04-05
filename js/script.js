@@ -484,7 +484,6 @@ function renderPopularProducts() {
     
     section.style.display = 'block';
     
-    // Категории, где НЕ нужно показывать вариант
     const noVariantCategories = ['Испарители', 'Картриджи'];
     
     container.innerHTML = popular.map((product, index) => {
@@ -650,7 +649,8 @@ function openCategory(catName) {
                     <div class="product-title">${itemName}</div>
                     <div class="product-price">${itemPrice} ₽</div>
                     <div class="product-desc">${itemDesc}</div>
-                    ${!stockInfo.isOutOfStock ? '<button class="order-pill" data-order-name="' + itemName + '" data-order-price="' + itemPrice + '" data-order-image="' + itemImage + '" data-order-maxstock="' + stockInfo.available + '">📦 В корзину</button>' : '<div class="stock-warning" style="color:#EF4444; font-size:0.8rem;">❌ Нет в наличии</div>'}
+                    ${!stockInfo.isOutOfStock ? '<div class="product-stock">📦 В наличии: ' + stockInfo.available + ' шт</div>' : '<div class="product-stock" style="color:#EF4444;">❌ Нет в наличии</div>'}
+                    ${!stockInfo.isOutOfStock ? '<button class="order-pill" data-order-name="' + itemName + '" data-order-price="' + itemPrice + '" data-order-image="' + itemImage + '" data-order-maxstock="' + stockInfo.available + '">📦 В корзину</button>' : ''}
                 </div>
             `;
         }
@@ -898,27 +898,6 @@ function renderSearchResults(results) {
         });
     });
 }
-
-// ========== КНОПКА "НАВЕРХ" ==========
-function setupGoTop() {
-    const goTopBtn = document.getElementById('goTopBtn');
-    if (!goTopBtn) return;
-    
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 300) {
-            goTopBtn.style.display = 'flex';
-            goTopBtn.style.alignItems = 'center';
-            goTopBtn.style.justifyContent = 'center';
-        } else {
-            goTopBtn.style.display = 'none';
-        }
-    });
-    
-    goTopBtn.addEventListener('click', () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-}
-
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
 document.getElementById('backHomeBtn')?.addEventListener('click', goToHome);
 document.getElementById('backFlavorsHomeBtn')?.addEventListener('click', goBackToCategory);
