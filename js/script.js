@@ -88,10 +88,12 @@ function updateCartIcon() {
 
 function addToCart(productName, variantName, price, image, maxStock) {
     const currentQty = getCartQuantity(productName, variantName);
+    
     if (currentQty >= maxStock) {
-        showToast(`❌ Нельзя добавить больше ${maxStock} шт. товара "${variantName}"`);
+        showErrorToast(`❌ Нельзя добавить больше ${maxStock} шт. товара`);
         return false;
     }
+    
     const existingItem = cart.find(item => item.productName === productName && item.variantName === variantName);
     if (existingItem) {
         existingItem.quantity++;
@@ -106,13 +108,13 @@ function addToCart(productName, variantName, price, image, maxStock) {
         });
     }
     updateCartIcon();
-    showToast(`✅ ${productName} (${variantName}) добавлен в корзину`);
+    showSuccessToast(`✅ ${productName} добавлен в корзину`);
     return true;
 }
 
 function showCartModal() {
     if (cart.length === 0) {
-        showToast("🛒 Корзина пуста");
+        showSuccessToast("🛒 Корзина пуста");
         return;
     }
     const modalDiv = document.createElement('div');
@@ -161,7 +163,7 @@ function showCartModal() {
             const idx = parseInt(btn.dataset.index);
             const item = cart[idx];
             if (item.quantity >= item.maxStock) {
-                showToast(`❌ Нельзя добавить больше ${item.maxStock} шт. товара "${item.variantName}"`);
+                showErrorToast(`❌ Нельзя добавить больше ${item.maxStock} шт. товара`);
                 return;
             }
             cart[idx].quantity++;
@@ -180,7 +182,7 @@ function showCartModal() {
             if (cart.length === 0) {
                 modalDiv.remove();
                 updateCartIcon();
-                showToast("🛒 Корзина очищена");
+                showSuccessToast("🛒 Корзина очищена");
                 return;
             }
             modalDiv.remove();
@@ -191,7 +193,7 @@ function showCartModal() {
         cart = [];
         modalDiv.remove();
         updateCartIcon();
-        showToast("🗑️ Корзина очищена");
+        showSuccessToast("🗑️ Корзина очищена");
     };
     modalDiv.querySelector('#closeCartBtn').onclick = () => modalDiv.remove();
     modalDiv.querySelector('#checkoutBtn').onclick = () => {
@@ -327,14 +329,30 @@ async function sendCartToTelegram(managerTg) {
     
     cart = [];
     updateCartIcon();
-    showToast("✅ Заказ отправлен! Корзина очищена");
+    showSuccessToast("✅ Заказ отправлен! Корзина очищена");
 }
 
-function showToast(message) {
-    let toast = document.getElementById('toast');
+// ========== УВЕДОМЛЕНИЯ (ТОСТЫ) ==========
+function showErrorToast(message) {
+    let toast = document.getElementById('errorToast');
     if (!toast) {
         toast = document.createElement('div');
-        toast.id = 'toast';
+        toast.id = 'errorToast';
+        toast.style.cssText = 'position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:#EF4444; color:white; padding:12px 20px; border-radius:60px; z-index:10000; font-size:14px; white-space:nowrap; box-shadow:0 0 15px rgba(0,0,0,0.3);';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.style.display = 'block';
+    setTimeout(() => {
+        toast.style.display = 'none';
+    }, 2000);
+}
+
+function showSuccessToast(message) {
+    let toast = document.getElementById('successToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'successToast';
         toast.style.cssText = 'position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:#10B981; color:white; padding:12px 20px; border-radius:60px; z-index:10000; font-size:14px; white-space:nowrap; box-shadow:0 0 15px rgba(0,0,0,0.3);';
         document.body.appendChild(toast);
     }
@@ -342,7 +360,7 @@ function showToast(message) {
     toast.style.display = 'block';
     setTimeout(() => {
         toast.style.display = 'none';
-    }, 2500);
+    }, 2000);
 }
 
 // ========== ИСТОРИЯ ПРОСМОТРОВ ==========
@@ -377,7 +395,7 @@ function getHistory() {
 function clearHistory() {
     localStorage.removeItem(HISTORY_KEY);
     renderHistoryBlock();
-    showToast("📜 История просмотров очищена", false);
+    showSuccessToast("📜 История просмотров очищена");
 }
 
 function renderHistoryBlock() {
