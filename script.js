@@ -213,12 +213,13 @@ function openFlavors(parentItem) {
             ${parentItem.flavors.map(f => {
                 const stockInfo = formatStock(f.stock);
                 const flavorName = escapeHtml(f.name);
-                const flavorDesc = f.desc ? `<div style="font-size:0.75rem; color:#64748B;">${escapeHtml(f.desc)}</div>` : '';
+                // Берем описание из desc, если есть. Если нет - используем name как раньше
+                const flavorDesc = f.desc ? escapeHtml(f.desc) : '';
                 return `
                     <div class="flavor-item">
                         <div class="flavor-name">
                             ${flavorName}
-                            ${flavorDesc}
+                            ${flavorDesc ? `<div style="font-size:0.75rem; color:#94A3B8; margin-top:4px;">${flavorDesc}</div>` : ''}
                         </div>
                         <span class="flavor-price">${f.price} ₽</span>
                         <span class="flavor-stock ${stockInfo.isOutOfStock || stockInfo.isLow ? 'stock-low' : ''}">
