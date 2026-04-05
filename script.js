@@ -145,9 +145,9 @@ function openCategory(catName) {
     }
     
     container.innerHTML = items.map(item => {
-        // Используем деструктуризацию для безопасного доступа к полям
         const itemName = escapeHtml(item.name);
         const itemImage = item.image || 'https://placehold.co/400x300/1E293B/3B82F6?text=No+Image';
+        const itemDesc = item.desc ? escapeHtml(item.desc) : '';
         
         if (item.flavors?.length) {
             const prices = item.flavors.map(f => f.price);
@@ -157,18 +157,19 @@ function openCategory(catName) {
                     <img class="product-image" src="${itemImage}" loading="lazy" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
                     <div class="product-title">${itemName}</div>
                     <div class="product-price">от ${minPrice} ₽</div>
+                    <div class="product-desc">${itemDesc}</div>
                 </div>
             `;
         } else {
             const itemPrice = item.price || 0;
-            const itemDesc = escapeHtml(item.desc || '');
+            const stockInfo = formatStock(item.stock);
             return `
                 <div class="product-card" data-id="${item.id}" data-has-flavors="false">
                     <img class="product-image" src="${itemImage}" loading="lazy" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
                     <div class="product-title">${itemName}</div>
                     <div class="product-price">${itemPrice} ₽</div>
                     <div class="product-desc">${itemDesc}</div>
-                    <button class="order-pill" data-order-name="${itemName}" data-order-price="${itemPrice}">📦 Заказать</button>
+                    ${stockInfo.isOutOfStock ? '<div class="stock-warning" style="color:#EF4444; font-size:0.8rem;">❌ Нет в наличии</div>' : '<button class="order-pill" data-order-name="' + itemName + '" data-order-price="' + itemPrice + '">📦 Заказать</button>'}
                 </div>
             `;
         }
@@ -184,7 +185,7 @@ function openCategory(catName) {
         });
     });
     
-    // Обработчики для карточек с вариантами
+    // Обработчики для карточек с вариантами (флейворами)
     document.querySelectorAll('.product-card[data-has-flavors="true"]').forEach(card => {
         const id = parseInt(card.dataset.id);
         const item = items.find(i => i.id === id);
