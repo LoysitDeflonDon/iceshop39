@@ -774,26 +774,6 @@ function renderSearchResults(results) {
     });
 }
 
-// ========== КНОПКА "НАВЕРХ" ==========
-function setupGoTop() {
-    const goTopBtn = document.getElementById('goTopBtn');
-    if (!goTopBtn) return;
-    
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 300) {
-            goTopBtn.style.display = 'flex';
-            goTopBtn.style.alignItems = 'center';
-            goTopBtn.style.justifyContent = 'center';
-        } else {
-            goTopBtn.style.display = 'none';
-        }
-    });
-    
-    goTopBtn.addEventListener('click', () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-}
-
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
 document.getElementById('backHomeBtn')?.addEventListener('click', goToHome);
 document.getElementById('backFlavorsHomeBtn')?.addEventListener('click', goBackToCategory);
