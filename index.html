@@ -12,7 +12,7 @@
             font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
-        /* убираем голубое выделение при нажатии на все элементы */
+        /* убираем голубое выделение при нажатии */
         button, .category-card, .manager-card, .manager-option, .flavor-order-btn, .order-pill, .back-home, .age-btn, .order-submit, .cancel-order, .cancel-modal {
             outline: none;
             -webkit-tap-highlight-color: transparent;
@@ -76,26 +76,55 @@
             max-width: 800px;
         }
 
-        .hero-title {
+        /* ✨ НЕОНОВАЯ ВЫВЕСКА — БЕГУЩИЙ ОГОНЬ ПО КОНТУРУ ✨ */
+        .neon-title {
             font-size: clamp(2.5rem, 10vw, 5.5rem);
             font-weight: 900;
             letter-spacing: 0.05em;
-            color: #2563EB;
             display: inline-block;
             user-select: none;
+            -webkit-user-select: none;
+            cursor: default;
             transform: translateY(50px);
             opacity: 0;
             animation: slideUpFade 0.8s ease forwards;
-            text-shadow: 0 0 4px #1D4ED8, 0 0 8px #1E3A8A, 0 0 12px #172554;
+            position: relative;
+            /* Тень для мягкого свечения (не режет глаза) */
+            text-shadow: 
+                0 0 3px rgba(37, 99, 235, 0.5),
+                0 0 6px rgba(29, 78, 216, 0.3),
+                0 0 10px rgba(30, 58, 138, 0.2);
             transition: text-shadow 0.3s ease;
         }
 
-        .hero-title:hover {
-            text-shadow: 0 0 6px #3B82F6, 0 0 12px #2563EB, 0 0 18px #1D4ED8, 0 0 24px #1E3A8A;
+        /* при наведении — свечение усиливается */
+        .neon-title:hover {
+            text-shadow: 
+                0 0 5px rgba(59, 130, 246, 0.7),
+                0 0 10px rgba(37, 99, 235, 0.5),
+                0 0 15px rgba(29, 78, 216, 0.3);
         }
 
         @keyframes slideUpFade {
             to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* дополнительный неон на сайте — мягкие акценты */
+        .category-card:hover .category-icon {
+            text-shadow: 0 0 8px #3B82F6, 0 0 12px #2563EB;
+            transition: text-shadow 0.3s;
+        }
+
+        .manager-card:hover {
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .order-pill {
+            box-shadow: 0 0 5px rgba(16, 185, 129, 0.3);
+            transition: all 0.3s;
+        }
+        .order-pill:hover {
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
         }
 
         .hero-desc {
@@ -201,7 +230,7 @@
         .cancel-order, .cancel-modal { background: #334155; border: none; border-radius: 60px; padding: 10px; color: white; cursor: pointer; width: 100%; margin-top: 10px; }
         .age-banner { position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); border-left: 4px solid var(--neon-red); padding: 8px 16px; border-radius: 40px; font-size: 0.7rem; color: #ff8888; z-index: 1000; pointer-events: none; }
 
-        /* СТИЛЬНЫЙ ВЫБОР МЕНЕДЖЕРА — ТАБЛЕТКИ */
+        /* Стильный выбор менеджера — таблетки */
         .manager-option {
             background: #1E293B;
             border: 1px solid var(--border-dim);
@@ -260,7 +289,7 @@
 <div id="mainPage">
     <div class="hero-section" id="heroSection">
         <div class="hero-content">
-            <div class="hero-title">ICESHOP39</div>
+            <div class="neon-title">ICESHOP39</div>
             <div class="hero-desc">🔥 Вейпы · Жидкости · Испарители · Картриджи · Снюс · Одноразки 🔥</div>
         </div>
         <div class="scroll-hint" id="scrollHint">↓ Листай вниз ↓</div>
