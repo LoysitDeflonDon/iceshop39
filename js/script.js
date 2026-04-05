@@ -266,7 +266,6 @@ function showAgeConfirmForCart(managerTg) {
     modalDiv.querySelector('#cancelOrderBtn').onclick = () => modalDiv.remove();
 }
 
-// ========== ЗАПИСЬ ЗАКАЗА В СТАТИСТИКУ ==========
 function saveOrderToStats(cartItems, totalPrice, managerTg) {
     const statsKey = "shop_statistics";
     const existingStats = JSON.parse(localStorage.getItem(statsKey) || '{"orders":[], "totalOrders":0, "totalRevenue":0}');
@@ -285,7 +284,6 @@ function saveOrderToStats(cartItems, totalPrice, managerTg) {
     existingStats.totalOrders = existingStats.orders.length;
     existingStats.totalRevenue = existingStats.orders.reduce((sum, o) => sum + o.total, 0);
     localStorage.setItem(statsKey, JSON.stringify(existingStats));
-    console.log('✅ Заказ записан в статистику');
 }
 
 async function sendCartToTelegram(managerTg) {
@@ -325,7 +323,6 @@ async function sendCartToTelegram(managerTg) {
         }
     }
     
-    // Сохраняем статистику
     saveOrderToStats(cart, totalPrice, managerTg);
     
     cart = [];
@@ -346,6 +343,80 @@ function showToast(message) {
     setTimeout(() => {
         toast.style.display = 'none';
     }, 2500);
+}
+
+// ========== ИСТОРИЯ ПРОСМОТРОВ ==========
+const HISTORY_KEY = "view_history";
+const MAX_HISTORY = 10;
+
+function saveToHistory(item) {
+    let history = getHistory();
+    history = history.filter(h => h.id !== item.id);
+    history.unshift({
+        id: item.id,
+        name: item.name,
+        image: item.image,
+        category: currentCategory,
+        timestamp: Date.now()
+    });
+    if (history.length > MAX_HISTORY) {
+        history = history.slice(0, MAX_HISTORY);
+    }
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    renderHistoryBlock();
+}
+
+function getHistory() {
+    const history = localStorage.getItem(HISTORY_KEY);
+    if (history) {
+        return JSON.parse(history);
+    }
+    return [];
+}
+
+function clearHistory() {
+    localStorage.removeItem(HISTORY_KEY);
+    renderHistoryBlock();
+    showToast("📜 История просмотров очищена", false);
+}
+
+function renderHistoryBlock() {
+    const history = getHistory();
+    const historySection = document.getElementById('historySection');
+    
+    if (!historySection) return;
+    
+    if (history.length === 0) {
+        historySection.style.display = 'none';
+        return;
+    }
+    
+    historySection.style.display = 'block';
+    
+    const container = document.getElementById('historyContainer');
+    if (!container) return;
+    
+    container.innerHTML = history.map(item => `
+        <div class="history-card" data-id="${item.id}" data-category="${item.category}">
+            <img class="history-image" src="${item.image || 'https://placehold.co/100x100/1E293B/3B82F6?text=No+Image'}" loading="lazy" onerror="this.src='https://placehold.co/100x100/1E293B/3B82F6?text=No+Image'">
+            <div class="history-name">${escapeHtml(item.name)}</div>
+        </div>
+    `).join('');
+    
+    document.querySelectorAll('.history-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const category = card.dataset.category;
+            const id = parseInt(card.dataset.id);
+            openCategory(category);
+            setTimeout(() => {
+                const items = allItems[category];
+                const item = items.find(i => i.id === id);
+                if (item?.flavors) {
+                    openFlavors(item);
+                }
+            }, 100);
+        });
+    });
 }
 
 // ========== ЗАГРУЗКА ДАННЫХ ==========
@@ -381,6 +452,7 @@ async function loadAllData() {
     renderCategories();
     renderManagers();
     updateCartIcon();
+    renderHistoryBlock();
 }
 
 function renderManagers() {
@@ -482,6 +554,8 @@ function openCategory(catName) {
 }
 
 function openFlavors(parentItem) {
+    saveToHistory(parentItem);
+    
     document.getElementById('productsPage').classList.remove('active');
     document.getElementById('flavorsPage').classList.add('active');
     document.getElementById('flavorsPageTitle').textContent = `${parentItem.name} — выберите вариант`;
@@ -735,3 +809,5 @@ setTimeout(() => {
     setupSearch();
     setupGoTop();
 }, 1000);
+
+document.getElementById('clearHistoryBtn')?.addEventListener('click', clearHistory);
