@@ -266,6 +266,28 @@ function showAgeConfirmForCart(managerTg) {
     modalDiv.querySelector('#cancelOrderBtn').onclick = () => modalDiv.remove();
 }
 
+// ========== ЗАПИСЬ ЗАКАЗА В СТАТИСТИКУ ==========
+function saveOrderToStats(cartItems, totalPrice, managerTg) {
+    const statsKey = "shop_statistics";
+    const existingStats = JSON.parse(localStorage.getItem(statsKey) || '{"orders":[], "totalOrders":0, "totalRevenue":0}');
+    existingStats.orders.push({
+        id: Date.now(),
+        date: new Date().toISOString(),
+        items: cartItems.map(item => ({
+            productName: item.productName,
+            variantName: item.variantName,
+            price: item.price,
+            quantity: item.quantity
+        })),
+        total: totalPrice,
+        manager: managerTg
+    });
+    existingStats.totalOrders = existingStats.orders.length;
+    existingStats.totalRevenue = existingStats.orders.reduce((sum, o) => sum + o.total, 0);
+    localStorage.setItem(statsKey, JSON.stringify(existingStats));
+    console.log('✅ Заказ записан в статистику');
+}
+
 async function sendCartToTelegram(managerTg) {
     let message = "🛒 *НОВЫЙ ЗАКАЗ* 🛒\n\n";
     let totalPrice = 0;
@@ -284,14 +306,12 @@ async function sendCartToTelegram(managerTg) {
     message += `💰 *ИТОГО: ${totalPrice} ₽*\n\n`;
     message += `🕐 Заказ отправлен с сайта ICESHOP39`;
     
-    // Отправка менеджеру
     window.open(`https://t.me/${managerTg}?text=${encodeURIComponent(message)}`, '_blank');
     
-    // ========== ОТПРАВКА УВЕДОМЛЕНИЯ ТЕБЕ (АДМИНУ) ==========
     if (ADMIN_BOT_TOKEN && ADMIN_BOT_TOKEN !== "") {
         try {
             const notifyMessage = `🔔 *НОВЫЙ ЗАКАЗ!*\n\nМенеджер: @${managerTg}\nСумма: ${totalPrice} ₽\nТоваров: ${cart.length}\n\nНажми на ссылку, чтобы ответить: https://t.me/${managerTg}`;
-            const response = await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, {
+            await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -300,16 +320,13 @@ async function sendCartToTelegram(managerTg) {
                     parse_mode: 'Markdown'
                 })
             });
-            const result = await response.json();
-            if (result.ok) {
-                console.log('✅ Уведомление админу отправлено!');
-            } else {
-                console.error('❌ Ошибка Telegram:', result.description);
-            }
         } catch(e) {
-            console.error('❌ Ошибка отправки:', e);
+            console.error('Ошибка уведомления админа:', e);
         }
     }
+    
+    // Сохраняем статистику
+    saveOrderToStats(cart, totalPrice, managerTg);
     
     cart = [];
     updateCartIcon();
