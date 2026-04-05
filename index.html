@@ -261,10 +261,9 @@
 <div class="age-banner">⚠️ 18+ Только для совершеннолетних ⚠️</div>
 
 <script>
-    // ========== РОТАЦИЯ ФОНОВ (3 секунды) ==========
+    // ========== РОТАЦИЯ ФОНОВ (4.5 секунды, без второй картинки) ==========
     const backgrounds = [
         "https://i.ibb.co/5hYz909b/istockphoto-1399967405-612x612.jpg",
-        "https://i.ibb.co/Xrb0tjjW/2026-04-05-122659093.png",
         "https://i.ibb.co/mrGR4qTc/2026-04-05-122820613.png",
         "https://i.ibb.co/YBH1vwHc/2026-04-05-122925535.png"
     ];
@@ -274,7 +273,7 @@
         setInterval(() => {
             bgIndex = (bgIndex + 1) % backgrounds.length;
             hero.style.backgroundImage = `url('${backgrounds[bgIndex]}')`;
-        }, 3000);
+        }, 4500); // 4.5 секунды
     }
 
     // ========== ВОЗРАСТНАЯ ПРОВЕРКА ==========
