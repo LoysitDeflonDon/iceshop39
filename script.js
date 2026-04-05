@@ -33,6 +33,10 @@ let allItems = {
 };
 let currentCategory = null;
 
+// ========== КОРЗИНА ==========
+let cart = [];
+let selectedManagerTg = null;
+
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 function escapeHtml(str) {
     if (!str) return '';
@@ -62,6 +66,244 @@ function formatStock(stock) {
     }
     
     return { text: "Нет в наличии", isOutOfStock: true };
+}
+
+function updateCartIcon() {
+    let cartBtn = document.getElementById('cartBtn');
+    if (!cartBtn) {
+        const header = document.getElementById('header');
+        if (header) {
+            const cartHtml = `<div class="cart-icon" id="cartBtn" style="position:fixed; bottom:20px; right:20px; background:#3B82F6; width:55px; height:55px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 0 15px rgba(59,130,246,0.5); z-index:1000;">
+                <span style="font-size:24px;">🛒</span>
+                <span id="cartCount" style="position:absolute; top:-5px; right:-5px; background:#ff0040; color:white; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:bold;">0</span>
+            </div>`;
+            document.body.insertAdjacentHTML('beforeend', cartHtml);
+            document.getElementById('cartBtn').addEventListener('click', showCartModal);
+        }
+    }
+    const countSpan = document.getElementById('cartCount');
+    if (countSpan) {
+        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+        countSpan.textContent = totalItems;
+    }
+}
+
+function addToCart(productName, variantName, price, image) {
+    const existingItem = cart.find(item => item.productName === productName && item.variantName === variantName);
+    if (existingItem) {
+        existingItem.quantity++;
+    } else {
+        cart.push({
+            productName: productName,
+            variantName: variantName,
+            price: price,
+            image: image,
+            quantity: 1
+        });
+    }
+    updateCartIcon();
+    showToast(`✅ ${productName} (${variantName}) добавлен в корзину`);
+}
+
+function showCartModal() {
+    if (cart.length === 0) {
+        showToast("🛒 Корзина пуста");
+        return;
+    }
+    
+    const modalDiv = document.createElement('div');
+    modalDiv.className = 'modal';
+    modalDiv.style.display = 'flex';
+    
+    let cartHtml = `
+        <div class="modal-content" style="max-width:500px; max-height:80vh; overflow-y:auto;">
+            <h3>🛒 Ваша корзина</h3>
+            <div style="margin:15px 0;">
+    `;
+    
+    let totalPrice = 0;
+    cart.forEach((item, index) => {
+        const itemTotal = item.price * item.quantity;
+        totalPrice += itemTotal;
+        cartHtml += `
+            <div style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #1F2A44; flex-wrap:wrap;">
+                <img src="${item.image || 'https://placehold.co/50x50/1E293B/3B82F6?text=No+Image'}" style="width:50px; height:50px; object-fit:cover; border-radius:10px;">
+                <div style="flex:1;">
+                    <div><strong>${escapeHtml(item.productName)}</strong></div>
+                    <div style="font-size:0.8rem; color:#94A3B8;">${escapeHtml(item.variantName)}</div>
+                    <div style="color:#FACC15;">${item.price} ₽ × ${item.quantity} = ${itemTotal} ₽</div>
+                </div>
+                <div style="display:flex; gap:5px;">
+                    <button class="cart-minus" data-index="${index}" style="background:#EF4444; border:none; width:30px; height:30px; border-radius:50%; color:white; cursor:pointer;">-</button>
+                    <span style="min-width:30px; text-align:center;">${item.quantity}</span>
+                    <button class="cart-plus" data-index="${index}" style="background:#10B981; border:none; width:30px; height:30px; border-radius:50%; color:white; cursor:pointer;">+</button>
+                </div>
+            </div>
+        `;
+    });
+    
+    cartHtml += `
+            </div>
+            <div style="text-align:right; padding:10px; font-size:1.2rem; font-weight:bold; border-top:1px solid #1F2A44;">
+                Итого: ${totalPrice} ₽
+            </div>
+            <button class="order-submit" id="checkoutBtn" style="background:#10B981; margin-top:10px;">📤 Оформить заказ</button>
+            <button class="cancel-modal" id="clearCartBtn" style="background:#EF4444;">🗑️ Очистить корзину</button>
+            <button class="cancel-modal" id="closeCartBtn">Закрыть</button>
+        </div>
+    `;
+    
+    modalDiv.innerHTML = cartHtml;
+    document.body.appendChild(modalDiv);
+    
+    modalDiv.querySelectorAll('.cart-plus').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.index);
+            cart[idx].quantity++;
+            modalDiv.remove();
+            showCartModal();
+        });
+    });
+    
+    modalDiv.querySelectorAll('.cart-minus').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.index);
+            if (cart[idx].quantity > 1) {
+                cart[idx].quantity--;
+            } else {
+                cart.splice(idx, 1);
+            }
+            if (cart.length === 0) {
+                modalDiv.remove();
+                updateCartIcon();
+                showToast("🛒 Корзина очищена");
+                return;
+            }
+            modalDiv.remove();
+            showCartModal();
+        });
+    });
+    
+    modalDiv.querySelector('#clearCartBtn').onclick = () => {
+        cart = [];
+        modalDiv.remove();
+        updateCartIcon();
+        showToast("🗑️ Корзина очищена");
+    };
+    
+    modalDiv.querySelector('#closeCartBtn').onclick = () => modalDiv.remove();
+    
+    modalDiv.querySelector('#checkoutBtn').onclick = () => {
+        modalDiv.remove();
+        showManagerModalForCart();
+    };
+}
+
+function showManagerModalForCart() {
+    const modalDiv = document.createElement('div');
+    modalDiv.className = 'modal';
+    modalDiv.style.display = 'flex';
+    modalDiv.innerHTML = `
+        <div class="modal-content">
+            <h3>📱 Выберите менеджера</h3>
+            <div id="managerOptionsTemp"></div>
+            <button class="cancel-modal" id="cancelManagerBtn">Отмена</button>
+        </div>
+    `;
+    document.body.appendChild(modalDiv);
+    
+    const opts = modalDiv.querySelector('#managerOptionsTemp');
+    opts.innerHTML = managers.map(m => `
+        <div class="manager-option" data-tg="${m.tg}">
+            ${escapeHtml(m.name)}
+        </div>
+    `).join('');
+    
+    modalDiv.querySelectorAll('.manager-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+            const tg = opt.dataset.tg;
+            modalDiv.remove();
+            showAgeConfirmForCart(tg);
+        });
+    });
+    
+    modalDiv.querySelector('#cancelManagerBtn').onclick = () => modalDiv.remove();
+}
+
+function showAgeConfirmForCart(managerTg) {
+    const modalDiv = document.createElement('div');
+    modalDiv.className = 'order-modal';
+    modalDiv.style.display = 'flex';
+    modalDiv.innerHTML = `
+        <div class="order-content">
+            <h3>📦 Оформление заказа</h3>
+            <p style="margin:15px 0;">Подтвердите возраст и отправьте заказ</p>
+            <div class="order-checkbox">
+                <input type="checkbox" id="orderAgeConfirm">
+                <label for="orderAgeConfirm">Подтверждаю, что мне есть 18 лет</label>
+            </div>
+            <button class="order-submit" id="submitOrderBtn" disabled>📤 Отправить заказ</button>
+            <button class="cancel-order" id="cancelOrderBtn">Отмена</button>
+        </div>
+    `;
+    document.body.appendChild(modalDiv);
+    
+    const orderCheck = modalDiv.querySelector('#orderAgeConfirm');
+    const submitBtn = modalDiv.querySelector('#submitOrderBtn');
+    
+    orderCheck.addEventListener('change', () => {
+        submitBtn.disabled = !orderCheck.checked;
+    });
+    
+    submitBtn.onclick = () => {
+        if (orderCheck.checked) {
+            sendCartToTelegram(managerTg);
+            modalDiv.remove();
+        }
+    };
+    
+    modalDiv.querySelector('#cancelOrderBtn').onclick = () => modalDiv.remove();
+}
+
+function sendCartToTelegram(managerTg) {
+    let message = "🛒 *НОВЫЙ ЗАКАЗ* 🛒\n\n";
+    let totalPrice = 0;
+    
+    cart.forEach((item, index) => {
+        const itemTotal = item.price * item.quantity;
+        totalPrice += itemTotal;
+        message += `${index + 1}. *${item.productName}*\n`;
+        message += `   Вариант: ${item.variantName}\n`;
+        message += `   Цена: ${item.price} ₽\n`;
+        message += `   Количество: ${item.quantity} шт\n`;
+        message += `   Сумма: ${itemTotal} ₽\n\n`;
+    });
+    
+    message += `────────────────\n`;
+    message += `💰 *ИТОГО: ${totalPrice} ₽*\n\n`;
+    message += `🕐 Заказ отправлен с сайта ICESHOP39`;
+    
+    window.open(`https://t.me/${managerTg}?text=${encodeURIComponent(message)}`, '_blank');
+    
+    // Очищаем корзину после заказа
+    cart = [];
+    updateCartIcon();
+    showToast("✅ Заказ отправлен! Корзина очищена");
+}
+
+function showToast(message) {
+    let toast = document.getElementById('toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        toast.style.cssText = 'position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:#10B981; color:white; padding:12px 20px; border-radius:60px; z-index:10000; font-size:14px; white-space:nowrap; box-shadow:0 0 15px rgba(0,0,0,0.3);';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.style.display = 'block';
+    setTimeout(() => {
+        toast.style.display = 'none';
+    }, 2500);
 }
 
 // ========== ЗАГРУЗКА ДАННЫХ ==========
@@ -96,6 +338,7 @@ async function loadAllData() {
     }
     renderCategories();
     renderManagers();
+    updateCartIcon();
 }
 
 // ========== ОТРИСОВКА КОМПОНЕНТОВ ==========
@@ -169,23 +412,22 @@ function openCategory(catName) {
                     <div class="product-title">${itemName}</div>
                     <div class="product-price">${itemPrice} ₽</div>
                     <div class="product-desc">${itemDesc}</div>
-                    ${stockInfo.isOutOfStock ? '<div class="stock-warning" style="color:#EF4444; font-size:0.8rem;">❌ Нет в наличии</div>' : '<button class="order-pill" data-order-name="' + itemName + '" data-order-price="' + itemPrice + '">📦 Заказать</button>'}
+                    ${!stockInfo.isOutOfStock ? '<button class="order-pill" data-order-name="' + itemName + '" data-order-price="' + itemPrice + '" data-order-image="' + itemImage + '">📦 В корзину</button>' : '<div class="stock-warning" style="color:#EF4444; font-size:0.8rem;">❌ Нет в наличии</div>'}
                 </div>
             `;
         }
     }).join('');
     
-    // Обработчики для кнопок заказа
     document.querySelectorAll('.order-pill').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const name = btn.dataset.orderName;
             const price = btn.dataset.orderPrice;
-            showManagerModal(name, 'стандарт', price, (tg) => orderViaTelegram(name, 'стандарт', price, tg));
+            const image = btn.dataset.orderImage;
+            addToCart(name, 'стандарт', price, image);
         });
     });
     
-    // Обработчики для карточек с вариантами (флейворами)
     document.querySelectorAll('.product-card[data-has-flavors="true"]').forEach(card => {
         const id = parseInt(card.dataset.id);
         const item = items.find(i => i.id === id);
@@ -200,7 +442,7 @@ function openCategory(catName) {
 function openFlavors(parentItem) {
     document.getElementById('productsPage').classList.remove('active');
     document.getElementById('flavorsPage').classList.add('active');
-    document.getElementById('flavorsPageTitle').textContent = `${parentItem.name} — все варианты`;
+    document.getElementById('flavorsPageTitle').textContent = `${parentItem.name} — выберите вариант`;
     
     const container = document.getElementById('flavorsContainer');
     if (!parentItem.flavors?.length) {
@@ -224,9 +466,11 @@ function openFlavors(parentItem) {
                         </span>
                         <button class="flavor-order-btn" 
                                 data-flavor-name="${flavorName}" 
-                                data-flavor-price="${f.price}" 
+                                data-flavor-price="${f.price}"
+                                data-product-name="${escapeHtml(parentItem.name)}"
+                                data-product-image="${parentItem.image || ''}"
                                 ${stockInfo.isOutOfStock ? 'disabled' : ''}>
-                            📦 Заказать
+                            📦 В корзину
                         </button>
                     </div>
                 `;
@@ -236,86 +480,15 @@ function openFlavors(parentItem) {
     
     document.querySelectorAll('.flavor-order-btn:not([disabled])').forEach(btn => {
         btn.addEventListener('click', () => {
-            const name = btn.dataset.flavorName;
-            const price = btn.dataset.flavorPrice;
-            showManagerModal(parentItem.name, name, price, (tg) => orderViaTelegram(parentItem.name, name, price, tg));
+            const productName = btn.dataset.productName;
+            const variantName = btn.dataset.flavorName;
+            const price = parseInt(btn.dataset.flavorPrice);
+            const image = btn.dataset.productImage;
+            addToCart(productName, variantName, price, image);
         });
     });
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-// ========== ЗАКАЗЫ И МОДАЛКИ ==========
-function orderViaTelegram(productName, variant, price, managerTg) {
-    const msg = `Здравствуйте! Хочу заказать: ${productName}, ${variant} — ${price} ₽`;
-    window.open(`https://t.me/${managerTg}?text=${encodeURIComponent(msg)}`, '_blank');
-}
-
-function showOrderModal(productName, variant, price, callback) {
-    const modalDiv = document.createElement('div');
-    modalDiv.className = 'order-modal';
-    modalDiv.style.display = 'flex';
-    modalDiv.innerHTML = `
-        <div class="order-content">
-            <h3>📦 Оформление заказа</h3>
-            <div class="product-detail" style="margin:15px 0;padding:10px;background:#1E293B;border-radius:12px;">
-                ${escapeHtml(productName)}<br>${escapeHtml(variant)}<br><strong>${price} ₽</strong>
-            </div>
-            <div class="order-checkbox">
-                <input type="checkbox" id="orderAgeConfirm">
-                <label for="orderAgeConfirm">Подтверждаю, что мне есть 18 лет</label>
-            </div>
-            <button class="order-submit" id="submitOrderBtn" disabled>📤 Отправить заказ</button>
-            <button class="cancel-order" id="cancelOrderBtn">Отмена</button>
-        </div>
-    `;
-    document.body.appendChild(modalDiv);
-    
-    const orderCheck = modalDiv.querySelector('#orderAgeConfirm');
-    const submitBtn = modalDiv.querySelector('#submitOrderBtn');
-    
-    orderCheck.addEventListener('change', () => {
-        submitBtn.disabled = !orderCheck.checked;
-    });
-    
-    submitBtn.onclick = () => {
-        if (orderCheck.checked) {
-            modalDiv.remove();
-            callback();
-        }
-    };
-    
-    modalDiv.querySelector('#cancelOrderBtn').onclick = () => modalDiv.remove();
-}
-
-function showManagerModal(productName, variant, price, callback) {
-    const modalDiv = document.createElement('div');
-    modalDiv.className = 'modal';
-    modalDiv.style.display = 'flex';
-    modalDiv.innerHTML = `
-        <div class="modal-content">
-            <h3>📱 Выберите менеджера</h3>
-            <div id="managerOptionsTemp"></div>
-            <button class="cancel-modal" id="cancelManagerBtn">Отмена</button>
-        </div>
-    `;
-    document.body.appendChild(modalDiv);
-    
-    const opts = modalDiv.querySelector('#managerOptionsTemp');
-    opts.innerHTML = managers.map(m => `
-        <div class="manager-option" data-tg="${m.tg}">
-            ${escapeHtml(m.name)}
-        </div>
-    `).join('');
-    
-    modalDiv.querySelectorAll('.manager-option').forEach(opt => {
-        opt.addEventListener('click', () => {
-            modalDiv.remove();
-            showOrderModal(productName, variant, price, () => callback(opt.dataset.tg));
-        });
-    });
-    
-    modalDiv.querySelector('#cancelManagerBtn').onclick = () => modalDiv.remove();
 }
 
 // ========== НАВИГАЦИЯ ==========
@@ -357,7 +530,6 @@ if (hero) {
         hero.style.backgroundImage = `url('${backgrounds[bgIndex]}')`;
     }, 4500);
 }
-document.body.style.overflow = 'auto';
 
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
 document.getElementById('backHomeBtn')?.addEventListener('click', goToHome);
