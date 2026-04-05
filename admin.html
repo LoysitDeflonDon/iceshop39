@@ -14,6 +14,11 @@
         .category-btn.active { background: #3B82F6; }
         .product-form { background: #111827; padding: 20px; border-radius: 20px; margin: 20px 0; }
         input, textarea { width: 100%; padding: 10px; margin: 8px 0; background: #1E293B; border: 1px solid #333; border-radius: 8px; color: white; }
+        .image-upload-area { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+        .image-upload-area input { flex: 1; margin: 0; }
+        .image-upload-area button { background: #334155; width: auto; padding: 10px 15px; margin: 0; }
+        .image-preview { margin-top: 10px; }
+        .image-preview img { max-width: 100px; max-height: 100px; border-radius: 10px; }
         .flavor-item { background: #1E293B; padding: 15px; margin: 10px 0; border-radius: 10px; display: flex; gap: 10px; flex-wrap: wrap; }
         .flavor-item input { flex: 1; margin: 0; }
         button.danger { background: #EF4444; width: auto; }
@@ -31,7 +36,7 @@
     <h2>🔐 Админ-панель</h2>
     <input type="password" id="password" placeholder="Пароль">
     <button onclick="login()">Войти</button>
-    <p style="margin-top:15px; font-size:12px;">Как ты сюда попал? >:(</p>
+    <p style="margin-top:15px; font-size:12px;">Пароль: admin123</p>
 </div>
 
 <!-- Админ панель -->
@@ -43,7 +48,14 @@
     <div class="product-form">
         <h3 id="formTitle">➕ Добавить товар</h3>
         <input type="text" id="productName" placeholder="Название товара">
-        <input type="text" id="productImage" placeholder="URL картинки (i.ibb.co)">
+        
+        <!-- Поле для изображения с выбором из галереи -->
+        <div class="image-upload-area">
+            <input type="text" id="productImage" placeholder="URL картинки или выберите фото">
+            <button onclick="uploadFromGallery()">📱 Выбрать фото</button>
+        </div>
+        <div class="image-preview" id="imagePreview"></div>
+        
         <textarea id="productDesc" placeholder="Описание товара" rows="2"></textarea>
         
         <div id="flavorsBlock"></div>
@@ -61,7 +73,7 @@
 
 <script>
 // ПАРОЛЬ
-const PASSWORD = "LiniX071";
+const PASSWORD = "admin123";
 
 // НАСТРОЙКИ GITHUB
 const REPO_OWNER = "LoysitDeflonDon";
@@ -94,6 +106,63 @@ function login() {
         showToast("Добро пожаловать!", false);
     } else {
         alert("Неверный пароль!");
+    }
+}
+
+// ЗАГРУЗКА ФОТО ИЗ ГАЛЕРЕИ ТЕЛЕФОНА
+function uploadFromGallery() {
+    // Создаём скрытый input для выбора файла
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.capture = 'environment'; // 'user' для фронталки, 'environment' для задней камеры
+    
+    fileInput.onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            showToast("📤 Загрузка фото...", false);
+            
+            // Создаём FormData для отправки на ImgBB
+            const formData = new FormData();
+            formData.append('image', file);
+            
+            // Загружаем на ImgBB (бесплатный API)
+            fetch('https://api.imgbb.com/1/upload?key=YOUR_IMGBB_API_KEY', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const imageUrl = data.data.url;
+                    document.getElementById('productImage').value = imageUrl;
+                    showPreview(imageUrl);
+                    showToast("✅ Фото загружено! Ссылка добавлена", false);
+                } else {
+                    showToast("❌ Ошибка загрузки фото", true);
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                showToast("❌ Ошибка загрузки фото", true);
+            });
+        }
+    };
+    
+    fileInput.click();
+}
+
+function showPreview(url) {
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = `<img src="${url}" alt="preview" onerror="this.style.display='none'">`;
+}
+
+function updatePreview() {
+    const url = document.getElementById('productImage').value;
+    if (url) {
+        showPreview(url);
+    } else {
+        document.getElementById('imagePreview').innerHTML = '';
     }
 }
 
@@ -194,6 +263,8 @@ function editProduct(id) {
     document.getElementById('productName').value = product.name;
     document.getElementById('productImage').value = product.image || '';
     document.getElementById('productDesc').value = product.desc || '';
+    if (product.image) showPreview(product.image);
+    else document.getElementById('imagePreview').innerHTML = '';
     
     if (product.flavors) {
         currentFlavors = JSON.parse(JSON.stringify(product.flavors));
@@ -251,7 +322,7 @@ async function saveProduct() {
     const desc = document.getElementById('productDesc').value;
     
     if (!name) { showToast("Введите название!", true); return; }
-    if (!image) { showToast("Введите URL картинки!", true); return; }
+    if (!image) { showToast("Введите URL картинки или выберите фото!", true); return; }
     if (!currentFlavors.length) { showToast("Добавьте вариант!", true); return; }
     if (!currentCategory) { showToast("Выберите категорию!", true); return; }
     
@@ -360,10 +431,17 @@ function cancelEdit() {
     document.getElementById('productImage').value = '';
     document.getElementById('productDesc').value = '';
     document.getElementById('flavorsBlock').innerHTML = '';
+    document.getElementById('imagePreview').innerHTML = '';
     document.getElementById('cancelBtn').style.display = 'none';
 }
 
-// Глобальные функции для кнопок
+// При изменении URL вручную показываем превью
+document.getElementById('productImage').addEventListener('input', function() {
+    if (this.value) showPreview(this.value);
+    else document.getElementById('imagePreview').innerHTML = '';
+});
+
+// Глобальные функции
 window.addFlavor = addFlavor;
 window.removeFlavor = removeFlavor;
 window.saveProduct = saveProduct;
@@ -371,6 +449,7 @@ window.deleteProduct = deleteProduct;
 window.editProduct = editProduct;
 window.cancelEdit = cancelEdit;
 window.login = login;
+window.uploadFromGallery = uploadFromGallery;
 </script>
 </body>
 </html>
