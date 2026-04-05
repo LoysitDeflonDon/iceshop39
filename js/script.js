@@ -196,6 +196,7 @@ function showCartModal() {
     };
 }
 
+// ========== ВЫБОР МЕНЕДЖЕРА ==========
 function showManagerModalForCart() {
     const modalDiv = document.createElement('div');
     modalDiv.className = 'modal';
@@ -208,12 +209,14 @@ function showManagerModalForCart() {
         </div>
     `;
     document.body.appendChild(modalDiv);
+    
     const opts = modalDiv.querySelector('#managerOptionsTemp');
     opts.innerHTML = managers.map(m => `
         <div class="manager-option" data-tg="${m.tg}">
             ${escapeHtml(m.name)}
         </div>
     `).join('');
+    
     modalDiv.querySelectorAll('.manager-option').forEach(opt => {
         opt.addEventListener('click', () => {
             const tg = opt.dataset.tg;
@@ -221,9 +224,11 @@ function showManagerModalForCart() {
             showAgeConfirmForCart(tg);
         });
     });
+    
     modalDiv.querySelector('#cancelManagerBtn').onclick = () => modalDiv.remove();
 }
 
+// ========== ПОДТВЕРЖДЕНИЕ 18+ ==========
 function showAgeConfirmForCart(managerTg) {
     const modalDiv = document.createElement('div');
     modalDiv.className = 'order-modal';
@@ -241,23 +246,28 @@ function showAgeConfirmForCart(managerTg) {
         </div>
     `;
     document.body.appendChild(modalDiv);
+    
     const orderCheck = modalDiv.querySelector('#orderAgeConfirm');
     const submitBtn = modalDiv.querySelector('#submitOrderBtn');
+    
     orderCheck.addEventListener('change', () => {
         submitBtn.disabled = !orderCheck.checked;
     });
+    
     submitBtn.onclick = () => {
         if (orderCheck.checked) {
             sendCartToTelegram(managerTg);
             modalDiv.remove();
         }
     };
+    
     modalDiv.querySelector('#cancelOrderBtn').onclick = () => modalDiv.remove();
 }
 
 function sendCartToTelegram(managerTg) {
     let message = "🛒 *НОВЫЙ ЗАКАЗ* 🛒\n\n";
     let totalPrice = 0;
+    
     cart.forEach((item, index) => {
         const itemTotal = item.price * item.quantity;
         totalPrice += itemTotal;
@@ -267,10 +277,13 @@ function sendCartToTelegram(managerTg) {
         message += `   Количество: ${item.quantity} шт\n`;
         message += `   Сумма: ${itemTotal} ₽\n\n`;
     });
+    
     message += `────────────────\n`;
     message += `💰 *ИТОГО: ${totalPrice} ₽*\n\n`;
     message += `🕐 Заказ отправлен с сайта ICESHOP39`;
+    
     window.open(`https://t.me/${managerTg}?text=${encodeURIComponent(message)}`, '_blank');
+    
     cart = [];
     updateCartIcon();
     showToast("✅ Заказ отправлен! Корзина очищена");
@@ -350,6 +363,7 @@ function renderCategories() {
             <div class="category-count">${getCount(cat.name)} товаров</div>
         </div>
     `).join('');
+    
     document.querySelectorAll('.category-card').forEach(card => {
         card.addEventListener('click', () => openCategory(card.dataset.category));
     });
@@ -358,19 +372,23 @@ function renderCategories() {
 function openCategory(catName) {
     currentCategory = catName;
     const items = allItems[catName] || [];
+    
     document.getElementById('mainPage').style.display = 'none';
     document.getElementById('productsPage').classList.add('active');
     document.getElementById('flavorsPage').classList.remove('active');
     document.getElementById('productsPageTitle').textContent = catName;
+    
     const container = document.getElementById('productsContainer');
     if (!items.length) {
         container.innerHTML = '<div class="empty-msg">📭 Товары отсутствуют.</div>';
         return;
     }
+    
     container.innerHTML = items.map(item => {
         const itemName = escapeHtml(item.name);
         const itemImage = item.image || 'https://placehold.co/400x300/1E293B/3B82F6?text=No+Image';
         const itemDesc = item.desc ? escapeHtml(item.desc) : '';
+        
         if (item.flavors?.length) {
             const prices = item.flavors.map(f => f.price);
             const minPrice = Math.min(...prices);
@@ -396,6 +414,7 @@ function openCategory(catName) {
             `;
         }
     }).join('');
+    
     document.querySelectorAll('.order-pill').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -406,6 +425,7 @@ function openCategory(catName) {
             addToCart(name, 'стандарт', price, image, maxStock);
         });
     });
+    
     document.querySelectorAll('.product-card[data-has-flavors="true"]').forEach(card => {
         const id = parseInt(card.dataset.id);
         const item = items.find(i => i.id === id);
@@ -413,6 +433,7 @@ function openCategory(catName) {
             card.addEventListener('click', () => openFlavors(item));
         }
     });
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -420,11 +441,13 @@ function openFlavors(parentItem) {
     document.getElementById('productsPage').classList.remove('active');
     document.getElementById('flavorsPage').classList.add('active');
     document.getElementById('flavorsPageTitle').textContent = `${parentItem.name} — выберите вариант`;
+    
     const container = document.getElementById('flavorsContainer');
     if (!parentItem.flavors?.length) {
         container.innerHTML = '<div class="empty-msg">📭 Список вариантов пуст.</div>';
         return;
     }
+    
     container.innerHTML = `
         <div class="flavors-list">
             ${parentItem.flavors.map(f => {
@@ -451,6 +474,7 @@ function openFlavors(parentItem) {
             }).join('')}
         </div>
     `;
+    
     document.querySelectorAll('.flavor-order-btn:not([disabled])').forEach(btn => {
         btn.addEventListener('click', () => {
             const productName = btn.dataset.productName;
@@ -461,6 +485,7 @@ function openFlavors(parentItem) {
             addToCart(productName, variantName, price, image, maxStock);
         });
     });
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
