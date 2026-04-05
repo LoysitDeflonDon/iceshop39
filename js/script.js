@@ -419,6 +419,130 @@ function renderHistoryBlock() {
     });
 }
 
+// ========== ПОПУЛЯРНЫЕ ТОВАРЫ ==========
+function getPopularProducts(limit = 6) {
+    const stats = JSON.parse(localStorage.getItem('shop_statistics') || '{"orders":[]}');
+    const productCounts = {};
+    
+    stats.orders.forEach(order => {
+        order.items.forEach(item => {
+            const key = `${item.productName}|${item.variantName}`;
+            if (!productCounts[key]) {
+                productCounts[key] = {
+                    name: item.productName,
+                    variant: item.variantName,
+                    count: 0,
+                    price: item.price,
+                    image: null,
+                    category: null,
+                    itemId: null
+                };
+            }
+            productCounts[key].count += item.quantity;
+        });
+    });
+    
+    for (const [category, items] of Object.entries(allItems)) {
+        for (const item of items) {
+            if (item.flavors) {
+                for (const flavor of item.flavors) {
+                    const key = `${item.name}|${flavor.name}`;
+                    if (productCounts[key]) {
+                        productCounts[key].image = item.image;
+                        productCounts[key].category = category;
+                        productCounts[key].itemId = item.id;
+                    }
+                }
+            } else {
+                const key = `${item.name}|стандарт`;
+                if (productCounts[key]) {
+                    productCounts[key].image = item.image;
+                    productCounts[key].category = category;
+                    productCounts[key].itemId = item.id;
+                }
+            }
+        }
+    }
+    
+    return Object.values(productCounts)
+        .filter(p => p.category !== null)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, limit);
+}
+
+function renderPopularProducts() {
+    const popular = getPopularProducts(6);
+    const section = document.getElementById('popularSection');
+    const container = document.getElementById('popularContainer');
+    
+    if (!section || !container) return;
+    
+    if (popular.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    
+    section.style.display = 'block';
+    
+    // Категории, где НЕ нужно показывать вариант
+    const noVariantCategories = ['Испарители', 'Картриджи'];
+    
+    container.innerHTML = popular.map((product, index) => {
+        let variantText = '';
+        const showVariant = !noVariantCategories.includes(product.category);
+        
+        if (showVariant && product.variant && product.variant !== 'стандарт') {
+            variantText = `<div class="popular-variant">🎨 ${escapeHtml(product.variant)}</div>`;
+        }
+        
+        return `
+            <div class="popular-card" 
+                 data-category="${product.category}" 
+                 data-id="${product.itemId}"
+                 data-variant="${product.variant || ''}"
+                 data-name="${product.name}">
+                <div class="popular-badge">#${index + 1}</div>
+                <img class="popular-image" src="${product.image || 'https://placehold.co/200x150/1E293B/3B82F6?text=No+Image'}" loading="lazy" onerror="this.src='https://placehold.co/200x150/1E293B/3B82F6?text=No+Image'">
+                <div class="popular-name">${escapeHtml(product.name)}</div>
+                ${variantText}
+                <div class="popular-price">${product.price} ₽</div>
+                <div class="popular-orders">📦 ${product.count} заказов</div>
+            </div>
+        `;
+    }).join('');
+    
+    document.querySelectorAll('.popular-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const category = card.dataset.category;
+            const id = parseInt(card.dataset.id);
+            const variant = card.dataset.variant;
+            
+            openCategory(category);
+            
+            setTimeout(() => {
+                const items = allItems[category];
+                const item = items.find(i => i.id === id);
+                if (item?.flavors) {
+                    openFlavors(item);
+                    if (variant && variant !== 'стандарт') {
+                        setTimeout(() => {
+                            const btns = document.querySelectorAll('.flavor-order-btn');
+                            for (let btn of btns) {
+                                if (btn.dataset.flavorName === variant) {
+                                    btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    btn.style.transform = 'scale(1.05)';
+                                    setTimeout(() => btn.style.transform = '', 1000);
+                                    break;
+                                }
+                            }
+                        }, 300);
+                    }
+                }
+            }, 100);
+        });
+    });
+}
+
 // ========== ЗАГРУЗКА ДАННЫХ ==========
 async function loadCategory(catName) {
     const file = categoryFiles[catName];
@@ -453,6 +577,7 @@ async function loadAllData() {
     renderManagers();
     updateCartIcon();
     renderHistoryBlock();
+    renderPopularProducts();
 }
 
 function renderManagers() {
@@ -774,135 +899,25 @@ function renderSearchResults(results) {
     });
 }
 
-// ========== ПОПУЛЯРНЫЕ ТОВАРЫ ==========
-function getPopularProducts(limit = 6) {
-    const stats = JSON.parse(localStorage.getItem('shop_statistics') || '{"orders":[]}');
-    const productCounts = {};
+// ========== КНОПКА "НАВЕРХ" ==========
+function setupGoTop() {
+    const goTopBtn = document.getElementById('goTopBtn');
+    if (!goTopBtn) return;
     
-    // Считаем количество заказов каждого товара
-    stats.orders.forEach(order => {
-        order.items.forEach(item => {
-            const key = `${item.productName}|${item.variantName}`;
-            if (!productCounts[key]) {
-                productCounts[key] = {
-                    name: item.productName,
-                    variant: item.variantName,
-                    count: 0,
-                    price: item.price,
-                    image: null
-                };
-            }
-            productCounts[key].count += item.quantity;
-        });
-    });
-    
-    // Ищем картинки товаров из allItems
-    for (const [category, items] of Object.entries(allItems)) {
-        for (const item of items) {
-            if (item.flavors) {
-                for (const flavor of item.flavors) {
-                    const key = `${item.name}|${flavor.name}`;
-                    if (productCounts[key]) {
-                        productCounts[key].image = item.image;
-                        productCounts[key].category = category;
-                        productCounts[key].itemId = item.id;
-                        productCounts[key].flavorName = flavor.name;
-                    }
-                }
-            } else {
-                const key = `${item.name}|стандарт`;
-                if (productCounts[key]) {
-                    productCounts[key].image = item.image;
-                    productCounts[key].category = category;
-                    productCounts[key].itemId = item.id;
-                    productCounts[key].flavorName = 'стандарт';
-                }
-            }
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 300) {
+            goTopBtn.style.display = 'flex';
+            goTopBtn.style.alignItems = 'center';
+            goTopBtn.style.justifyContent = 'center';
+        } else {
+            goTopBtn.style.display = 'none';
         }
-    }
+    });
     
-    // Сортируем по популярности и берём топ
-    const popular = Object.values(productCounts)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, limit);
-    
-    return popular;
-}
-
-function renderPopularProducts() {
-    const popular = getPopularProducts(6);
-    const section = document.getElementById('popularSection');
-    const container = document.getElementById('popularContainer');
-    
-    if (!section || !container) return;
-    
-    if (popular.length === 0) {
-        section.style.display = 'none';
-        return;
-    }
-    
-    section.style.display = 'block';
-    
-    container.innerHTML = popular.map((product, index) => `
-        <div class="popular-card" 
-             data-category="${product.category}" 
-             data-id="${product.itemId}"
-             data-variant="${product.flavorName}"
-             data-name="${product.name}">
-            <div class="popular-badge">#${index + 1}</div>
-            <img class="popular-image" src="${product.image || 'https://placehold.co/200x150/1E293B/3B82F6?text=No+Image'}" loading="lazy" onerror="this.src='https://placehold.co/200x150/1E293B/3B82F6?text=No+Image'">
-            <div class="popular-name">${escapeHtml(product.name)}</div>
-            <div class="popular-price">${product.price} ₽</div>
-            <div class="popular-orders">📦 ${product.count} заказов</div>
-        </div>
-    `).join('');
-    
-    // Добавляем обработчики кликов
-    document.querySelectorAll('.popular-card').forEach(card => {
-        card.addEventListener('click', () => {
-            const category = card.dataset.category;
-            const id = parseInt(card.dataset.id);
-            const variant = card.dataset.variant;
-            
-            openCategory(category);
-            
-            setTimeout(() => {
-                const items = allItems[category];
-                const item = items.find(i => i.id === id);
-                if (item?.flavors) {
-                    openFlavors(item);
-                    if (variant) {
-                        setTimeout(() => {
-                            const btns = document.querySelectorAll('.flavor-order-btn');
-                            for (let btn of btns) {
-                                if (btn.dataset.flavorName === variant) {
-                                    btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                    btn.style.transform = 'scale(1.05)';
-                                    setTimeout(() => btn.style.transform = '', 1000);
-                                    break;
-                                }
-                            }
-                        }, 300);
-                    }
-                }
-            }, 100);
-        });
+    goTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 }
-
-// Обновляем renderHistoryBlock, чтобы после очистки истории перерисовывались популярные
-const originalRenderHistoryBlock = renderHistoryBlock;
-window.renderHistoryBlock = function() {
-    originalRenderHistoryBlock();
-    renderPopularProducts();
-};
-
-// Обновляем loadAllData, чтобы после загрузки данных отрисовать популярные
-const originalLoadAllData = loadAllData;
-window.loadAllData = async function() {
-    await originalLoadAllData();
-    renderPopularProducts();
-};
 
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
 document.getElementById('backHomeBtn')?.addEventListener('click', goToHome);
