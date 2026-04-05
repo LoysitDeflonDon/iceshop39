@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>ICESHOP39 — 18+</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Модальное окно 18+ -->
+<div id="ageModal" class="age-modal" style="display: flex;">
+    <div class="age-content">
+        <h1>18+</h1>
+        <p>⚠️ Товары только для совершеннолетних (18+) ⚠️</p>
+        <div class="age-checkbox">
+            <input type="checkbox" id="ageCheckbox">
+            <label for="ageCheckbox">Подтверждаю, что мне есть 18 лет</label>
+        </div>
+        <button class="age-btn" id="confirmAgeBtn" disabled>Войти на сайт</button>
+        <div class="warning">Курение вредит здоровью</div>
+    </div>
+</div>
+
+<div class="header" id="header">
+    <div class="logo" id="homeLogoBtn"><h2>ICESHOP39</h2></div>
+</div>
+
+<div id="mainPage">
+    <div class="hero-section" id="heroSection">
+        <div class="hero-content">
+            <div class="hero-title">ICESHOP39</div>
+            <div class="hero-desc">🔥 Вейпы · Жидкости · Испарители · Картриджи · Снюс · Одноразки 🔥</div>
+        </div>
+        <div class="scroll-hint" id="scrollHint">↓ Листай вниз ↓</div>
+    </div>
+    <div class="categories-section" id="categoriesSection">
+        <h2 class="section-title">📦 Категории</h2>
+        <div class="categories-grid" id="categoriesGrid"><div class="loader">Загрузка...</div></div>
+    </div>
+</div>
+
+<div id="productsPage" class="products-page">
+    <button class="back-home" id="backHomeBtn">← Назад</button>
+    <h2 class="page-title" id="productsPageTitle"></h2>
+    <div class="products-grid" id="productsContainer"></div>
+</div>
+
+<div id="flavorsPage" class="flavors-page">
+    <button class="back-home" id="backFlavorsHomeBtn">← Назад</button>
+    <h2 class="page-title" id="flavorsPageTitle"></h2>
+    <div id="flavorsContainer"></div>
+</div>
+
+<div class="managers-section">
+    <h3 class="managers-title">📱 Наши менеджеры в городах</h3>
+    <div class="managers-grid" id="managersGrid"></div>
+</div>
+
+<footer>⚡ ICESHOP39. 18+. Курение вредит здоровью. 2026</footer>
+<div class="age-banner">⚠️ 18+ Только для совершеннолетних ⚠️</div>
+
+<script src="js/script.js"></script>
+</body>
+</html>
