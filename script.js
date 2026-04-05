@@ -358,32 +358,7 @@ if (hero) {
         hero.style.backgroundImage = `url('${backgrounds[bgIndex]}')`;
     }, 4500);
 }
-
-// ========== ВОЗРАСТНАЯ ПРОВЕРКА ==========
-const ageModal = document.getElementById('ageModal');
-const ageCheckbox = document.getElementById('ageCheckbox');
-const confirmAgeBtn = document.getElementById('confirmAgeBtn');
-
-if (localStorage.getItem('ageConfirmed') === 'true') {
-    if (ageModal) ageModal.style.display = 'none';
-    document.body.style.overflow = 'auto';
-} else {
-    document.body.style.overflow = 'hidden';
-}
-
-if (ageCheckbox && confirmAgeBtn) {
-    ageCheckbox.addEventListener('change', () => {
-        confirmAgeBtn.disabled = !ageCheckbox.checked;
-    });
-    
-    confirmAgeBtn.addEventListener('click', () => {
-        if (ageCheckbox.checked) {
-            localStorage.setItem('ageConfirmed', 'true');
-            if (ageModal) ageModal.style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-    });
-}
+document.body.style.overflow = 'auto';
 
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
 document.getElementById('backHomeBtn')?.addEventListener('click', goToHome);
