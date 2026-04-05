@@ -33,6 +33,11 @@ let allItems = {
 };
 let currentCategory = null;
 
+// ========== TELEGRAM БОТ ДЛЯ АДМИНА ==========
+// ВСТАВЬ СВОЙ ТОКЕН И CHAT ID:
+const ADMIN_BOT_TOKEN = "8274152549:AAFFGogKy9HKwyq1Afe-4ovzJ-V44AVtG_w";  // От @BotFather
+const ADMIN_CHAT_ID = "6919484181";       // От @userinfobot
+
 // ========== КОРЗИНА ==========
 let cart = [];
 
@@ -196,7 +201,6 @@ function showCartModal() {
     };
 }
 
-// ========== ВЫБОР МЕНЕДЖЕРА ==========
 function showManagerModalForCart() {
     const modalDiv = document.createElement('div');
     modalDiv.className = 'modal';
@@ -228,7 +232,6 @@ function showManagerModalForCart() {
     modalDiv.querySelector('#cancelManagerBtn').onclick = () => modalDiv.remove();
 }
 
-// ========== ПОДТВЕРЖДЕНИЕ 18+ ==========
 function showAgeConfirmForCart(managerTg) {
     const modalDiv = document.createElement('div');
     modalDiv.className = 'order-modal';
@@ -264,7 +267,7 @@ function showAgeConfirmForCart(managerTg) {
     modalDiv.querySelector('#cancelOrderBtn').onclick = () => modalDiv.remove();
 }
 
-function sendCartToTelegram(managerTg) {
+async function sendCartToTelegram(managerTg) {
     let message = "🛒 *НОВЫЙ ЗАКАЗ* 🛒\n\n";
     let totalPrice = 0;
     
@@ -282,7 +285,26 @@ function sendCartToTelegram(managerTg) {
     message += `💰 *ИТОГО: ${totalPrice} ₽*\n\n`;
     message += `🕐 Заказ отправлен с сайта ICESHOP39`;
     
+    // Отправка менеджеру
     window.open(`https://t.me/${managerTg}?text=${encodeURIComponent(message)}`, '_blank');
+    
+    // Отправка уведомления админу (ботом)
+    if (ADMIN_BOT_TOKEN && ADMIN_BOT_TOKEN !== "8274152549:AAFFGogKy9HKwyq1Afe-4ovzJ-V44AVtG_w") {
+        try {
+            const notifyMessage = `🔔 *НОВЫЙ ЗАКАЗ!*\n\nМенеджер: @${managerTg}\nСумма: ${totalPrice} ₽\nТоваров: ${cart.length}\n\nНажми на ссылку, чтобы ответить: https://t.me/${managerTg}`;
+            await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: ADMIN_CHAT_ID,
+                    text: notifyMessage,
+                    parse_mode: 'Markdown'
+                })
+            });
+        } catch(e) {
+            console.error('Ошибка уведомления админа:', e);
+        }
+    }
     
     cart = [];
     updateCartIcon();
@@ -529,6 +551,153 @@ if (hero) {
     }, 4500);
 }
 
+// ========== ПОИСК ==========
+let searchTimeout;
+
+function setupSearch() {
+    const searchInput = document.getElementById('searchInput');
+    const searchResults = document.getElementById('searchResults');
+    
+    if (!searchInput) return;
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim().toLowerCase();
+        
+        if (query.length < 2) {
+            searchResults.classList.remove('show');
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => {
+            performSearch(query);
+        }, 300);
+    });
+    
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+            searchResults.classList.remove('show');
+        }
+    });
+}
+
+function performSearch(query) {
+    const results = [];
+    
+    for (const [category, items] of Object.entries(allItems)) {
+        for (const item of items) {
+            if (item.name.toLowerCase().includes(query)) {
+                results.push({
+                    name: item.name,
+                    category: category,
+                    price: item.flavors ? `от ${Math.min(...item.flavors.map(f => f.price))} ₽` : `${item.price} ₽`,
+                    id: item.id,
+                    hasFlavors: !!item.flavors,
+                    item: item
+                });
+                continue;
+            }
+            
+            if (item.flavors) {
+                for (const flavor of item.flavors) {
+                    if (flavor.name.toLowerCase().includes(query)) {
+                        results.push({
+                            name: `${item.name} — ${flavor.name}`,
+                            category: category,
+                            price: `${flavor.price} ₽`,
+                            id: item.id,
+                            hasFlavors: true,
+                            flavorName: flavor.name,
+                            item: item
+                        });
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    const limitedResults = results.slice(0, 10);
+    renderSearchResults(limitedResults);
+}
+
+function renderSearchResults(results) {
+    const searchResults = document.getElementById('searchResults');
+    
+    if (results.length === 0) {
+        searchResults.innerHTML = '<div class="search-result-item" style="color:#94A3B8;">😔 Ничего не найдено</div>';
+        searchResults.classList.add('show');
+        return;
+    }
+    
+    searchResults.innerHTML = results.map(r => `
+        <div class="search-result-item" data-category="${r.category}" data-id="${r.id}" data-has-flavors="${r.hasFlavors}" data-flavor-name="${r.flavorName || ''}">
+            <div class="search-result-name">${escapeHtml(r.name)}</div>
+            <div class="search-result-category">${escapeHtml(r.category)}</div>
+            <div class="search-result-price">${r.price}</div>
+        </div>
+    `).join('');
+    
+    searchResults.classList.add('show');
+    
+    document.querySelectorAll('.search-result-item').forEach(el => {
+        el.addEventListener('click', () => {
+            const category = el.dataset.category;
+            const id = parseInt(el.dataset.id);
+            const hasFlavors = el.dataset.hasFlavors === 'true';
+            const flavorName = el.dataset.flavorName;
+            
+            document.getElementById('searchResults').classList.remove('show');
+            document.getElementById('searchInput').value = '';
+            
+            openCategory(category);
+            
+            if (hasFlavors) {
+                setTimeout(() => {
+                    const items = allItems[category];
+                    const item = items.find(i => i.id === id);
+                    if (item?.flavors) {
+                        openFlavors(item);
+                        if (flavorName) {
+                            setTimeout(() => {
+                                const btns = document.querySelectorAll('.flavor-order-btn');
+                                for (let btn of btns) {
+                                    if (btn.dataset.flavorName === flavorName) {
+                                        btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                        btn.style.transform = 'scale(1.05)';
+                                        setTimeout(() => btn.style.transform = '', 1000);
+                                        break;
+                                    }
+                                }
+                            }, 300);
+                        }
+                    }
+                }, 100);
+            }
+        });
+    });
+}
+
+// ========== КНОПКА "НАВЕРХ" ==========
+function setupGoTop() {
+    const goTopBtn = document.getElementById('goTopBtn');
+    if (!goTopBtn) return;
+    
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 300) {
+            goTopBtn.style.display = 'flex';
+            goTopBtn.style.alignItems = 'center';
+            goTopBtn.style.justifyContent = 'center';
+        } else {
+            goTopBtn.style.display = 'none';
+        }
+    });
+    
+    goTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
+
 // ========== ИНИЦИАЛИЗАЦИЯ ==========
 document.getElementById('backHomeBtn')?.addEventListener('click', goToHome);
 document.getElementById('backFlavorsHomeBtn')?.addEventListener('click', goBackToCategory);
@@ -539,3 +708,8 @@ document.getElementById('scrollHint')?.addEventListener('click', () => {
 window.addEventListener('scroll', handleScroll);
 loadAllData();
 handleScroll();
+
+setTimeout(() => {
+    setupSearch();
+    setupGoTop();
+}, 1000);
