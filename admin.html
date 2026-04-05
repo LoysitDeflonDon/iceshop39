@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель ICESHOP39</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+        body {
+            background: #0A0F1E;
+            color: #EDF2FF;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #3B82F6;
+        }
+        .login-form {
+            max-width: 400px;
+            margin: 100px auto;
+            background: #111827;
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid #1F2A44;
+        }
+        .login-form input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: #1E293B;
+            border: 1px solid #1F2A44;
+            border-radius: 10px;
+            color: white;
+        }
+        .login-form button {
+            width: 100%;
+            padding: 12px;
+            background: #3B82F6;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .category-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+        .category-btn {
+            padding: 10px 20px;
+            background: #1E293B;
+            border: 1px solid #1F2A44;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .category-btn.active {
+            background: #3B82F6;
+            border-color: #3B82F6;
+        }
+        .product-form {
+            background: #111827;
+            padding: 20px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            border: 1px solid #1F2A44;
+        }
+        .product-form input, .product-form textarea {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            background: #1E293B;
+            border: 1px solid #1F2A44;
+            border-radius: 8px;
+            color: white;
+        }
+        .product-form textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        .flavor-item {
+            background: #1E293B;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+        }
+        button {
+            background: #3B82F6;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button.danger {
+            background: #EF4444;
+        }
+        button.success {
+            background: #10B981;
+        }
+        .products-list {
+            display: grid;
+            gap: 15px;
+        }
+        .product-item {
+            background: #111827;
+            padding: 15px;
+            border-radius: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #94A3B8;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #10B981;
+            padding: 12px 24px;
+            border-radius: 10px;
+            z-index: 1000;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div id="adminPanel" class="hidden">
+        <h1>🛠️ Админ-панель ICESHOP39</h1>
+        
+        <div class="category-buttons" id="categoryButtons"></div>
+        
+        <div class="product-form">
+            <h3 id="formTitle">➕ Добавить товар</h3>
+            <input type="text" id="productId" placeholder="ID (число)" readonly style="background:#334155;">
+            <input type="text" id="productName" placeholder="Название товара" required>
+            <input type="text" id="productImage" placeholder="URL картинки" required>
+            <textarea id="productDesc" placeholder="Описание товара"></textarea>
+            
+            <div id="flavorsContainer"></div>
+            <button type="button" id="addFlavorBtn" style="background:#334155;">+ Добавить вариант</button>
+            
+            <div style="margin-top: 15px;">
+                <button id="saveProductBtn" class="success">💾 Сохранить</button>
+                <button id="cancelEditBtn" class="danger hidden">Отмена</button>
+            </div>
+        </div>
+        
+        <h3>📦 Список товаров</h3>
+        <div id="productsList" class="products-list"><div class="loading">Загрузка...</div></div>
+    </div>
+    
+    <div id="loginForm" class="login-form">
+        <h2>🔐 Вход в админ-панель</h2>
+        <input type="password" id="adminPassword" placeholder="Пароль">
+        <button id="loginBtn">Войти</button>
+        <p style="font-size:0.8rem; margin-top:15px; text-align:center; color:#94A3B8;">Пароль: admin123 (измени позже)</p>
+    </div>
+</div>
+
+<script>
+// ========== НАСТРОЙКИ ==========
+const ADMIN_PASSWORD = "admin123";  // Поменяй на свой пароль!
+const GITHUB_TOKEN = "YOUR_GITHUB_TOKEN_HERE";  // Нужно создать токен!
+const REPO_OWNER = "LoysitDeflonDon";
+const REPO_NAME = "iceshop39-data";
+const BRANCH = "main";
+
+let currentCategory = "";
+let currentProducts = [];
+let editingProductId = null;
+let currentFlavors = [];
+
+// ========== ВХОД ==========
+document.getElementById('loginBtn').addEventListener('click', () => {
+    const pwd = document.getElementById('adminPassword').value;
+    if (pwd === ADMIN_PASSWORD) {
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('adminPanel').classList.remove('hidden');
+        loadCategories();
+    } else {
+        alert("Неверный пароль!");
+    }
+});
+
+// ========== ЗАГРУЗКА КАТЕГОРИЙ ==========
+function loadCategories() {
+    const categories = ["Zhitkosty", "Snus", "Vapes", "Ispariteli", "Kartdritzhy", "Odnorazki"];
+    const catNames = ["Жидкости", "Снюс", "Вейпы", "Испарители", "Картриджи", "Одноразки"];
+    const container = document.getElementById('categoryButtons');
+    container.innerHTML = categories.map((cat, i) => `
+        <div class="category-btn" data-category="${cat}" data-name="${catNames[i]}">
+            ${catNames[i]}
+        </div>
+    `).join('');
+    
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentCategory = btn.dataset.category;
+            loadProducts(currentCategory);
+        });
+    });
+}
+
+// ========== ЗАГРУЗКА ТОВАРОВ ==========
+async function loadProducts(categoryFile) {
+    document.getElementById('productsList').innerHTML = '<div class="loading">Загрузка...</div>';
+    const url = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${categoryFile}.json`;
+    try {
+        const res = await fetch(url);
+        const text = await res.text();
+        let clean = text.trim();
+        if (clean.startsWith('\uFEFF')) clean = clean.substring(1);
+        currentProducts = JSON.parse(clean);
+        renderProductsList();
+    } catch(e) {
+        console.error(e);
+        currentProducts = [];
+        renderProductsList();
+    }
+}
+
+function renderProductsList() {
+    const container = document.getElementById('productsList');
+    if (!currentProducts.length) {
+        container.innerHTML = '<div class="loading">Нет товаров. Добавьте первый!</div>';
+        return;
+    }
+    container.innerHTML = currentProducts.map(product => `
+        <div class="product-item">
+            <div>
+                <strong>${escapeHtml(product.name)}</strong>
+                <div style="font-size:0.8rem; color:#94A3B8;">ID: ${product.id} | Цена: от ${product.flavors ? Math.min(...product.flavors.map(f=>f.price)) : product.price} ₽</div>
+            </div>
+            <div>
+                <button onclick="editProduct(${product.id})">✏️ Редактировать</button>
+                <button class="danger" onclick="deleteProduct(${product.id})">🗑️ Удалить</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+}
+
+// ========== ДОБАВЛЕНИЕ/РЕДАКТИРОВАНИЕ ==========
+function editProduct(id) {
+    const product = currentProducts.find(p => p.id === id);
+    if (!product) return;
+    
+    editingProductId = id;
+    document.getElementById('formTitle').textContent = '✏️ Редактировать товар';
+    document.getElementById('productId').value = product.id;
+    document.getElementById('productName').value = product.name;
+    document.getElementById('productImage').value = product.image || '';
+    document.getElementById('productDesc').value = product.desc || '';
+    
+    if (product.flavors) {
+        currentFlavors = [...product.flavors];
+    } else {
+        currentFlavors = [{ name: "", price: product.price || 0, stock: product.stock || 0 }];
+    }
+    renderFlavorsForm();
+    document.getElementById('cancelEditBtn').classList.remove('hidden');
+}
+
+function renderFlavorsForm() {
+    const container = document.getElementById('flavorsContainer');
+    if (currentFlavors.length === 0) {
+        container.innerHTML = '<div style="padding:10px; background:#1E293B; border-radius:8px;">Нет вариантов. Нажмите "+ Добавить вариант"</div>';
+        return;
+    }
+    container.innerHTML = currentFlavors.map((flavor, idx) => `
+        <div class="flavor-item">
+            <input type="text" placeholder="Название (цвет/вкус)" value="${escapeHtml(flavor.name)}" data-flavor-idx="${idx}" data-field="name">
+            <input type="number" placeholder="Цена" value="${flavor.price}" data-flavor-idx="${idx}" data-field="price">
+            <input type="number" placeholder="Остаток" value="${flavor.stock}" data-flavor-idx="${idx}" data-field="stock">
+            <button class="danger" onclick="removeFlavor(${idx})">❌ Удалить</button>
+        </div>
+    `).join('');
+    
+    document.querySelectorAll('#flavorsContainer input').forEach(input => {
+        input.addEventListener('change', (e) => {
+            const idx = parseInt(input.dataset.flavorIdx);
+            const field = input.dataset.field;
+            const value = input.type === 'number' ? parseFloat(input.value) : input.value;
+            currentFlavors[idx][field] = value;
+        });
+    });
+}
+
+function addFlavor() {
+    currentFlavors.push({ name: "", price: 0, stock: 0 });
+    renderFlavorsForm();
+}
+
+function removeFlavor(idx) {
+    currentFlavors.splice(idx, 1);
+    renderFlavorsForm();
+}
+
+// ========== СОХРАНЕНИЕ НА GITHUB ==========
+async function saveProduct() {
+    const name = document.getElementById('productName').value;
+    const image = document.getElementById('productImage').value;
+    const desc = document.getElementById('productDesc').value;
+    
+    if (!name) {
+        alert("Введите название товара!");
+        return;
+    }
+    
+    let newProduct;
+    if (editingProductId) {
+        // Редактируем существующий
+        newProduct = currentProducts.find(p => p.id === editingProductId);
+        newProduct.name = name;
+        newProduct.image = image;
+        newProduct.desc = desc;
+        newProduct.flavors = currentFlavors;
+    } else {
+        // Создаём новый
+        const newId = Math.max(...currentProducts.map(p => p.id), 0) + 1;
+        newProduct = {
+            id: newId,
+            name: name,
+            category: getCategoryName(currentCategory),
+            image: image,
+            desc: desc,
+            flavors: currentFlavors
+        };
+        currentProducts.push(newProduct);
+    }
+    
+    // Сохраняем на GitHub
+    await saveToGitHub(currentProducts);
+    resetForm();
+    loadProducts(currentCategory);
+    showToast("✅ Товар сохранён!");
+}
+
+async function deleteProduct(id) {
+    if (!confirm("Удалить товар?")) return;
+    currentProducts = currentProducts.filter(p => p.id !== id);
+    await saveToGitHub(currentProducts);
+    loadProducts(currentCategory);
+    showToast("🗑️ Товар удалён");
+}
+
+async function saveToGitHub(products) {
+    const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${currentCategory}.json`;
+    let sha = "";
+    
+    try {
+        const getRes = await fetch(url, {
+            headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+        });
+        if (getRes.ok) {
+            const data = await getRes.json();
+            sha = data.sha;
+        }
+    } catch(e) {}
+    
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(products, null, 4))));
+    const body = {
+        message: editingProductId ? `Update ${currentCategory}.json` : `Add product to ${currentCategory}.json`,
+        content: content,
+        branch: BRANCH
+    };
+    if (sha) body.sha = sha;
+    
+    const res = await fetch(url, {
+        method: 'PUT',
+        headers: {
+            'Authorization': `token ${GITHUB_TOKEN}`,
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+    });
+    
+    if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message);
+    }
+}
+
+function getCategoryName(file) {
+    const names = {
+        "Zhitkosty": "Жидкости",
+        "Snus": "Снюс",
+        "Vapes": "Вейпы",
+        "Ispariteli": "Испарители",
+        "Kartdritzhy": "Картриджи",
+        "Odnorazki": "Одноразки"
+    };
+    return names[file] || file;
+}
+
+function resetForm() {
+    editingProductId = null;
+    currentFlavors = [];
+    document.getElementById('formTitle').textContent = '➕ Добавить товар';
+    document.getElementById('productId').value = '';
+    document.getElementById('productName').value = '';
+    document.getElementById('productImage').value = '';
+    document.getElementById('productDesc').value = '';
+    document.getElementById('flavorsContainer').innerHTML = '';
+    document.getElementById('cancelEditBtn').classList.add('hidden');
+}
+
+function showToast(msg) {
+    let toast = document.getElementById('toastMsg');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toastMsg';
+        toast.style.cssText = 'position:fixed; bottom:20px; right:20px; background:#10B981; padding:12px 24px; border-radius:10px; z-index:1000;';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    setTimeout(() => {
+        toast.style.display = 'none';
+    }, 3000);
+}
+
+document.getElementById('addFlavorBtn').addEventListener('click', addFlavor);
+document.getElementById('saveProductBtn').addEventListener('click', saveProduct);
+document.getElementById('cancelEditBtn').addEventListener('click', resetForm);
+
+window.editProduct = editProduct;
+window.deleteProduct = deleteProduct;
+window.removeFlavor = removeFlavor;
+
+</script>
+</body>
+</html>
