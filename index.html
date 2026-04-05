@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>ICESHOP39 — Вейпы, жидкости, испарители, картриджи, снюс, одноразки</title>
+    <title>ICESHOP39 — 18+</title>
     <style>
         * {
             margin: 0;
@@ -27,6 +27,8 @@
             --text-secondary: #94A3B8;
             --success: #10B981;
             --danger: #EF4444;
+            --neon-red: #ff0040;
+            --neon-blue: #00f3ff;
         }
 
         .hero-section {
@@ -140,29 +142,6 @@
             color: #3B82F6;
             text-shadow: 0 0 3px #1D4ED8, 0 0 5px #1E3A8A;
             font-weight: 800;
-        }
-
-        .logo::after {
-            content: "Главная";
-            position: absolute;
-            bottom: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: var(--blue-accent);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            white-space: nowrap;
-            opacity: 0;
-            transition: opacity 0.3s;
-            transition-delay: 0s;
-            pointer-events: none;
-        }
-
-        .logo:hover::after {
-            opacity: 1;
-            transition-delay: 1.5s;
         }
 
         .categories-section {
@@ -405,7 +384,6 @@
             font-size: 1rem;
         }
 
-        /* Стили для страницы вкусов */
         .flavors-list {
             display: flex;
             flex-direction: column;
@@ -453,9 +431,6 @@
             transition: 0.2s;
             white-space: nowrap;
         }
-        .flavor-order-btn:hover {
-            background: #059669;
-        }
         .flavor-order-btn:disabled {
             background: #4B5563;
             cursor: not-allowed;
@@ -476,55 +451,195 @@
             }
         }
 
-        .modal {
+        /* Модальное окно 18+ */
+        .age-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(12px);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: monospace;
+        }
+        .age-content {
+            background: #0F172A;
+            border: 2px solid var(--neon-red);
+            border-radius: 40px;
+            padding: 40px 30px;
+            max-width: 450px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(255, 0, 64, 0.3);
+            animation: neonPulse 1.5s infinite alternate;
+        }
+        @keyframes neonPulse {
+            0% { box-shadow: 0 0 10px rgba(255, 0, 64, 0.3); border-color: #ff0040; }
+            100% { box-shadow: 0 0 30px rgba(255, 0, 64, 0.8); border-color: #ff6699; }
+        }
+        .age-content h1 {
+            font-size: 4rem;
+            font-weight: 900;
+            color: var(--neon-red);
+            text-shadow: 0 0 10px #ff0040;
+            margin-bottom: 20px;
+        }
+        .age-content p {
+            color: #ccc;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+        .age-content .warning {
+            color: #ff6666;
+            font-size: 0.9rem;
+            margin: 15px 0;
+        }
+        .age-checkbox {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin: 25px 0;
+            background: #1E293B;
+            padding: 12px;
+            border-radius: 60px;
+            cursor: pointer;
+        }
+        .age-checkbox input {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--neon-red);
+        }
+        .age-checkbox label {
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .age-btn {
+            background: var(--neon-red);
+            border: none;
+            border-radius: 60px;
+            padding: 14px 30px;
+            color: white;
+            font-weight: 800;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: 0.3s;
+            width: 100%;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .age-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .age-btn:hover:not(:disabled) {
+            background: #ff3366;
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(255, 0, 64, 0.5);
+        }
+
+        /* Форма заказа с галочкой */
+        .order-modal {
             display: none;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(0, 0, 0, 0.9);
             backdrop-filter: blur(8px);
-            z-index: 1000;
+            z-index: 10000;
             justify-content: center;
             align-items: center;
         }
-        .modal-content {
-            background: #1E293B;
-            border: 1px solid var(--border-dim);
+        .order-content {
+            background: #0F172A;
+            border: 1px solid var(--blue-accent);
             border-radius: 32px;
-            padding: 24px;
-            max-width: 320px;
+            padding: 30px;
+            max-width: 400px;
             width: 90%;
             text-align: center;
         }
-        .modal-content h3 {
+        .order-content h3 {
             margin-bottom: 20px;
-            font-size: 1.3rem;
+            font-size: 1.5rem;
+            color: var(--blue-accent);
         }
-        .manager-option {
-            background: var(--card-dark);
-            border: 1px solid var(--border-dim);
-            border-radius: 60px;
-            padding: 12px;
-            margin: 10px 0;
-            cursor: pointer;
-            transition: 0.2s;
+        .order-content .product-detail {
+            background: #1E293B;
+            padding: 15px;
+            border-radius: 20px;
+            margin: 15px 0;
             font-weight: 600;
         }
-        .manager-option:hover {
-            background: var(--blue-accent);
+        .order-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 20px 0;
+            background: #1E293B;
+            padding: 12px;
+            border-radius: 60px;
+            text-align: left;
         }
-        .cancel-modal {
+        .order-checkbox input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .order-checkbox label {
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .order-submit {
+            background: var(--success);
+            border: none;
+            border-radius: 60px;
+            padding: 12px;
+            width: 100%;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .order-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .cancel-order {
             background: #334155;
             border: none;
             border-radius: 60px;
             padding: 10px;
+            width: 100%;
             color: white;
             cursor: pointer;
-            margin-top: 15px;
-            width: 100%;
-            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        /* Постоянный баннер 18+ */
+        .age-banner {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            border-left: 4px solid var(--neon-red);
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #ff8888;
+            z-index: 1000;
+            pointer-events: none;
+            font-family: monospace;
+            letter-spacing: 1px;
         }
 
         .managers-section {
@@ -586,6 +701,20 @@
 </head>
 <body>
 
+<!-- Модальное окно 18+ -->
+<div id="ageModal" class="age-modal">
+    <div class="age-content">
+        <h1>18+</h1>
+        <p>⚠️ Товары, представленные на сайте, предназначены только для совершеннолетних граждан (18+) ⚠️</p>
+        <div class="age-checkbox" onclick="document.getElementById('ageCheckbox').click()">
+            <input type="checkbox" id="ageCheckbox">
+            <label>Подтверждаю, что мне есть 18 лет</label>
+        </div>
+        <button class="age-btn" id="confirmAgeBtn" disabled>Войти на сайт</button>
+        <div class="warning">Курение и употребление никотина вредит вашему здоровью</div>
+    </div>
+</div>
+
 <div class="header" id="header">
     <div class="logo" id="homeLogoBtn">
         <h2>ICESHOP39</h2>
@@ -618,11 +747,17 @@
     <div id="flavorsContainer"></div>
 </div>
 
-<div id="managerModal" class="modal">
-    <div class="modal-content">
-        <h3>📱 Выберите менеджера</h3>
-        <div id="managerOptions"></div>
-        <button class="cancel-modal" id="cancelModalBtn">Отмена</button>
+<!-- Модальное окно заказа с галочкой -->
+<div id="orderModal" class="order-modal">
+    <div class="order-content">
+        <h3>📦 Оформление заказа</h3>
+        <div id="orderProductInfo" class="product-detail"></div>
+        <div class="order-checkbox">
+            <input type="checkbox" id="orderAgeConfirm">
+            <label>Подтверждаю, что мне есть 18 лет, и я ознакомлен с правилами магазина</label>
+        </div>
+        <button class="order-submit" id="submitOrderBtn" disabled>📤 Отправить заказ менеджеру</button>
+        <button class="cancel-order" id="cancelOrderBtn">Отмена</button>
     </div>
 </div>
 
@@ -635,10 +770,13 @@
     </div>
 </div>
 
-<footer>⚡ ICESHOP39. Все права защищены. Продажа только совершеннолетним. 2026</footer>
+<footer>⚡ ICESHOP39. Все права защищены. Продажа только совершеннолетним (18+). Курение вредит здоровью. 2026</footer>
+
+<!-- Постоянный баннер 18+ -->
+<div class="age-banner">⚠️ 18+ Только для совершеннолетних ⚠️</div>
 
 <script>
-    // Соответствие категорий файлам (исправлены имена файлов)
+    // СООТВЕТСТВИЕ КАТЕГОРИЙ ФАЙЛАМ
     const categoryFiles = {
         "Жидкости": "Zhitkosty.json",
         "Снюс": "Snus.json",
@@ -665,8 +803,113 @@
 
     let allItems = { "Жидкости": [], "Снюс": [], "Вейпы": [], "Испарители": [], "Картриджи": [], "Одноразки": [] };
     let currentCategory = null;
+    let pendingOrder = null;
 
-    // Функция для отображения остатка
+    // === ВОЗРАСТНОЕ МОДАЛЬНОЕ ОКНО ===
+    const ageModal = document.getElementById('ageModal');
+    const ageCheckbox = document.getElementById('ageCheckbox');
+    const confirmAgeBtn = document.getElementById('confirmAgeBtn');
+
+    ageCheckbox.addEventListener('change', function() {
+        confirmAgeBtn.disabled = !this.checked;
+    });
+
+    confirmAgeBtn.addEventListener('click', function() {
+        if (ageCheckbox.checked) {
+            localStorage.setItem('ageConfirmed', 'true');
+            ageModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    });
+
+    // Проверка при загрузке
+    if (localStorage.getItem('ageConfirmed') === 'true') {
+        ageModal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    } else {
+        document.body.style.overflow = 'hidden';
+    }
+
+    // === ФУНКЦИИ ЗАКАЗА С ГАЛОЧКОЙ ===
+    function showOrderModal(productName, variant, price, callback) {
+        pendingOrder = { productName, variant, price, callback };
+        const modal = document.getElementById('orderModal');
+        const infoDiv = document.getElementById('orderProductInfo');
+        infoDiv.innerHTML = `${productName}<br>${variant}<br><strong>${price} ₽</strong>`;
+        
+        const orderAgeConfirm = document.getElementById('orderAgeConfirm');
+        const submitBtn = document.getElementById('submitOrderBtn');
+        
+        orderAgeConfirm.checked = false;
+        submitBtn.disabled = true;
+        
+        orderAgeConfirm.onchange = () => {
+            submitBtn.disabled = !orderAgeConfirm.checked;
+        };
+        
+        submitBtn.onclick = () => {
+            if (orderAgeConfirm.checked) {
+                modal.style.display = 'none';
+                if (pendingOrder) {
+                    pendingOrder.callback(pendingOrder.tg);
+                    pendingOrder = null;
+                }
+            }
+        };
+        
+        modal.style.display = 'flex';
+    }
+
+    function closeOrderModal() {
+        document.getElementById('orderModal').style.display = 'none';
+        pendingOrder = null;
+    }
+
+    function orderViaTelegram(productName, variant, price, managerTg) {
+        const message = `Здравствуйте! Хочу заказать: ${productName}, ${variant} — ${price} ₽`;
+        window.open(`https://t.me/${managerTg}?text=${encodeURIComponent(message)}`, '_blank');
+    }
+
+    function showManagerModal(productName, variant, price, callback) {
+        const optionsContainer = document.getElementById('managerOptionsTemp');
+        if (!optionsContainer) {
+            // Создаём временный контейнер для выбора менеджера
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3>📱 Выберите менеджера</h3>
+                    <div id="managerOptionsTemp"></div>
+                    <button class="cancel-modal" id="cancelManagerBtn">Отмена</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            
+            const optsContainer = modal.querySelector('#managerOptionsTemp');
+            optsContainer.innerHTML = managers.map(m => `
+                <div class="manager-option" data-tg="${m.tg}">
+                    <span>${m.name === "КСиПТ" ? "🏢" : m.name === "Гурьевск" ? "🏘️" : "🌆"}</span>
+                    <span>${m.name}</span>
+                </div>
+            `).join('');
+            
+            modal.querySelectorAll('.manager-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    modal.remove();
+                    showOrderModal(productName, variant, price, (tg) => {
+                        callback(opt.dataset.tg);
+                    });
+                });
+            });
+            
+            modal.querySelector('#cancelManagerBtn').onclick = () => modal.remove();
+        } else {
+            const modal = optionsContainer.closest('.modal');
+            modal.style.display = 'flex';
+        }
+    }
+
     function formatStock(stock) {
         if (stock === undefined || stock === null) return { text: "Нет в наличии", isOutOfStock: true };
         if (typeof stock === "number") {
@@ -689,33 +932,6 @@
         return { text: "Нет в наличии", isOutOfStock: true };
     }
 
-    function showManagerModal(productName, variant, price, callback) {
-        const modal = document.getElementById('managerModal');
-        const optionsContainer = document.getElementById('managerOptions');
-        optionsContainer.innerHTML = managers.map(m => `
-            <div class="manager-option" data-tg="${m.tg}">
-                <span>${m.name === "КСиПТ" ? "🏢" : m.name === "Гурьевск" ? "🏘️" : "🌆"}</span>
-                <span>${m.name}</span>
-            </div>
-        `).join('');
-        modal.style.display = 'flex';
-        document.querySelectorAll('.manager-option').forEach(opt => {
-            opt.addEventListener('click', () => {
-                modal.style.display = 'none';
-                callback(opt.dataset.tg);
-            });
-        });
-    }
-
-    function closeModal() {
-        document.getElementById('managerModal').style.display = 'none';
-    }
-
-    function orderViaTelegram(productName, variant, price, managerTg) {
-        const message = `Здравствуйте! Хочу заказать: ${productName}, ${variant} — ${price} ₽`;
-        window.open(`https://t.me/${managerTg}?text=${encodeURIComponent(message)}`, '_blank');
-    }
-
     async function loadCategory(categoryName) {
         const fileName = categoryFiles[categoryName];
         if (!fileName) return [];
@@ -724,27 +940,18 @@
             const res = await fetch(url);
             if (!res.ok) return [];
             const text = await res.text();
-            // Очищаем возможные BOM-символы и лишние запятые/скобки
             let cleanedText = text.trim();
-            // Простая очистка от лишних символов в начале/конце
             if (cleanedText.startsWith('\uFEFF')) cleanedText = cleanedText.substring(1);
-            // Пробуем распарсить
             try {
                 return JSON.parse(cleanedText);
             } catch(e) {
-                console.error(`Ошибка парсинга ${categoryName}:`, e);
-                // Пробуем починить особенно проблемный файл Ispariteli.json
                 if (fileName === "Ispariteli.json") {
-                    // Удаляем всё после первого закрывающего массива
                     const match = cleanedText.match(/\[\s*\{[\s\S]*?\}\s*\]/);
-                    if (match) {
-                        return JSON.parse(match[0]);
-                    }
+                    if (match) return JSON.parse(match[0]);
                 }
                 return [];
             }
         } catch(e) {
-            console.error(`Ошибка загрузки ${categoryName}:`, e);
             return [];
         }
     }
@@ -785,9 +992,7 @@
         if (!items.length) { container.innerHTML = '<div class="empty-msg">📭 Товары отсутствуют.</div>'; return; }
         
         container.innerHTML = items.map(item => {
-            // Если есть flavors — показываем как многовариантный товар (кнопки заказа нет на карточке)
             if (item.flavors && item.flavors.length > 0) {
-                // Находим минимальную цену среди вкусов для отображения "от X ₽"
                 const minPrice = Math.min(...item.flavors.map(f => f.price));
                 return `
                     <div class="product-card" data-id="${item.id}" data-has-flavors="true">
@@ -797,7 +1002,6 @@
                     </div>
                 `;
             } else {
-                // Обычный товар — с кнопкой заказа
                 return `
                     <div class="product-card" data-id="${item.id}" data-has-flavors="false">
                         <img class="product-image" src="${item.image}" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
@@ -810,7 +1014,6 @@
             }
         }).join('');
         
-        // Обработка кнопок заказа для обычных товаров
         document.querySelectorAll('.order-pill').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -820,7 +1023,6 @@
             });
         });
         
-        // Обработка кликов по карточкам товаров с вариантами
         document.querySelectorAll('.product-card').forEach(card => {
             const hasFlavors = card.dataset.hasFlavors === 'true';
             if (hasFlavors) {
@@ -902,8 +1104,8 @@
     document.getElementById('backFlavorsHomeBtn').onclick = goBackToCategory;
     document.getElementById('homeLogoBtn').onclick = goToHome;
     document.getElementById('scrollHint').onclick = () => document.getElementById('categoriesSection').scrollIntoView({ behavior: 'smooth' });
-    document.getElementById('cancelModalBtn').onclick = closeModal;
-    window.onclick = (e) => { if (e.target === document.getElementById('managerModal')) closeModal(); };
+    document.getElementById('cancelOrderBtn').onclick = closeOrderModal;
+    window.onclick = (e) => { if (e.target === document.getElementById('orderModal')) closeOrderModal(); };
     window.addEventListener('scroll', handleScroll);
 
     loadAllData();
