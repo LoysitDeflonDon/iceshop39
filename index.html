@@ -12,6 +12,17 @@
             font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
         }
 
+        /* убираем голубое выделение при нажатии на все элементы */
+        button, .category-card, .manager-card, .manager-option, .flavor-order-btn, .order-pill, .back-home, .age-btn, .order-submit, .cancel-order, .cancel-modal {
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button:focus, .category-card:focus, .manager-card:focus, .manager-option:focus, .flavor-order-btn:focus, .order-pill:focus, .back-home:focus, .age-btn:focus, .order-submit:focus, .cancel-order:focus, .cancel-modal:focus {
+            outline: none;
+            box-shadow: none;
+        }
+
         body {
             background: #0A0F1E;
             color: #EDF2FF;
@@ -30,7 +41,7 @@
             --neon-red: #ff0040;
         }
 
-        /* Hero-секция — фон будет меняться через JS, но начальный задаём здесь */
+        /* Hero-секция */
         .hero-section {
             min-height: 100vh;
             display: flex;
@@ -44,11 +55,9 @@
             background-position: center;
             background-repeat: no-repeat;
             transition: background-image 1.2s ease-in-out;
-            /* Начальный фон — первая картинка из списка */
             background-image: url('https://i.ibb.co/5hYz909b/istockphoto-1399967405-612x612.jpg');
         }
 
-        /* Затемнение поверх фона, чтобы текст читался */
         .hero-section::before {
             content: '';
             position: absolute;
@@ -115,7 +124,6 @@
             50% { transform: translateX(-50%) translateY(10px); }
         }
 
-        /* Остальные стили (категории, карточки, модалки) — без изменений, оставим как было */
         .header {
             background: rgba(10, 15, 30, 0.96);
             backdrop-filter: blur(12px);
@@ -181,7 +189,7 @@
         .flavor-order-btn:disabled { background: #4B5563; cursor: not-allowed; opacity: 0.6; }
         @media (max-width: 550px) { .flavor-item { flex-direction: column; align-items: stretch; text-align: center; } .flavor-name, .flavor-price, .flavor-stock { text-align: center; } .flavor-order-btn { margin-top: 5px; } }
 
-        /* Модальные окна и баннеры */
+        /* Модальные окна */
         .age-modal, .order-modal, .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(12px); z-index: 9999; display: flex; justify-content: center; align-items: center; }
         .age-content, .order-content, .modal-content { background: #0F172A; border: 2px solid var(--neon-red); border-radius: 40px; padding: 30px; max-width: 450px; width: 90%; text-align: center; }
         .order-content { border-color: var(--blue-accent); }
@@ -192,6 +200,33 @@
         .order-submit { background: var(--success); }
         .cancel-order, .cancel-modal { background: #334155; border: none; border-radius: 60px; padding: 10px; color: white; cursor: pointer; width: 100%; margin-top: 10px; }
         .age-banner { position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); border-left: 4px solid var(--neon-red); padding: 8px 16px; border-radius: 40px; font-size: 0.7rem; color: #ff8888; z-index: 1000; pointer-events: none; }
+
+        /* СТИЛЬНЫЙ ВЫБОР МЕНЕДЖЕРА — ТАБЛЕТКИ */
+        .manager-option {
+            background: #1E293B;
+            border: 1px solid var(--border-dim);
+            border-radius: 60px;
+            padding: 14px 20px;
+            margin: 12px 0;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        .manager-option:hover {
+            background: var(--blue-accent);
+            border-color: var(--blue-accent);
+            transform: translateX(5px);
+        }
+        .manager-option:active {
+            transform: scale(0.98);
+        }
 
         .managers-section { padding: 50px 20px 30px; border-top: 1px solid var(--border-dim); }
         .managers-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 900px; margin: 0 auto; }
@@ -261,7 +296,7 @@
 <div class="age-banner">⚠️ 18+ Только для совершеннолетних ⚠️</div>
 
 <script>
-    // ========== РОТАЦИЯ ФОНОВ (4.5 секунды, без второй картинки) ==========
+    // ========== РОТАЦИЯ ФОНОВ ==========
     const backgrounds = [
         "https://i.ibb.co/5hYz909b/istockphoto-1399967405-612x612.jpg",
         "https://i.ibb.co/mrGR4qTc/2026-04-05-122820613.png",
@@ -273,7 +308,7 @@
         setInterval(() => {
             bgIndex = (bgIndex + 1) % backgrounds.length;
             hero.style.backgroundImage = `url('${backgrounds[bgIndex]}')`;
-        }, 4500); // 4.5 секунды
+        }, 4500);
     }
 
     // ========== ВОЗРАСТНАЯ ПРОВЕРКА ==========
@@ -295,7 +330,7 @@
         }
     });
 
-    // ========== ОСТАЛЬНАЯ ЛОГИКА САЙТА (категории, товары, заказы) ==========
+    // ========== ОСТАЛЬНАЯ ЛОГИКА САЙТА ==========
     const categoryFiles = {
         "Жидкости": "Zhitkosty.json",
         "Снюс": "Snus.json",
@@ -313,9 +348,9 @@
         { id: "Одноразки", name: "Одноразки", icon: "🔄" }
     ];
     const managers = [
-        { name: "КСиПТ", tg: "ICE_SHOP39" },
-        { name: "Гурьевск", tg: "IceShop_Gur" },
-        { name: "Калининград", tg: "IceShop_KLND" }
+        { name: "🏢 КСиПТ", tg: "ICE_SHOP39" },
+        { name: "🏘️ Гурьевск", tg: "IceShop_Gur" },
+        { name: "🌆 Калининград", tg: "IceShop_KLND" }
     ];
     let allItems = { "Жидкости": [], "Снюс": [], "Вейпы": [], "Испарители": [], "Картриджи": [], "Одноразки": [] };
     let currentCategory = null;
@@ -379,7 +414,7 @@
         `;
         document.body.appendChild(modalDiv);
         const opts = modalDiv.querySelector('#managerOptionsTemp');
-        opts.innerHTML = managers.map(m => `<div class="manager-option" data-tg="${m.tg}" style="background:#111827; border-radius:60px; padding:12px; margin:10px 0; cursor:pointer;">${m.name === "КСиПТ" ? "🏢" : m.name === "Гурьевск" ? "🏘️" : "🌆"} ${m.name}</div>`).join('');
+        opts.innerHTML = managers.map(m => `<div class="manager-option" data-tg="${m.tg}">${m.name}</div>`).join('');
         modalDiv.querySelectorAll('.manager-option').forEach(opt => {
             opt.addEventListener('click', () => {
                 modalDiv.remove();
