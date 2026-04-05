@@ -26,6 +26,69 @@
         .product-card { background: #111827; padding: 15px; margin: 10px 0; border-radius: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
         .toast { position: fixed; bottom: 20px; right: 20px; background: #10B981; padding: 12px 24px; border-radius: 10px; z-index: 1000; }
         .hidden { display: none; }
+        
+        /* Стили для статистики */
+        .stats-section {
+            background: #111827;
+            padding: 20px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+        }
+        .stats-section h3, .stats-section h4 {
+            margin-bottom: 15px;
+            color: #3B82F6;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .stat-card {
+            background: #1E293B;
+            padding: 15px;
+            border-radius: 15px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3B82F6;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: #94A3B8;
+        }
+        .top-product-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #1F2A44;
+        }
+        .top-product-name {
+            font-weight: 600;
+        }
+        .top-product-count {
+            color: #FACC15;
+            font-weight: bold;
+        }
+        .daily-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #1F2A44;
+            font-size: 0.9rem;
+        }
+        .daily-date {
+            color: #94A3B8;
+        }
+        .daily-total {
+            color: #FACC15;
+            font-weight: bold;
+        }
+        
         @media (max-width: 700px) { .flavor-item { flex-direction: column; } }
     </style>
 </head>
@@ -35,11 +98,38 @@
     <h2>🔐 Админ-панель</h2>
     <input type="password" id="password" placeholder="Пароль">
     <button onclick="login()">Войти</button>
-    <p style="margin-top:15px; font-size:12px;">Ты как сюда попал? >:(</p>
+    <p style="margin-top:15px; font-size:12px;">Пароль: admin123</p>
 </div>
 
 <div id="adminPanel" class="panel">
     <h1>🛠️ Управление товарами ICESHOP39</h1>
+    
+    <!-- БЛОК СТАТИСТИКИ -->
+    <div class="stats-section">
+        <h3>📊 Статистика продаж</h3>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalOrders">0</div>
+                <div class="stat-label">Всего заказов</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalRevenue" style="color:#FACC15;">0</div>
+                <div class="stat-label">Общая выручка (₽)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avgOrder" style="color:#10B981;">0</div>
+                <div class="stat-label">Средний чек (₽)</div>
+            </div>
+        </div>
+        
+        <h4>🔥 Топ товаров</h4>
+        <div id="topProducts"></div>
+        
+        <h4>📅 Продажи по дням</h4>
+        <div id="dailyStats"></div>
+        
+        <button id="clearStatsBtn" class="danger" style="margin-top: 10px;">🗑️ Очистить статистику</button>
+    </div>
     
     <div id="categoriesBlock"></div>
     
@@ -69,7 +159,7 @@
 </div>
 
 <script>
-const PASSWORD = "LiniX071";
+const PASSWORD = "admin123";
 const REPO_OWNER = "LoysitDeflonDon";
 const REPO_NAME = "iceshop39-data";
 const BRANCH = "main";
@@ -90,41 +180,106 @@ let editId = null;
 let currentFlavors = [];
 let githubToken = null;
 
-// ========== РАБОТА С ТОКЕНОМ ==========
-function loadToken() {
-    const savedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
-    if (savedToken) {
-        githubToken = savedToken;
-        return true;
-    }
-    return false;
+// ========== СТАТИСТИКА ==========
+const STATS_KEY = "shop_statistics";
+
+function loadStatistics() {
+    const stats = JSON.parse(localStorage.getItem(STATS_KEY) || '{"orders":[], "totalOrders":0, "totalRevenue":0}');
+    return stats;
 }
 
-function saveToken(token) {
-    localStorage.setItem(TOKEN_STORAGE_KEY, token);
-    githubToken = token;
-}
-
-async function getToken() {
-    if (githubToken) return githubToken;
+function updateStatsDisplay() {
+    const stats = loadStatistics();
     
-    const saved = localStorage.getItem(TOKEN_STORAGE_KEY);
-    if (saved) {
-        githubToken = saved;
-        return githubToken;
+    document.getElementById('totalOrders').textContent = stats.totalOrders || 0;
+    document.getElementById('totalRevenue').textContent = (stats.totalRevenue || 0).toLocaleString();
+    const avgOrder = stats.totalOrders > 0 ? Math.round(stats.totalRevenue / stats.totalOrders) : 0;
+    document.getElementById('avgOrder').textContent = avgOrder.toLocaleString();
+    
+    // Топ товаров
+    const productCounts = {};
+    stats.orders.forEach(order => {
+        order.items.forEach(item => {
+            const key = `${item.productName} - ${item.variantName}`;
+            productCounts[key] = (productCounts[key] || 0) + item.quantity;
+        });
+    });
+    
+    const topProducts = Object.entries(productCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+    
+    const topProductsDiv = document.getElementById('topProducts');
+    if (topProducts.length === 0) {
+        topProductsDiv.innerHTML = '<div style="color:#94A3B8;">Нет данных</div>';
+    } else {
+        topProductsDiv.innerHTML = topProducts.map(([name, count]) => `
+            <div class="top-product-item">
+                <span class="top-product-name">${escapeHtmlStat(name)}</span>
+                <span class="top-product-count">${count} шт</span>
+            </div>
+        `).join('');
     }
     
-    const token = prompt("🔐 Введите GitHub токен:\n(Создай на github.com/settings/tokens, выбери repo)\nТокен сохранится в браузере и больше не спросится!");
-    if (token) {
-        saveToken(token);
-        showToast("✅ Токен сохранён в браузере!", false);
-        return token;
+    // Продажи по дням
+    const dailyMap = {};
+    stats.orders.forEach(order => {
+        const date = order.date.split('T')[0];
+        dailyMap[date] = (dailyMap[date] || 0) + order.total;
+    });
+    
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        last7Days.push({
+            date: dateStr,
+            total: dailyMap[dateStr] || 0
+        });
     }
-    showToast("❌ Токен обязателен для сохранения!", true);
-    return null;
+    
+    const dailyDiv = document.getElementById('dailyStats');
+    if (last7Days.every(d => d.total === 0)) {
+        dailyDiv.innerHTML = '<div style="color:#94A3B8;">Нет продаж за последние 7 дней</div>';
+    } else {
+        dailyDiv.innerHTML = last7Days.map(day => `
+            <div class="daily-item">
+                <span class="daily-date">${day.date}</span>
+                <span class="daily-total">${day.total.toLocaleString()} ₽</span>
+            </div>
+        `).join('');
+    }
 }
 
-// ========== ОСТАЛЬНЫЕ ФУНКЦИИ ==========
+function clearStatistics() {
+    if (confirm("🗑️ Очистить всю статистику? Это действие нельзя отменить!")) {
+        localStorage.setItem(STATS_KEY, '{"orders":[], "totalOrders":0, "totalRevenue":0}');
+        updateStatsDisplay();
+        showToastStat("📊 Статистика очищена", false);
+    }
+}
+
+function escapeHtmlStat(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+}
+
+function showToastStat(msg, isError) {
+    let toast = document.getElementById('toastMsgStat');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toastMsgStat';
+        toast.style.cssText = 'position:fixed; bottom:20px; right:20px; background:#10B981; padding:12px 24px; border-radius:10px; z-index:1000;';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.background = isError ? '#EF4444' : '#10B981';
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+// ========== ОСНОВНЫЕ ФУНКЦИИ АДМИНКИ ==========
 function login() {
     const pwd = document.getElementById('password').value;
     if (pwd === PASSWORD) {
@@ -132,26 +287,46 @@ function login() {
         document.getElementById('adminPanel').style.display = 'block';
         loadToken();
         loadCategories();
-        showToast("Добро пожаловать!", false);
+        updateStatsDisplay();
+        showToastStat("Добро пожаловать!", false);
     } else {
         alert("Неверный пароль!");
     }
+}
+
+function loadToken() {
+    const savedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (savedToken) githubToken = savedToken;
+}
+
+async function getToken() {
+    if (githubToken) return githubToken;
+    const saved = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (saved) {
+        githubToken = saved;
+        return githubToken;
+    }
+    const token = prompt("🔐 Введите GitHub токен:\n(Создай на github.com/settings/tokens, выбери repo)");
+    if (token) {
+        localStorage.setItem(TOKEN_STORAGE_KEY, token);
+        githubToken = token;
+        return token;
+    }
+    return null;
 }
 
 function uploadFromGallery() {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
-    
     fileInput.onchange = function(e) {
         const file = e.target.files[0];
         if (file) {
-            showToast("📤 Подготовка фото...", false);
             const reader = new FileReader();
             reader.onload = function(event) {
                 document.getElementById('productImage').value = event.target.result;
                 showPreview(event.target.result);
-                showToast("✅ Фото добавлено! Сохраните товар", false);
+                showToastStat("✅ Фото добавлено!", false);
             };
             reader.readAsDataURL(file);
         }
@@ -164,28 +339,9 @@ function showPreview(url) {
     preview.innerHTML = `<img src="${url}" alt="preview" style="max-width:100px; max-height:100px; border-radius:10px;">`;
 }
 
-function showToast(msg, isError) {
-    let toast = document.getElementById('toastMsg');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'toastMsg';
-        toast.className = 'toast';
-        document.body.appendChild(toast);
-    }
-    toast.textContent = msg;
-    toast.style.background = isError ? '#EF4444' : '#10B981';
-    toast.style.display = 'block';
-    setTimeout(() => { toast.style.display = 'none'; }, 3000);
-}
-
 function escapeHtml(str) {
     if (!str) return '';
-    return String(str).replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-    });
+    return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 }
 
 function loadCategories() {
@@ -212,20 +368,13 @@ async function loadProducts() {
     const url = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${currentCategory}.json?t=${Date.now()}`;
     try {
         const res = await fetch(url);
-        if (!res.ok) {
-            currentProducts = [];
-            renderProducts();
-            return;
-        }
+        if (!res.ok) { currentProducts = []; renderProducts(); return; }
         const text = await res.text();
         let clean = text.trim();
         if (clean.startsWith('\uFEFF')) clean = clean.substring(1);
         currentProducts = JSON.parse(clean);
         renderProducts();
-    } catch(e) {
-        currentProducts = [];
-        renderProducts();
-    }
+    } catch(e) { currentProducts = []; renderProducts(); }
 }
 
 function renderProducts() {
@@ -256,7 +405,6 @@ function renderProducts() {
 function editProduct(id) {
     const product = currentProducts.find(p => p.id === id);
     if (!product) return;
-    
     editId = id;
     document.getElementById('formTitle').textContent = '✏️ Редактировать товар';
     document.getElementById('productName').value = product.name;
@@ -264,7 +412,6 @@ function editProduct(id) {
     document.getElementById('productDesc').value = product.desc || '';
     if (product.image) showPreview(product.image);
     else document.getElementById('imagePreview').innerHTML = '';
-    
     if (product.flavors) {
         currentFlavors = JSON.parse(JSON.stringify(product.flavors));
     } else {
@@ -290,14 +437,13 @@ function renderFlavors() {
         const div = document.createElement('div');
         div.className = 'flavor-item';
         div.innerHTML = `
-            <input type="text" placeholder="Название (цвет/вкус)" value="${escapeHtml(flavor.name)}" data-idx="${idx}" data-field="name" style="flex:2;">
+            <input type="text" placeholder="Название" value="${escapeHtml(flavor.name)}" data-idx="${idx}" data-field="name" style="flex:2;">
             <input type="number" placeholder="Цена" value="${flavor.price}" data-idx="${idx}" data-field="price" style="width:120px;">
             <input type="number" placeholder="Остаток" value="${flavor.stock}" data-idx="${idx}" data-field="stock" style="width:120px;">
             <button class="danger" onclick="removeFlavor(${idx})">❌</button>
         `;
         container.appendChild(div);
     });
-    
     document.querySelectorAll('#flavorsBlock input').forEach(inp => {
         inp.onchange = function() {
             const idx = parseInt(this.dataset.idx);
@@ -317,11 +463,10 @@ async function saveProduct() {
     const name = document.getElementById('productName').value.trim();
     const image = document.getElementById('productImage').value.trim();
     const desc = document.getElementById('productDesc').value;
-    
-    if (!name) { showToast("Введите название!", true); return; }
-    if (!image) { showToast("Введите URL картинки или выберите фото!", true); return; }
-    if (!currentFlavors.length) { showToast("Добавьте вариант!", true); return; }
-    if (!currentCategory) { showToast("Выберите категорию!", true); return; }
+    if (!name) { showToastStat("Введите название!", true); return; }
+    if (!image) { showToastStat("Введите URL картинки!", true); return; }
+    if (!currentFlavors.length) { showToastStat("Добавьте вариант!", true); return; }
+    if (!currentCategory) { showToastStat("Выберите категорию!", true); return; }
     
     const token = await getToken();
     if (!token) return;
@@ -363,45 +508,33 @@ async function saveProduct() {
     await saveToGitHub(currentProducts, token);
     cancelEdit();
     await loadProducts();
-    showToast("✅ Товар сохранён!", false);
+    showToastStat("✅ Товар сохранён!", false);
 }
 
 async function saveToGitHub(products, token) {
     const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${currentCategory}.json`;
     let sha = "";
     try {
-        const getRes = await fetch(url, {
-            headers: { 'Authorization': `token ${token}` }
-        });
+        const getRes = await fetch(url, { headers: { 'Authorization': `token ${token}` } });
         if (getRes.ok) {
             const data = await getRes.json();
             sha = data.sha;
         }
     } catch(e) {}
-    
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(products, null, 4))));
-    const body = {
-        message: `Update ${currentCategory}.json`,
-        content: content,
-        branch: BRANCH
-    };
+    const body = { message: `Update ${currentCategory}.json`, content: content, branch: BRANCH };
     if (sha) body.sha = sha;
-    
     const res = await fetch(url, {
         method: 'PUT',
-        headers: {
-            'Authorization': `token ${token}`,
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
     });
-    
     if (!res.ok) {
         const err = await res.json();
         if (err.message === "Bad credentials") {
             localStorage.removeItem(TOKEN_STORAGE_KEY);
             githubToken = null;
-            showToast("❌ Токен недействителен! Введите новый при следующем сохранении", true);
+            showToastStat("❌ Токен недействителен!", true);
         }
         throw new Error(err.message);
     }
@@ -409,21 +542,15 @@ async function saveToGitHub(products, token) {
 
 async function deleteProduct(id) {
     if (!confirm("🗑️ Точно удалить товар?")) return;
-    
     const token = await getToken();
     if (!token) return;
-    
     currentProducts = currentProducts.filter(p => p.id !== id);
-    
     try {
         await saveToGitHub(currentProducts, token);
         await loadProducts();
         if (editId === id) cancelEdit();
-        showToast("✅ Товар удалён!", false);
-    } catch(e) {
-        showToast("❌ Ошибка удаления", true);
-        await loadProducts();
-    }
+        showToastStat("✅ Товар удалён!", false);
+    } catch(e) { showToastStat("❌ Ошибка удаления", true); await loadProducts(); }
 }
 
 function cancelEdit() {
@@ -442,6 +569,8 @@ document.getElementById('productImage').addEventListener('input', function() {
     if (this.value) showPreview(this.value);
     else document.getElementById('imagePreview').innerHTML = '';
 });
+
+document.getElementById('clearStatsBtn')?.addEventListener('click', clearStatistics);
 
 window.addFlavor = addFlavor;
 window.removeFlavor = removeFlavor;
