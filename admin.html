@@ -31,7 +31,6 @@
 </head>
 <body>
 
-<!-- Вход -->
 <div id="loginBox" class="box">
     <h2>🔐 Админ-панель</h2>
     <input type="password" id="password" placeholder="Пароль">
@@ -39,7 +38,6 @@
     <p style="margin-top:15px; font-size:12px;">Ты как сюда попал? >:(</p>
 </div>
 
-<!-- Админ панель -->
 <div id="adminPanel" class="panel">
     <h1>🛠️ Управление товарами ICESHOP39</h1>
     
@@ -49,7 +47,6 @@
         <h3 id="formTitle">➕ Добавить товар</h3>
         <input type="text" id="productName" placeholder="Название товара">
         
-        <!-- Поле для изображения с выбором из галереи -->
         <div class="image-upload-area">
             <input type="text" id="productImage" placeholder="URL картинки или выберите фото">
             <button onclick="uploadFromGallery()">📱 Выбрать фото</button>
@@ -72,15 +69,11 @@
 </div>
 
 <script>
-// ПАРОЛЬ
 const PASSWORD = "LiniX071";
-
-// НАСТРОЙКИ GITHUB
 const REPO_OWNER = "LoysitDeflonDon";
 const REPO_NAME = "iceshop39-data";
 const BRANCH = "main";
 
-// КАТЕГОРИИ
 const categories = [
     { file: "Zhitkosty", name: "Жидкости", icon: "💧" },
     { file: "Snus", name: "Снюс", icon: "👅" },
@@ -96,7 +89,6 @@ let editId = null;
 let currentFlavors = [];
 let githubToken = null;
 
-// ФУНКЦИЯ ВХОДА
 function login() {
     const pwd = document.getElementById('password').value;
     if (pwd === PASSWORD) {
@@ -109,61 +101,30 @@ function login() {
     }
 }
 
-// ЗАГРУЗКА ФОТО ИЗ ГАЛЕРЕИ ТЕЛЕФОНА
 function uploadFromGallery() {
-    // Создаём скрытый input для выбора файла
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = 'image/*';
-    fileInput.capture = 'environment'; // 'user' для фронталки, 'environment' для задней камеры
     
     fileInput.onchange = function(e) {
         const file = e.target.files[0];
         if (file) {
-            showToast("📤 Загрузка фото...", false);
-            
-            // Создаём FormData для отправки на ImgBB
-            const formData = new FormData();
-            formData.append('image', file);
-            
-            // Загружаем на ImgBB (бесплатный API)
-            fetch('https://api.imgbb.com/1/upload?key=YOUR_IMGBB_API_KEY', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const imageUrl = data.data.url;
-                    document.getElementById('productImage').value = imageUrl;
-                    showPreview(imageUrl);
-                    showToast("✅ Фото загружено! Ссылка добавлена", false);
-                } else {
-                    showToast("❌ Ошибка загрузки фото", true);
-                }
-            })
-            .catch(error => {
-                console.error(error);
-                showToast("❌ Ошибка загрузки фото", true);
-            });
+            showToast("📤 Подготовка фото...", false);
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                document.getElementById('productImage').value = event.target.result;
+                showPreview(event.target.result);
+                showToast("✅ Фото добавлено! Сохраните товар", false);
+            };
+            reader.readAsDataURL(file);
         }
     };
-    
     fileInput.click();
 }
 
 function showPreview(url) {
     const preview = document.getElementById('imagePreview');
-    preview.innerHTML = `<img src="${url}" alt="preview" onerror="this.style.display='none'">`;
-}
-
-function updatePreview() {
-    const url = document.getElementById('productImage').value;
-    if (url) {
-        showPreview(url);
-    } else {
-        document.getElementById('imagePreview').innerHTML = '';
-    }
+    preview.innerHTML = `<img src="${url}" alt="preview" style="max-width:100px; max-height:100px; border-radius:10px;">`;
 }
 
 function showToast(msg, isError) {
@@ -190,7 +151,6 @@ function escapeHtml(str) {
     });
 }
 
-// КАТЕГОРИИ
 function loadCategories() {
     const container = document.getElementById('categoriesBlock');
     container.innerHTML = '';
@@ -209,14 +169,17 @@ function loadCategories() {
     });
 }
 
-// ЗАГРУЗКА ТОВАРОВ
 async function loadProducts() {
     if (!currentCategory) return;
-    document.getElementById('productsList').innerHTML = '<div>Загрузка...</div>';
-    const url = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${currentCategory}.json`;
+    document.getElementById('productsList').innerHTML = '<div>🔄 Загрузка...</div>';
+    const url = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}/${currentCategory}.json?t=${Date.now()}`;
     try {
         const res = await fetch(url);
-        if (!res.ok) throw new Error('Файл не найден');
+        if (!res.ok) {
+            currentProducts = [];
+            renderProducts();
+            return;
+        }
         const text = await res.text();
         let clean = text.trim();
         if (clean.startsWith('\uFEFF')) clean = clean.substring(1);
@@ -253,7 +216,6 @@ function renderProducts() {
     });
 }
 
-// РЕДАКТИРОВАНИЕ
 function editProduct(id) {
     const product = currentProducts.find(p => p.id === id);
     if (!product) return;
@@ -275,7 +237,6 @@ function editProduct(id) {
     document.getElementById('cancelBtn').style.display = 'inline-block';
 }
 
-// ВАРИАНТЫ
 function addFlavor() {
     currentFlavors.push({ name: "", price: 0, stock: 0 });
     renderFlavors();
@@ -315,7 +276,6 @@ function removeFlavor(idx) {
     renderFlavors();
 }
 
-// СОХРАНЕНИЕ НА GITHUB
 async function saveProduct() {
     const name = document.getElementById('productName').value.trim();
     const image = document.getElementById('productImage').value.trim();
@@ -327,7 +287,7 @@ async function saveProduct() {
     if (!currentCategory) { showToast("Выберите категорию!", true); return; }
     
     if (!githubToken) {
-        githubToken = prompt("🔐 Введите GitHub токен:\n(Создай на github.com/settings/tokens, выбери repo)");
+        githubToken = prompt("🔐 Введите GitHub токен:");
         if (!githubToken) { showToast("Токен обязателен!", true); return; }
     }
     
@@ -367,8 +327,8 @@ async function saveProduct() {
     
     await saveToGitHub(currentProducts);
     cancelEdit();
-    loadProducts();
-    showToast("✅ Товар сохранён! Через 1 минуту появится на сайте", false);
+    await loadProducts();
+    showToast("✅ Товар сохранён!", false);
 }
 
 async function saveToGitHub(products) {
@@ -386,7 +346,7 @@ async function saveToGitHub(products) {
     
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(products, null, 4))));
     const body = {
-        message: editId ? `Update ${currentCategory}.json` : `Add product to ${currentCategory}.json`,
+        message: `Update ${currentCategory}.json`,
         content: content,
         branch: BRANCH
     };
@@ -412,15 +372,24 @@ async function saveToGitHub(products) {
 }
 
 async function deleteProduct(id) {
-    if (!confirm("Удалить товар?")) return;
+    if (!confirm("🗑️ Точно удалить товар?")) return;
+    
     if (!githubToken) {
-        githubToken = prompt("Введите GitHub токен:");
-        if (!githubToken) return;
+        githubToken = prompt("🔐 Введите GitHub токен:");
+        if (!githubToken) { showToast("Токен обязателен!", true); return; }
     }
+    
     currentProducts = currentProducts.filter(p => p.id !== id);
-    await saveToGitHub(currentProducts);
-    loadProducts();
-    showToast("🗑️ Товар удалён", false);
+    
+    try {
+        await saveToGitHub(currentProducts);
+        await loadProducts();
+        if (editId === id) cancelEdit();
+        showToast("✅ Товар удалён!", false);
+    } catch(e) {
+        showToast("❌ Ошибка удаления", true);
+        await loadProducts();
+    }
 }
 
 function cancelEdit() {
@@ -435,13 +404,11 @@ function cancelEdit() {
     document.getElementById('cancelBtn').style.display = 'none';
 }
 
-// При изменении URL вручную показываем превью
 document.getElementById('productImage').addEventListener('input', function() {
     if (this.value) showPreview(this.value);
     else document.getElementById('imagePreview').innerHTML = '';
 });
 
-// Глобальные функции
 window.addFlavor = addFlavor;
 window.removeFlavor = removeFlavor;
 window.saveProduct = saveProduct;
