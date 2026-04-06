@@ -278,8 +278,7 @@ body {
 .category-card[data-category="Картриджи"]::before { background-image: url('https://i.ibb.co/k284RcWN/2026-04-04-123830912.png'); }
 .category-card[data-category="Вейпы"]::before { background-image: url('https://i.ibb.co/3Xgr0v8/2026-04-04-124326975.png'); }
 .category-card[data-category="Одноразки"]::before { background-image: url('https://i.ibb.co/W4hXLFkr/2026-04-04-124758580.png'); }
-.category-card[data-category="Шайбы"]::before { background-image: url('https://i.ibb.co/kgQk6Rp7/2026-04-04-124535497.png'); }
-
+.category-card[data-category="Шайбы"]::before { background-image: url('https://i.ibb.co/GQ5TZHPL/2026-04-06-231718788.png'); }
 
 .category-card > * { position: relative; z-index: 2; }
 
