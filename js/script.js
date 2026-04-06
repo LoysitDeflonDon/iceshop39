@@ -53,34 +53,62 @@ function loadFavorites() {
 function saveFavorites() {
     localStorage.setItem('favorites_variants', JSON.stringify(favorites));
     renderFavoritesBlock();
+    updateAllFavoriteButtons();
 }
 
-function toggleFavorite(productName, variantName, price, image, category, productId, variantId) {
-    const uniqueId = `${productId}_${variantId}`;
+function toggleFavorite(productName, variantName, price, image, category, productId, variantId, isSimple = false) {
+    const uniqueId = isSimple ? `simple_${productId}` : `${productId}_${variantId}`;
     const index = favorites.findIndex(f => f.uniqueId === uniqueId);
     
     if (index === -1) {
         favorites.push({
             uniqueId: uniqueId,
             productName: productName,
-            variantName: variantName,
+            variantName: variantName || "Стандарт",
             price: price,
             image: image,
             category: category,
-            productId: productId
+            productId: productId,
+            isSimple: isSimple
         });
-        showToast(`❤️ ${variantName} добавлен в избранное`, false);
+        showToast(`❤️ ${variantName || productName} добавлен в избранное`, false);
     } else {
         favorites.splice(index, 1);
-        showToast(`💔 ${variantName} удалён из избранного`, false);
+        showToast(`💔 Удалено из избранного`, false);
     }
     saveFavorites();
-    updateFavoriteButtons();
 }
 
-function isFavorite(productId, variantId) {
-    const uniqueId = `${productId}_${variantId}`;
+function isFavorite(productId, variantId, isSimple = false) {
+    const uniqueId = isSimple ? `simple_${productId}` : `${productId}_${variantId}`;
     return favorites.some(f => f.uniqueId === uniqueId);
+}
+
+function updateAllFavoriteButtons() {
+    // Обновляем кнопки на странице вариантов
+    document.querySelectorAll('.favorite-btn-option').forEach(btn => {
+        const productId = parseInt(btn.dataset.productId);
+        const variantId = parseInt(btn.dataset.variantId);
+        if (isFavorite(productId, variantId, false)) {
+            btn.classList.add('active');
+            btn.innerHTML = '❤️';
+        } else {
+            btn.classList.remove('active');
+            btn.innerHTML = '🤍';
+        }
+    });
+    
+    // Обновляем кнопки на карточках простых товаров
+    document.querySelectorAll('.favorite-btn-simple').forEach(btn => {
+        const productId = parseInt(btn.dataset.productId);
+        if (isFavorite(productId, 0, true)) {
+            btn.classList.add('active');
+            btn.innerHTML = '❤️';
+        } else {
+            btn.classList.remove('active');
+            btn.innerHTML = '🤍';
+        }
+    });
 }
 
 function renderFavoritesBlock() {
@@ -94,10 +122,10 @@ function renderFavoritesBlock() {
     }
     section.style.display = 'block';
     container.innerHTML = favorites.map(item => `
-        <div class="favorite-card" data-category="${item.category}" data-product-id="${item.productId}" data-variant-name="${escapeHtml(item.variantName)}">
+        <div class="favorite-card" data-category="${item.category}" data-product-id="${item.productId}" data-variant-name="${escapeHtml(item.variantName)}" data-is-simple="${item.isSimple}">
             <button class="remove-favorite" data-unique-id="${item.uniqueId}">✖</button>
             <img class="favorite-image" src="${item.image || 'https://placehold.co/200x200/1E293B/3B82F6?text=No+Image'}" loading="lazy" onerror="this.src='https://placehold.co/200x200/1E293B/3B82F6?text=No+Image'">
-            <div class="favorite-name">${escapeHtml(item.productName)} — ${escapeHtml(item.variantName)}</div>
+            <div class="favorite-name">${escapeHtml(item.productName)}${!item.isSimple ? ` — ${escapeHtml(item.variantName)}` : ''}</div>
             <div class="favorite-price">${item.price} ₽</div>
         </div>
     `).join('');
@@ -108,13 +136,19 @@ function renderFavoritesBlock() {
             const category = card.dataset.category;
             const productId = parseInt(card.dataset.productId);
             const variantName = card.dataset.variantName;
+            const isSimple = card.dataset.isSimple === 'true';
             
             openCategory(category);
             setTimeout(() => {
                 const items = allItems[category];
                 const item = items.find(i => i.id === productId);
-                if (item?.flavors) {
-                    openFlavors(item, variantName);
+                if (item) {
+                    if (isSimple || !item.flavors) {
+                        // Для простых товаров — просто открываем категорию
+                        openCategory(category);
+                    } else if (item.flavors) {
+                        openFlavors(item, variantName);
+                    }
                 }
             }, 100);
         });
@@ -126,23 +160,8 @@ function renderFavoritesBlock() {
             const uniqueId = btn.dataset.uniqueId;
             favorites = favorites.filter(f => f.uniqueId !== uniqueId);
             saveFavorites();
-            updateFavoriteButtons();
             showToast("🗑️ Удалено из избранного", false);
         });
-    });
-}
-
-function updateFavoriteButtons() {
-    document.querySelectorAll('.favorite-btn').forEach(btn => {
-        const productId = parseInt(btn.dataset.productId);
-        const variantId = btn.dataset.variantId;
-        if (isFavorite(productId, variantId)) {
-            btn.classList.add('active');
-            btn.textContent = '❤️';
-        } else {
-            btn.classList.remove('active');
-            btn.textContent = '🤍';
-        }
     });
 }
 
@@ -533,9 +552,13 @@ function openCategory(catName) {
             </div>`;
         } else {
             const stockInfo = formatStock(item.stock);
+            const isFav = isFavorite(item.id, 0, true);
             return `<div class="product-card" data-id="${item.id}" data-has-flavors="false">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="product-title">${itemName}</div>
+                    <button class="favorite-btn-simple ${isFav ? 'active' : ''}" data-product-id="${item.id}" data-product-name="${itemName}" data-price="${item.price}" data-image="${itemImage}" data-category="${catName}">${isFav ? '❤️' : '🤍'}</button>
+                </div>
                 <img class="product-image" src="${itemImage}" loading="lazy" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
-                <div class="product-title">${itemName}</div>
                 <div class="product-price">${priceDisplay}</div>
                 <div class="product-desc">${itemDesc}</div>
                 ${!stockInfo.isOutOfStock ? `<button class="order-pill" data-order-name="${itemName}" data-order-price="${item.price}" data-order-image="${itemImage}" data-order-maxstock="${stockInfo.available}">📦 В корзину</button>` : '<div class="stock-warning" style="color:#EF4444; font-size:0.8rem;">❌ Нет в наличии</div>'}
@@ -546,6 +569,16 @@ function openCategory(catName) {
     document.querySelectorAll('.order-pill').forEach(btn => btn.addEventListener('click', (e) => {
         e.stopPropagation();
         addToCart(btn.dataset.orderName, 'стандарт', parseInt(btn.dataset.orderPrice), btn.dataset.orderImage, parseInt(btn.dataset.orderMaxstock));
+    }));
+    
+    document.querySelectorAll('.favorite-btn-simple').forEach(btn => btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const productId = parseInt(btn.dataset.productId);
+        const productName = btn.dataset.productName;
+        const price = parseInt(btn.dataset.price);
+        const image = btn.dataset.image;
+        const category = btn.dataset.category;
+        toggleFavorite(productName, null, price, image, category, productId, 0, true);
     }));
     
     document.querySelectorAll('.product-card[data-has-flavors="true"]').forEach(card => {
@@ -568,21 +601,21 @@ function openFlavors(parentItem, highlightVariant = null) {
     
     container.innerHTML = `<div class="flavors-list">${parentItem.flavors.map((f, idx) => {
         const stockInfo = formatStock(f.stock);
-        const isFav = isFavorite(parentItem.id, idx);
+        const isFav = isFavorite(parentItem.id, idx, false);
         return `<div class="flavor-item" data-variant-idx="${idx}">
-            <div class="flavor-name">${escapeHtml(f.name)}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div class="flavor-name">${escapeHtml(f.name)}</div>
+                <button class="favorite-btn-option ${isFav ? 'active' : ''}" data-product-id="${parentItem.id}" data-variant-id="${idx}" data-product-name="${escapeHtml(parentItem.name)}" data-variant-name="${escapeHtml(f.name)}" data-price="${f.price}" data-image="${parentItem.image}" data-category="${currentCategory}">${isFav ? '❤️' : '🤍'}</button>
+            </div>
             <span class="flavor-price">${f.price} ₽</span>
             <span class="flavor-stock ${stockInfo.isOutOfStock || stockInfo.isLow ? 'stock-low' : ''}">${stockInfo.text}</span>
-            <div style="display: flex; gap: 8px;">
-                <button class="favorite-btn ${isFav ? 'active' : ''}" data-product-id="${parentItem.id}" data-variant-id="${idx}" data-product-name="${escapeHtml(parentItem.name)}" data-variant-name="${escapeHtml(f.name)}" data-price="${f.price}" data-image="${parentItem.image}" data-category="${currentCategory}">${isFav ? '❤️' : '🤍'}</button>
-                <button class="flavor-order-btn" data-flavor-name="${escapeHtml(f.name)}" data-flavor-price="${f.price}" data-product-name="${escapeHtml(parentItem.name)}" data-product-image="${parentItem.image || ''}" data-product-maxstock="${stockInfo.available}" ${stockInfo.isOutOfStock ? 'disabled' : ''}>📦 В корзину</button>
-            </div>
+            <button class="flavor-order-btn" data-flavor-name="${escapeHtml(f.name)}" data-flavor-price="${f.price}" data-product-name="${escapeHtml(parentItem.name)}" data-product-image="${parentItem.image || ''}" data-product-maxstock="${stockInfo.available}" ${stockInfo.isOutOfStock ? 'disabled' : ''}>📦 В корзину</button>
         </div>`;
     }).join('')}</div>`;
     
     document.querySelectorAll('.flavor-order-btn:not([disabled])').forEach(btn => btn.addEventListener('click', () => addToCart(btn.dataset.productName, btn.dataset.flavorName, parseInt(btn.dataset.flavorPrice), btn.dataset.productImage, parseInt(btn.dataset.productMaxstock))));
     
-    document.querySelectorAll('.favorite-btn').forEach(btn => btn.addEventListener('click', (e) => {
+    document.querySelectorAll('.favorite-btn-option').forEach(btn => btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const productId = parseInt(btn.dataset.productId);
         const variantId = parseInt(btn.dataset.variantId);
@@ -591,7 +624,7 @@ function openFlavors(parentItem, highlightVariant = null) {
         const price = parseInt(btn.dataset.price);
         const image = btn.dataset.image;
         const category = btn.dataset.category;
-        toggleFavorite(productName, variantName, price, image, category, productId, variantId);
+        toggleFavorite(productName, variantName, price, image, category, productId, variantId, false);
     }));
     
     if (highlightVariant) {
@@ -680,13 +713,6 @@ function renderSearchResults(results) {
     }));
 }
 
-function setupGoTop() {
-    const goTopBtn = document.getElementById('goTopBtn');
-    if (!goTopBtn) return;
-    window.addEventListener('scroll', () => { if (window.scrollY > 300) { goTopBtn.style.display = 'flex'; goTopBtn.style.alignItems = 'center'; goTopBtn.style.justifyContent = 'center'; } else goTopBtn.style.display = 'none'; });
-    goTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-}
-
 document.getElementById('backHomeBtn')?.addEventListener('click', goToHome);
 document.getElementById('backFlavorsHomeBtn')?.addEventListener('click', goBackToCategory);
 document.getElementById('homeLogoBtn')?.addEventListener('click', goToHome);
@@ -694,6 +720,6 @@ document.getElementById('scrollHint')?.addEventListener('click', () => document.
 window.addEventListener('scroll', handleScroll);
 loadAllData();
 handleScroll();
-setTimeout(() => { setupSearch(); setupGoTop(); }, 1000);
+setTimeout(() => { setupSearch(); }, 1000);
 document.getElementById('clearHistoryBtn')?.addEventListener('click', clearHistory);
-document.getElementById('clearFavoritesBtn')?.addEventListener('click', () => { favorites = []; saveFavorites(); updateFavoriteButtons(); showToast("❤️ Избранное очищено", false); });
+document.getElementById('clearFavoritesBtn')?.addEventListener('click', () => { favorites = []; saveFavorites(); showToast("❤️ Избранное очищено", false); });
