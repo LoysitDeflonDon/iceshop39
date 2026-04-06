@@ -5,15 +5,6 @@ const managers = [
     { name: "🌆 Калининград", tg: "IceShop_KLND" }
 ];
 
-const categoryFiles = {
-    "Жидкости": "Zhitkosty.json",
-    "Снюс": "Snus.json",
-    "Вейпы": "Vapes.json",
-    "Испарители": "Ispariteli.json",
-    "Картриджи": "Kartdritzhy.json",
-    "Одноразки": "Odnorazki.json"
-};
-
 const categories = [
     { id: "Жидкости", name: "Жидкости", icon: "💧" },
     { id: "Снюс", name: "Снюс", icon: "👅" },
@@ -32,6 +23,10 @@ let allItems = {
     "Одноразки": []
 };
 let currentCategory = null;
+
+// ========== JSONBIN НАСТРОЙКИ (ТВОИ КЛЮЧИ) ==========
+const JSONBIN_BIN_ID = "69d38f61aaba882197cc0181";
+const JSONBIN_API_KEY = "$2a$10$JDcgEEE3qx9B6QlESZPsAeK1P72GoKPWRU2jiNzLiUbeLXt/nWMqG";
 
 // ========== TELEGRAM БОТ ==========
 const ADMIN_BOT_TOKEN = "8552470788:AAGB1Q36M-gPlnTebMXJWw8e8GmcCXk00y4";
@@ -526,36 +521,44 @@ function showToast(message, isError = false) {
     setTimeout(() => { toast.style.display = 'none'; }, 2500);
 }
 
-// ========== ЗАГРУЗКА ДАННЫХ ==========
-async function loadCategory(catName) {
-    const file = categoryFiles[catName];
-    if (!file) return [];
-    const url = `https://raw.githubusercontent.com/LoysitDeflonDon/iceshop39-data/refs/heads/main/${file}`;
-    try {
-        const res = await fetch(url);
-        if (!res.ok) return [];
-        const text = await res.text();
-        let clean = text.trim();
-        if (clean.startsWith('\uFEFF')) clean = clean.substring(1);
-        try { return JSON.parse(clean); } catch(e) {
-            if (file === "Ispariteli.json") { const match = clean.match(/\[\s*\{[\s\S]*?\}\s*\]/); if (match) return JSON.parse(match[0]); }
-            return [];
-        }
-    } catch(e) { return []; }
-}
-
+// ========== ЗАГРУЗКА ДАННЫХ ИЗ JSONBIN ==========
 async function loadAllData() {
-    for (const cat of categories) {
-        allItems[cat.name] = await loadCategory(cat.name);
-        console.log(`Загружено ${cat.name}:`, allItems[cat.name].length);
+    try {
+        showToast("🔄 Загрузка товаров...", false);
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+            headers: { 'X-Master-Key': JSONBIN_API_KEY }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const record = data.record || {};
+        
+        // Маппинг категорий
+        allItems["Жидкости"] = record.Zhitkosty || [];
+        allItems["Снюс"] = record.Snus || [];
+        allItems["Вейпы"] = record.Vapes || [];
+        allItems["Испарители"] = record.Ispariteli || [];
+        allItems["Картриджи"] = record.Kartdritzhy || [];
+        allItems["Одноразки"] = record.Odnorazki || [];
+        
+        console.log("Данные загружены из JSONBin");
+        renderCategories();
+        renderManagers();
+        updateCartIcon();
+        loadFavorites();
+        loadViewStats();
+        renderHistoryBlock();
+        renderPopularBlock();
+        showToast("✅ Товары загружены", false);
+    } catch(e) {
+        console.error('Ошибка загрузки:', e);
+        showToast("❌ Ошибка загрузки товаров", true);
+        renderCategories();
+        renderManagers();
     }
-    renderCategories();
-    renderManagers();
-    updateCartIcon();
-    loadFavorites();
-    loadViewStats();
-    renderHistoryBlock();
-    renderPopularBlock();
 }
 
 function renderManagers() {
@@ -605,7 +608,6 @@ function openCategory(catName) {
             const stockInfo = formatStock(item.stock);
             const isFav = isFavorite(item.id, 0, true);
             const stockText = stockInfo.isOutOfStock ? 'Нет в наличии' : `${stockInfo.available} шт`;
-            const stockClass = stockInfo.isOutOfStock ? 'stock-out' : (stockInfo.isLow ? 'stock-low' : '');
             
             return `<div class="product-card" data-id="${item.id}" data-has-flavors="false">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
