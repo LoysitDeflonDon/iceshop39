@@ -170,13 +170,10 @@ function saveViewStats() {
     localStorage.setItem('view_stats', JSON.stringify(viewStats));
 }
 
-function recordView(itemId, itemName, itemImage, itemPrice, itemCategory) {
+function recordView(itemId, itemCategory) {
     if (!viewStats[itemId]) {
         viewStats[itemId] = {
             id: itemId,
-            name: itemName,
-            image: itemImage,
-            price: itemPrice,
             category: itemCategory,
             views: 0
         };
@@ -199,12 +196,48 @@ function renderPopularBlock() {
         section.style.display = 'none';
         return;
     }
+    
+    // Собираем актуальные данные для каждого популярного товара
+    const popularWithData = [];
+    for (const stat of popular) {
+        const category = stat.category;
+        const items = allItems[category];
+        if (!items) continue;
+        
+        const item = items.find(i => i.id === stat.id);
+        if (!item) continue;
+        
+        // Получаем актуальную цену
+        let price = '';
+        if (item.flavors && item.flavors.length > 0) {
+            const prices = item.flavors.map(f => f.price);
+            const minPrice = Math.min(...prices);
+            price = `от ${minPrice} ₽`;
+        } else {
+            price = `${item.price} ₽`;
+        }
+        
+        popularWithData.push({
+            id: item.id,
+            category: category,
+            name: item.name,
+            image: item.image,
+            price: price,
+            views: stat.views
+        });
+    }
+    
+    if (popularWithData.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    
     section.style.display = 'block';
-    container.innerHTML = popular.map(item => `
+    container.innerHTML = popularWithData.map(item => `
         <div class="popular-card" data-id="${item.id}" data-category="${item.category}">
             <img class="popular-image" src="${item.image || 'https://placehold.co/200x200/1E293B/3B82F6?text=No+Image'}" loading="lazy" onerror="this.src='https://placehold.co/200x200/1E293B/3B82F6?text=No+Image'">
             <div class="popular-name">${escapeHtml(item.name)}</div>
-            <div class="popular-price">${item.price} ₽</div>
+            <div class="popular-price">${item.price}</div>
             <div style="font-size: 10px; color: #94A3B8; margin-top: 4px;">👁️ ${item.views} просмотров</div>
         </div>
     `).join('');
@@ -222,7 +255,6 @@ function renderPopularBlock() {
         });
     });
 }
-
 // ========== ИСТОРИЯ ПРОСМОТРОВ ==========
 const HISTORY_KEY = "view_history";
 const MAX_HISTORY = 10;
