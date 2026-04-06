@@ -159,6 +159,25 @@
             color: #94A3B8;
         }
 
+        /* Кнопка очистки статистики */
+        .clear-stats-btn {
+            background: #EF4444;
+            border: none;
+            border-radius: 40px;
+            padding: 10px 20px;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            width: 100%;
+            margin-top: 15px;
+            transition: all 0.2s;
+        }
+
+        .clear-stats-btn:active {
+            transform: scale(0.97);
+        }
+
         /* Форма добавления/редактирования */
         .product-form {
             background: #111827;
@@ -397,6 +416,9 @@
         <div class="stat-card"><div class="stat-number" id="totalRevenue" style="color:#FACC15;">0</div><div class="stat-label">Выручка</div></div>
         <div class="stat-card"><div class="stat-number" id="avgOrder" style="color:#10B981;">0</div><div class="stat-label">Средний чек</div></div>
     </div>
+    
+    <!-- КНОПКА ОЧИСТКИ СТАТИСТИКИ -->
+    <button id="clearStatsBtn" class="clear-stats-btn">🗑️ Очистить статистику</button>
 
     <!-- Категории -->
     <div class="categories-wrapper">
@@ -466,6 +488,15 @@ function updateStatsDisplay() {
     document.getElementById('totalRevenue').textContent = (stats.totalRevenue || 0).toLocaleString();
     const avgOrder = stats.totalOrders > 0 ? Math.round(stats.totalRevenue / stats.totalOrders) : 0;
     document.getElementById('avgOrder').textContent = avgOrder.toLocaleString();
+}
+
+// ========== ОЧИСТКА СТАТИСТИКИ ==========
+function clearStatistics() {
+    if (confirm("🗑️ Очистить всю статистику? Это действие нельзя отменить!")) {
+        localStorage.setItem(STATS_KEY, '{"orders":[], "totalOrders":0, "totalRevenue":0}');
+        updateStatsDisplay();
+        showToast("📊 Статистика очищена", false);
+    }
 }
 
 // ========== JSONBIN ==========
@@ -732,7 +763,7 @@ async function deleteProduct(id) {
 function cancelEdit() {
     editId = null;
     currentFlavors = [];
-    document.getElementById('formTitle').textContent = '➕ Новый товар';
+    document.getElementById('formTitle').content = '➕ Новый товар';
     document.getElementById('productName').value = '';
     document.getElementById('productImage').value = '';
     document.getElementById('productDesc').value = '';
@@ -745,6 +776,9 @@ document.getElementById('productImage').addEventListener('input', function() {
     if (this.value) document.getElementById('imagePreview').innerHTML = `<img src="${this.value}" style="max-width:80px; border-radius:12px;">`;
     else document.getElementById('imagePreview').innerHTML = '';
 });
+
+// Кнопка очистки статистики
+document.getElementById('clearStatsBtn')?.addEventListener('click', clearStatistics);
 
 window.addFlavor = addFlavor;
 window.removeFlavor = removeFlavor;
