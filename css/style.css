@@ -879,28 +879,6 @@ button, .category-card, .product-card, .favorite-card, .history-card, .popular-c
     }
 }
 
-/* ========== НАДПИСЬ 18+ ========== */
-.age-warning {
-    margin-top: 25px;
-    font-size: 0.85rem;
-    color: #ff8888;
-    background: rgba(0, 0, 0, 0.5);
-    display: inline-block;
-    padding: 6px 18px;
-    border-radius: 60px;
-    backdrop-filter: blur(4px);
-    transform: translateY(30px);
-    opacity: 0;
-    animation: slideUpFadeAge 0.8s ease 0.8s forwards;
-}
-
-@keyframes slideUpFadeAge {
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
 /* ========== НАДПИСЬ "ЦЕНЫ У МЕНЕДЖЕРА" ========== */
 .price-info {
     margin-top: 15px;
@@ -912,10 +890,10 @@ button, .category-card, .product-card, .favorite-card, .history-card, .popular-c
     border-radius: 60px;
     backdrop-filter: blur(4px);
     border: 1px solid rgba(250, 204, 21, 0.3);
-    transform: translateY(20px);
+    transform: translateY(30px);
     opacity: 0;
     animation: slideUpFadePrice 0.8s ease 1.2s forwards;
-    pointer-events: none; /* ← ЗАЩИТА ОТ ПРОПАДАНИЯ */
+    pointer-events: none;
 }
 
 @keyframes slideUpFadePrice {
