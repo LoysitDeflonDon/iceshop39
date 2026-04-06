@@ -1145,3 +1145,59 @@ button:active,
         display: none;
     }
 }
+
+/* ========== УБИРАЕМ СИНЕЕ ВЫДЕЛЕНИЕ ПРИ НАЖАТИИ ========== */
+* {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+/* Убираем outline при фокусе на всех элементах */
+*:focus,
+*:focus-visible,
+*:active {
+    outline: none !important;
+}
+
+/* Для кнопок и интерактивных элементов */
+button,
+.category-card,
+.product-card,
+.favorite-card,
+.history-card,
+.popular-card,
+.flavor-item,
+.manager-card,
+.manager-option,
+.flavor-order-btn,
+.order-pill,
+.back-home,
+.age-btn,
+.order-submit,
+.cancel-order,
+.cancel-modal,
+.cart-icon,
+.favorite-btn,
+.favorite-btn-option,
+.favorite-btn-simple,
+.compare-checkbox,
+.remove-favorite,
+.remove-compare,
+.clear-history-btn,
+.clear-favorites-btn,
+.clear-compare-btn {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    user-select: none !important;
+}
+
+/* Для ссылок */
+a {
+    -webkit-tap-highlight-color: transparent !important;
+    outline: none !important;
+}
+
+/* Для всех интерактивных элементов при активном состоянии */
+:active {
+    -webkit-tap-highlight-color: transparent !important;
+}
