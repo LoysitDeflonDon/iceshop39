@@ -90,5 +90,18 @@
 <button id="goTopBtn" class="go-top">⬆️</button>
 
 <script src="js/script.js"></script>
+<script>
+    // Принудительно запускаем анимацию для надписи о ценах
+    document.addEventListener('DOMContentLoaded', function() {
+        const priceInfo = document.querySelector('.price-info');
+        if (priceInfo) {
+            // Убираем класс, если он мешает
+            priceInfo.style.animation = 'none';
+            setTimeout(() => {
+                priceInfo.style.animation = 'slideUpFadePrice 0.8s ease 1.2s forwards';
+            }, 10);
+        }
+    });
+</script>
 </body>
 </html>
