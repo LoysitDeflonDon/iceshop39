@@ -892,13 +892,20 @@ button, .category-card, .product-card, .favorite-card, .history-card, .popular-c
     border: 1px solid rgba(250, 204, 21, 0.3);
     transform: translateY(30px);
     opacity: 0;
+    visibility: hidden;
     animation: slideUpFadePrice 0.8s ease 1.2s forwards;
     pointer-events: none;
 }
 
 @keyframes slideUpFadePrice {
-    to {
+    0% {
+        transform: translateY(30px);
+        opacity: 0;
+        visibility: visible;
+    }
+    100% {
         transform: translateY(0);
         opacity: 1;
+        visibility: visible;
     }
 }
