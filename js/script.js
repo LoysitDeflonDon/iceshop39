@@ -33,49 +33,54 @@ let allItems = {
 };
 let currentCategory = null;
 
-// ========== TELEGRAM БОТ ДЛЯ УВЕДОМЛЕНИЙ АДМИНА ==========
+// ========== TELEGRAM БОТ ==========
 const ADMIN_BOT_TOKEN = "8552470788:AAGB1Q36M-gPlnTebMXJWw8e8GmcCXk00y4";
 const ADMIN_CHAT_ID = "6919484181";
 
 // ========== КОРЗИНА ==========
 let cart = [];
 
-// ========== ИЗБРАННОЕ ==========
+// ========== ИЗБРАННОЕ (ВАРИАНТЫ ТОВАРОВ) ==========
 let favorites = [];
 
 function loadFavorites() {
-    const saved = localStorage.getItem('favorites');
+    const saved = localStorage.getItem('favorites_variants');
     if (saved) favorites = JSON.parse(saved);
     else favorites = [];
     renderFavoritesBlock();
 }
 
 function saveFavorites() {
-    localStorage.setItem('favorites', JSON.stringify(favorites));
+    localStorage.setItem('favorites_variants', JSON.stringify(favorites));
     renderFavoritesBlock();
 }
 
-function toggleFavorite(itemId, itemName, itemImage, itemPrice, itemCategory) {
-    const index = favorites.findIndex(f => f.id === itemId);
+function toggleFavorite(productName, variantName, price, image, category, productId, variantId) {
+    const uniqueId = `${productId}_${variantId}`;
+    const index = favorites.findIndex(f => f.uniqueId === uniqueId);
+    
     if (index === -1) {
         favorites.push({
-            id: itemId,
-            name: itemName,
-            image: itemImage,
-            price: itemPrice,
-            category: itemCategory
+            uniqueId: uniqueId,
+            productName: productName,
+            variantName: variantName,
+            price: price,
+            image: image,
+            category: category,
+            productId: productId
         });
-        showToast("❤️ Добавлено в избранное", false);
+        showToast(`❤️ ${variantName} добавлен в избранное`, false);
     } else {
         favorites.splice(index, 1);
-        showToast("💔 Удалено из избранного", false);
+        showToast(`💔 ${variantName} удалён из избранного`, false);
     }
     saveFavorites();
     updateFavoriteButtons();
 }
 
-function isFavorite(itemId) {
-    return favorites.some(f => f.id === itemId);
+function isFavorite(productId, variantId) {
+    const uniqueId = `${productId}_${variantId}`;
+    return favorites.some(f => f.uniqueId === uniqueId);
 }
 
 function renderFavoritesBlock() {
@@ -89,10 +94,10 @@ function renderFavoritesBlock() {
     }
     section.style.display = 'block';
     container.innerHTML = favorites.map(item => `
-        <div class="favorite-card" data-id="${item.id}" data-category="${item.category}">
-            <button class="remove-favorite" data-id="${item.id}">✖</button>
-            <img class="favorite-image" src="${item.image || 'https://placehold.co/200x200/1E293B/3B82F6?text=No+Image'}" loading="lazy">
-            <div class="favorite-name">${escapeHtml(item.name)}</div>
+        <div class="favorite-card" data-category="${item.category}" data-product-id="${item.productId}" data-variant-name="${escapeHtml(item.variantName)}">
+            <button class="remove-favorite" data-unique-id="${item.uniqueId}">✖</button>
+            <img class="favorite-image" src="${item.image || 'https://placehold.co/200x200/1E293B/3B82F6?text=No+Image'}" loading="lazy" onerror="this.src='https://placehold.co/200x200/1E293B/3B82F6?text=No+Image'">
+            <div class="favorite-name">${escapeHtml(item.productName)} — ${escapeHtml(item.variantName)}</div>
             <div class="favorite-price">${item.price} ₽</div>
         </div>
     `).join('');
@@ -101,12 +106,16 @@ function renderFavoritesBlock() {
         card.addEventListener('click', (e) => {
             if (e.target.classList.contains('remove-favorite')) return;
             const category = card.dataset.category;
-            const id = parseInt(card.dataset.id);
+            const productId = parseInt(card.dataset.productId);
+            const variantName = card.dataset.variantName;
+            
             openCategory(category);
             setTimeout(() => {
                 const items = allItems[category];
-                const item = items.find(i => i.id === id);
-                if (item?.flavors) openFlavors(item);
+                const item = items.find(i => i.id === productId);
+                if (item?.flavors) {
+                    openFlavors(item, variantName);
+                }
             }, 100);
         });
     });
@@ -114,8 +123,8 @@ function renderFavoritesBlock() {
     document.querySelectorAll('.remove-favorite').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const id = parseInt(btn.dataset.id);
-            favorites = favorites.filter(f => f.id !== id);
+            const uniqueId = btn.dataset.uniqueId;
+            favorites = favorites.filter(f => f.uniqueId !== uniqueId);
             saveFavorites();
             updateFavoriteButtons();
             showToast("🗑️ Удалено из избранного", false);
@@ -125,8 +134,9 @@ function renderFavoritesBlock() {
 
 function updateFavoriteButtons() {
     document.querySelectorAll('.favorite-btn').forEach(btn => {
-        const id = parseInt(btn.dataset.id);
-        if (isFavorite(id)) {
+        const productId = parseInt(btn.dataset.productId);
+        const variantId = btn.dataset.variantId;
+        if (isFavorite(productId, variantId)) {
             btn.classList.add('active');
             btn.textContent = '❤️';
         } else {
@@ -136,101 +146,7 @@ function updateFavoriteButtons() {
     });
 }
 
-// ========== СРАВНЕНИЕ ==========
-let compareItems = [];
-
-function loadCompare() {
-    const saved = localStorage.getItem('compare');
-    if (saved) compareItems = JSON.parse(saved);
-    else compareItems = [];
-    renderCompareBlock();
-}
-
-function saveCompare() {
-    localStorage.setItem('compare', JSON.stringify(compareItems));
-    renderCompareBlock();
-}
-
-function toggleCompare(itemId, itemName, itemImage, itemPrice, itemCategory) {
-    const index = compareItems.findIndex(c => c.id === itemId);
-    if (index === -1) {
-        if (compareItems.length >= 4) {
-            showToast("❌ Можно сравнить не более 4 товаров", true);
-            return;
-        }
-        compareItems.push({
-            id: itemId,
-            name: itemName,
-            image: itemImage,
-            price: itemPrice,
-            category: itemCategory
-        });
-        showToast("🔄 Добавлено в сравнение", false);
-    } else {
-        compareItems.splice(index, 1);
-        showToast("🔄 Удалено из сравнения", false);
-    }
-    saveCompare();
-    updateCompareCheckboxes();
-}
-
-function isInCompare(itemId) {
-    return compareItems.some(c => c.id === itemId);
-}
-
-function renderCompareBlock() {
-    const section = document.getElementById('compareSection');
-    const container = document.getElementById('compareContainer');
-    if (!section || !container) return;
-    
-    if (compareItems.length === 0) {
-        section.style.display = 'none';
-        return;
-    }
-    section.style.display = 'block';
-    container.innerHTML = compareItems.map(item => `
-        <div class="compare-card" data-id="${item.id}" data-category="${item.category}">
-            <button class="remove-compare" data-id="${item.id}">✖</button>
-            <img class="compare-image" src="${item.image || 'https://placehold.co/200x200/1E293B/3B82F6?text=No+Image'}" loading="lazy">
-            <div class="compare-name">${escapeHtml(item.name)}</div>
-            <div class="compare-price">${item.price} ₽</div>
-        </div>
-    `).join('');
-    
-    document.querySelectorAll('.compare-card').forEach(card => {
-        card.addEventListener('click', (e) => {
-            if (e.target.classList.contains('remove-compare')) return;
-            const category = card.dataset.category;
-            const id = parseInt(card.dataset.id);
-            openCategory(category);
-            setTimeout(() => {
-                const items = allItems[category];
-                const item = items.find(i => i.id === id);
-                if (item?.flavors) openFlavors(item);
-            }, 100);
-        });
-    });
-    
-    document.querySelectorAll('.remove-compare').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const id = parseInt(btn.dataset.id);
-            compareItems = compareItems.filter(c => c.id !== id);
-            saveCompare();
-            updateCompareCheckboxes();
-            showToast("🗑️ Удалено из сравнения", false);
-        });
-    });
-}
-
-function updateCompareCheckboxes() {
-    document.querySelectorAll('.compare-checkbox input').forEach(cb => {
-        const id = parseInt(cb.dataset.id);
-        cb.checked = isInCompare(id);
-    });
-}
-
-// ========== ПОПУЛЯРНЫЕ ТОВАРЫ (ЧАЩЕ ВСЕГО СМОТРЯТ) ==========
+// ========== ПОПУЛЯРНЫЕ ТОВАРЫ ==========
 let viewStats = {};
 
 function loadViewStats() {
@@ -275,7 +191,7 @@ function renderPopularBlock() {
     section.style.display = 'block';
     container.innerHTML = popular.map(item => `
         <div class="popular-card" data-id="${item.id}" data-category="${item.category}">
-            <img class="popular-image" src="${item.image || 'https://placehold.co/200x200/1E293B/3B82F6?text=No+Image'}" loading="lazy">
+            <img class="popular-image" src="${item.image || 'https://placehold.co/200x200/1E293B/3B82F6?text=No+Image'}" loading="lazy" onerror="this.src='https://placehold.co/200x200/1E293B/3B82F6?text=No+Image'">
             <div class="popular-name">${escapeHtml(item.name)}</div>
             <div class="popular-price">${item.price} ₽</div>
             <div style="font-size: 10px; color: #94A3B8; margin-top: 4px;">👁️ ${item.views} просмотров</div>
@@ -300,15 +216,18 @@ function renderPopularBlock() {
 const HISTORY_KEY = "view_history";
 const MAX_HISTORY = 10;
 
-function saveToHistory(item) {
+function saveToHistory(item, variantName = null) {
     let history = getHistory();
-    history = history.filter(h => h.id !== item.id);
+    const displayName = variantName ? `${item.name} — ${variantName}` : item.name;
+    const itemId = variantName ? `${item.id}_${variantName}` : item.id;
+    
+    history = history.filter(h => h.id !== itemId);
     history.unshift({
-        id: item.id,
-        name: item.name,
+        id: itemId,
+        name: displayName,
         image: item.image,
         category: currentCategory,
-        price: item.flavors ? `от ${Math.min(...item.flavors.map(f => f.price))}` : item.price,
+        price: variantName ? item.flavors?.find(f => f.name === variantName)?.price : (item.flavors ? `от ${Math.min(...item.flavors.map(f => f.price))}` : item.price),
         timestamp: Date.now()
     });
     if (history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
@@ -340,8 +259,8 @@ function renderHistoryBlock() {
     }
     historySection.style.display = 'block';
     container.innerHTML = history.map(item => `
-        <div class="history-card" data-id="${item.id}" data-category="${item.category}">
-            <img class="history-image" src="${item.image || 'https://placehold.co/100x100/1E293B/3B82F6?text=No+Image'}" loading="lazy">
+        <div class="history-card" data-category="${item.category}" data-name="${escapeHtml(item.name)}">
+            <img class="history-image" src="${item.image || 'https://placehold.co/100x100/1E293B/3B82F6?text=No+Image'}" loading="lazy" onerror="this.src='https://placehold.co/100x100/1E293B/3B82F6?text=No+Image'">
             <div class="history-name">${escapeHtml(item.name)}</div>
         </div>
     `).join('');
@@ -349,18 +268,21 @@ function renderHistoryBlock() {
     document.querySelectorAll('.history-card').forEach(card => {
         card.addEventListener('click', () => {
             const category = card.dataset.category;
-            const id = parseInt(card.dataset.id);
+            const name = card.dataset.name;
             openCategory(category);
             setTimeout(() => {
                 const items = allItems[category];
-                const item = items.find(i => i.id === id);
-                if (item?.flavors) openFlavors(item);
+                const item = items.find(i => name.includes(i.name));
+                if (item?.flavors) {
+                    const variantName = name.includes('—') ? name.split('—')[1].trim() : null;
+                    openFlavors(item, variantName);
+                }
             }, 100);
         });
     });
 }
 
-// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (ОСТАЛЬНЫЕ) ==========
+// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
@@ -567,7 +489,6 @@ async function loadAllData() {
     renderManagers();
     updateCartIcon();
     loadFavorites();
-    loadCompare();
     loadViewStats();
     renderHistoryBlock();
     renderPopularBlock();
@@ -602,12 +523,9 @@ function openCategory(catName) {
         const itemImage = item.image || 'https://placehold.co/400x300/1E293B/3B82F6?text=No+Image';
         const itemDesc = item.desc ? escapeHtml(item.desc) : '';
         const priceDisplay = item.flavors?.length ? `от ${Math.min(...item.flavors.map(f => f.price))} ₽` : `${item.price} ₽`;
-        const isFav = isFavorite(item.id);
-        const isComp = isInCompare(item.id);
+        
         if (item.flavors?.length) {
             return `<div class="product-card" data-id="${item.id}" data-has-flavors="true">
-                <button class="favorite-btn ${isFav ? 'active' : ''}" data-id="${item.id}" data-name="${itemName}" data-image="${itemImage}" data-price="${priceDisplay}" data-category="${catName}">${isFav ? '❤️' : '🤍'}</button>
-                <button class="compare-checkbox" data-id="${item.id}" data-name="${itemName}" data-image="${itemImage}" data-price="${priceDisplay}" data-category="${catName}">🔄 ${isComp ? '✓' : '⊡'}</button>
                 <img class="product-image" src="${itemImage}" loading="lazy" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
                 <div class="product-title">${itemName}</div>
                 <div class="product-price">${priceDisplay}</div>
@@ -616,8 +534,6 @@ function openCategory(catName) {
         } else {
             const stockInfo = formatStock(item.stock);
             return `<div class="product-card" data-id="${item.id}" data-has-flavors="false">
-                <button class="favorite-btn ${isFav ? 'active' : ''}" data-id="${item.id}" data-name="${itemName}" data-image="${itemImage}" data-price="${priceDisplay}" data-category="${catName}">${isFav ? '❤️' : '🤍'}</button>
-                <button class="compare-checkbox" data-id="${item.id}" data-name="${itemName}" data-image="${itemImage}" data-price="${priceDisplay}" data-category="${catName}">🔄 ${isComp ? '✓' : '⊡'}</button>
                 <img class="product-image" src="${itemImage}" loading="lazy" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
                 <div class="product-title">${itemName}</div>
                 <div class="product-price">${priceDisplay}</div>
@@ -632,29 +548,15 @@ function openCategory(catName) {
         addToCart(btn.dataset.orderName, 'стандарт', parseInt(btn.dataset.orderPrice), btn.dataset.orderImage, parseInt(btn.dataset.orderMaxstock));
     }));
     
-    document.querySelectorAll('.favorite-btn').forEach(btn => btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleFavorite(parseInt(btn.dataset.id), btn.dataset.name, btn.dataset.image, btn.dataset.price, btn.dataset.category);
-    }));
-    
-    document.querySelectorAll('.compare-checkbox').forEach(btn => btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleCompare(parseInt(btn.dataset.id), btn.dataset.name, btn.dataset.image, btn.dataset.price, btn.dataset.category);
-    }));
-    
     document.querySelectorAll('.product-card[data-has-flavors="true"]').forEach(card => {
         const id = parseInt(card.dataset.id);
         const item = items.find(i => i.id === id);
-        if (item?.flavors) card.addEventListener('click', (e) => {
-            if (e.target.classList.contains('favorite-btn')) return;
-            if (e.target.classList.contains('compare-checkbox')) return;
-            openFlavors(item);
-        });
+        if (item?.flavors) card.addEventListener('click', () => openFlavors(item));
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function openFlavors(parentItem) {
+function openFlavors(parentItem, highlightVariant = null) {
     saveToHistory(parentItem);
     recordView(parentItem.id, parentItem.name, parentItem.image, parentItem.flavors ? `от ${Math.min(...parentItem.flavors.map(f => f.price))}` : parentItem.price, currentCategory);
     
@@ -663,11 +565,49 @@ function openFlavors(parentItem) {
     document.getElementById('flavorsPageTitle').textContent = `${parentItem.name} — выберите вариант`;
     const container = document.getElementById('flavorsContainer');
     if (!parentItem.flavors?.length) { container.innerHTML = '<div class="empty-msg">📭 Список вариантов пуст.</div>'; return; }
-    container.innerHTML = `<div class="flavors-list">${parentItem.flavors.map(f => {
+    
+    container.innerHTML = `<div class="flavors-list">${parentItem.flavors.map((f, idx) => {
         const stockInfo = formatStock(f.stock);
-        return `<div class="flavor-item"><div class="flavor-name">${escapeHtml(f.name)}</div><span class="flavor-price">${f.price} ₽</span><span class="flavor-stock ${stockInfo.isOutOfStock || stockInfo.isLow ? 'stock-low' : ''}">${stockInfo.text}</span><button class="flavor-order-btn" data-flavor-name="${escapeHtml(f.name)}" data-flavor-price="${f.price}" data-product-name="${escapeHtml(parentItem.name)}" data-product-image="${parentItem.image || ''}" data-product-maxstock="${stockInfo.available}" ${stockInfo.isOutOfStock ? 'disabled' : ''}>📦 В корзину</button></div>`;
+        const isFav = isFavorite(parentItem.id, idx);
+        return `<div class="flavor-item" data-variant-idx="${idx}">
+            <div class="flavor-name">${escapeHtml(f.name)}</div>
+            <span class="flavor-price">${f.price} ₽</span>
+            <span class="flavor-stock ${stockInfo.isOutOfStock || stockInfo.isLow ? 'stock-low' : ''}">${stockInfo.text}</span>
+            <div style="display: flex; gap: 8px;">
+                <button class="favorite-btn ${isFav ? 'active' : ''}" data-product-id="${parentItem.id}" data-variant-id="${idx}" data-product-name="${escapeHtml(parentItem.name)}" data-variant-name="${escapeHtml(f.name)}" data-price="${f.price}" data-image="${parentItem.image}" data-category="${currentCategory}">${isFav ? '❤️' : '🤍'}</button>
+                <button class="flavor-order-btn" data-flavor-name="${escapeHtml(f.name)}" data-flavor-price="${f.price}" data-product-name="${escapeHtml(parentItem.name)}" data-product-image="${parentItem.image || ''}" data-product-maxstock="${stockInfo.available}" ${stockInfo.isOutOfStock ? 'disabled' : ''}>📦 В корзину</button>
+            </div>
+        </div>`;
     }).join('')}</div>`;
+    
     document.querySelectorAll('.flavor-order-btn:not([disabled])').forEach(btn => btn.addEventListener('click', () => addToCart(btn.dataset.productName, btn.dataset.flavorName, parseInt(btn.dataset.flavorPrice), btn.dataset.productImage, parseInt(btn.dataset.productMaxstock))));
+    
+    document.querySelectorAll('.favorite-btn').forEach(btn => btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const productId = parseInt(btn.dataset.productId);
+        const variantId = parseInt(btn.dataset.variantId);
+        const productName = btn.dataset.productName;
+        const variantName = btn.dataset.variantName;
+        const price = parseInt(btn.dataset.price);
+        const image = btn.dataset.image;
+        const category = btn.dataset.category;
+        toggleFavorite(productName, variantName, price, image, category, productId, variantId);
+    }));
+    
+    if (highlightVariant) {
+        const items = document.querySelectorAll('.flavor-item');
+        for (let item of items) {
+            const nameEl = item.querySelector('.flavor-name');
+            if (nameEl && nameEl.textContent.trim() === highlightVariant) {
+                item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                item.style.transform = 'scale(1.02)';
+                item.style.transition = 'all 0.3s';
+                setTimeout(() => item.style.transform = '', 1000);
+                break;
+            }
+        }
+    }
+    
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -735,7 +675,7 @@ function renderSearchResults(results) {
         openCategory(category);
         if (hasFlavors) setTimeout(() => {
             const items = allItems[category], item = items.find(i => i.id === id);
-            if (item?.flavors) openFlavors(item);
+            if (item?.flavors) openFlavors(item, flavorName);
         }, 100);
     }));
 }
@@ -757,4 +697,3 @@ handleScroll();
 setTimeout(() => { setupSearch(); setupGoTop(); }, 1000);
 document.getElementById('clearHistoryBtn')?.addEventListener('click', clearHistory);
 document.getElementById('clearFavoritesBtn')?.addEventListener('click', () => { favorites = []; saveFavorites(); updateFavoriteButtons(); showToast("❤️ Избранное очищено", false); });
-document.getElementById('clearCompareBtn')?.addEventListener('click', () => { compareItems = []; saveCompare(); updateCompareCheckboxes(); showToast("🔄 Сравнение очищено", false); });
