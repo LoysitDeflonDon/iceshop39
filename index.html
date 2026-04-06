@@ -41,6 +41,13 @@
         </div>
         <div class="scroll-hint" id="scrollHint">↓ Листай вниз ↓</div>
     </div>
+    
+    <!-- Блок популярных товаров (чаще всего смотрят) -->
+    <div id="popularSection" class="popular-section" style="display: none;">
+        <h2 class="section-title">🔥 Чаще всего смотрят</h2>
+        <div id="popularContainer" class="popular-grid"></div>
+    </div>
+    
     <div class="categories-section" id="categoriesSection">
         <h2 class="section-title">📦 Категории</h2>
         <div class="categories-grid" id="categoriesGrid"><div class="loader">Загрузка...</div></div>
@@ -59,6 +66,20 @@
     <div id="flavorsContainer"></div>
 </div>
 
+<!-- Блок избранного -->
+<div id="favoritesSection" class="favorites-section" style="display: none;">
+    <h2 class="section-title">❤️ Избранное</h2>
+    <div id="favoritesContainer" class="favorites-grid"></div>
+    <button id="clearFavoritesBtn" class="clear-favorites-btn">🗑️ Очистить избранное</button>
+</div>
+
+<!-- Блок сравнения -->
+<div id="compareSection" class="compare-section" style="display: none;">
+    <h2 class="section-title">🔄 Сравнение товаров</h2>
+    <div id="compareContainer" class="compare-grid"></div>
+    <button id="clearCompareBtn" class="clear-compare-btn">🗑️ Очистить сравнение</button>
+</div>
+
 <!-- Блок истории просмотров -->
 <div id="historySection" class="history-section" style="display: none;">
     <h2 class="section-title">📜 Вы недавно смотрели</h2>
@@ -72,6 +93,8 @@
 </div>
 
 <footer>⚡ ICESHOP39. 18+. Курение вредит здоровью. 2026</footer>
+
+<button id="goTopBtn" class="go-top">⬆️</button>
 
 <script src="js/script.js"></script>
 </body>
