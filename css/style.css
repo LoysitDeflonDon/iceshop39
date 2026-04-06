@@ -1146,21 +1146,36 @@ button:active,
     }
 }
 
-/* ========== УБИРАЕМ СИНЕЕ ВЫДЕЛЕНИЕ ПРИ НАЖАТИИ ========== */
-* {
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
+/* ========== ПОЛНОСТЬЮ УБИРАЕМ СИНЕЕ ВЫДЕЛЕНИЕ ========== */
+*,
+*::before,
+*::after {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
 }
 
-/* Убираем outline при фокусе на всех элементах */
+/* Убираем всё при фокусе и активации */
 *:focus,
 *:focus-visible,
-*:active {
+*:active,
+*:visited,
+*:hover,
+*:target {
     outline: none !important;
+    outline-width: 0 !important;
+    outline-style: none !important;
+    outline-color: transparent !important;
 }
 
-/* Для кнопок и интерактивных элементов */
+/* Для всех интерактивных элементов */
+a,
 button,
+div,
+span,
+img,
 .category-card,
 .product-card,
 .favorite-card,
@@ -1185,19 +1200,38 @@ button,
 .remove-compare,
 .clear-history-btn,
 .clear-favorites-btn,
-.clear-compare-btn {
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-touch-callout: none !important;
-    user-select: none !important;
-}
-
-/* Для ссылок */
-a {
+.clear-compare-btn,
+[onclick],
+[role="button"],
+[tabindex] {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
     -webkit-tap-highlight-color: transparent !important;
     outline: none !important;
+    outline-width: 0 !important;
 }
 
-/* Для всех интерактивных элементов при активном состоянии */
-:active {
-    -webkit-tap-highlight-color: transparent !important;
+/* Специально для карточек товаров */
+.product-card:active,
+.product-card:focus,
+.product-card:focus-visible,
+.category-card:active,
+.category-card:focus,
+.category-card:focus-visible {
+    background-color: transparent !important;
+    outline: none !important;
+    transform: scale(0.98);
+}
+
+/* Для touch-устройств */
+@media (hover: none) and (pointer: coarse) {
+    * {
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
+        -webkit-tap-highlight-color: transparent !important;
+    }
+    
+    .product-card:active,
+    .category-card:active {
+        background-color: rgba(59, 130, 246, 0.05) !important;
+        transition: background-color 0.05s;
+    }
 }
