@@ -33,28 +33,279 @@ let allItems = {
 };
 let currentCategory = null;
 
-// ========== TELEGRAM БОТ ДЛЯ УВЕДОМЛЕНИЙ АДМИНА ==========
+// ========== TELEGRAM БОТ ==========
 const ADMIN_BOT_TOKEN = "8552470788:AAGB1Q36M-gPlnTebMXJWw8e8GmcCXk00y4";
 const ADMIN_CHAT_ID = "6919484181";
 
 // ========== КОРЗИНА ==========
 let cart = [];
 
+// ========== ИЗБРАННОЕ ==========
+let favorites = [];
+
+function loadFavorites() {
+    const saved = localStorage.getItem('favorites_variants');
+    if (saved) favorites = JSON.parse(saved);
+    else favorites = [];
+    renderFavoritesBlock();
+}
+
+function saveFavorites() {
+    localStorage.setItem('favorites_variants', JSON.stringify(favorites));
+    renderFavoritesBlock();
+    updateAllFavoriteButtons();
+}
+
+function toggleFavorite(productName, variantName, price, image, category, productId, variantId, isSimple = false) {
+    const uniqueId = isSimple ? `simple_${productId}` : `${productId}_${variantId}`;
+    const index = favorites.findIndex(f => f.uniqueId === uniqueId);
+    
+    if (index === -1) {
+        favorites.push({
+            uniqueId: uniqueId,
+            productName: productName,
+            variantName: variantName || productName,
+            price: price,
+            image: image,
+            category: category,
+            productId: productId,
+            isSimple: isSimple
+        });
+        showToast(`❤️ ${variantName || productName} добавлен в избранное`, false);
+    } else {
+        favorites.splice(index, 1);
+        showToast(`💔 Удалено из избранного`, false);
+    }
+    saveFavorites();
+}
+
+function isFavorite(productId, variantId, isSimple = false) {
+    const uniqueId = isSimple ? `simple_${productId}` : `${productId}_${variantId}`;
+    return favorites.some(f => f.uniqueId === uniqueId);
+}
+
+function updateAllFavoriteButtons() {
+    document.querySelectorAll('.favorite-btn-option').forEach(btn => {
+        const productId = parseInt(btn.dataset.productId);
+        const variantId = parseInt(btn.dataset.variantId);
+        if (isFavorite(productId, variantId, false)) {
+            btn.classList.add('active');
+            btn.innerHTML = '❤️';
+        } else {
+            btn.classList.remove('active');
+            btn.innerHTML = '🤍';
+        }
+    });
+    
+    document.querySelectorAll('.favorite-btn-simple').forEach(btn => {
+        const productId = parseInt(btn.dataset.productId);
+        if (isFavorite(productId, 0, true)) {
+            btn.classList.add('active');
+            btn.innerHTML = '❤️';
+        } else {
+            btn.classList.remove('active');
+            btn.innerHTML = '🤍';
+        }
+    });
+}
+
+function renderFavoritesBlock() {
+    const section = document.getElementById('favoritesSection');
+    const container = document.getElementById('favoritesContainer');
+    if (!section || !container) return;
+    
+    if (favorites.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    section.style.display = 'block';
+    container.innerHTML = favorites.map(item => `
+        <div class="favorite-card" data-category="${item.category}" data-product-id="${item.productId}" data-variant-name="${escapeHtml(item.variantName)}" data-is-simple="${item.isSimple}">
+            <button class="remove-favorite" data-unique-id="${item.uniqueId}">✖</button>
+            <img class="favorite-image" src="${item.image || 'https://placehold.co/200x200/1E293B/3B82F6?text=No+Image'}" loading="lazy" onerror="this.src='https://placehold.co/200x200/1E293B/3B82F6?text=No+Image'">
+            <div class="favorite-name">${escapeHtml(item.productName)}${!item.isSimple ? ` — ${escapeHtml(item.variantName)}` : ''}</div>
+            <div class="favorite-price">${item.price} ₽</div>
+        </div>
+    `).join('');
+    
+    document.querySelectorAll('.favorite-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-favorite')) return;
+            const category = card.dataset.category;
+            const productId = parseInt(card.dataset.productId);
+            const variantName = card.dataset.variantName;
+            const isSimple = card.dataset.isSimple === 'true';
+            
+            openCategory(category);
+            setTimeout(() => {
+                const items = allItems[category];
+                const item = items.find(i => i.id === productId);
+                if (item) {
+                    if (isSimple || !item.flavors) {
+                        openCategory(category);
+                    } else if (item.flavors) {
+                        openFlavors(item, variantName);
+                    }
+                }
+            }, 100);
+        });
+    });
+    
+    document.querySelectorAll('.remove-favorite').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const uniqueId = btn.dataset.uniqueId;
+            favorites = favorites.filter(f => f.uniqueId !== uniqueId);
+            saveFavorites();
+            showToast("🗑️ Удалено из избранного", false);
+        });
+    });
+}
+
+// ========== ПОПУЛЯРНЫЕ ТОВАРЫ ==========
+let viewStats = {};
+
+function loadViewStats() {
+    const saved = localStorage.getItem('view_stats');
+    if (saved) viewStats = JSON.parse(saved);
+    else viewStats = {};
+}
+
+function saveViewStats() {
+    localStorage.setItem('view_stats', JSON.stringify(viewStats));
+}
+
+function recordView(itemId, itemName, itemImage, itemPrice, itemCategory) {
+    if (!viewStats[itemId]) {
+        viewStats[itemId] = {
+            id: itemId,
+            name: itemName,
+            image: itemImage,
+            price: itemPrice,
+            category: itemCategory,
+            views: 0
+        };
+    }
+    viewStats[itemId].views++;
+    saveViewStats();
+    renderPopularBlock();
+}
+
+function renderPopularBlock() {
+    const section = document.getElementById('popularSection');
+    const container = document.getElementById('popularContainer');
+    if (!section || !container) return;
+    
+    const popular = Object.values(viewStats)
+        .sort((a, b) => b.views - a.views)
+        .slice(0, 8);
+    
+    if (popular.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    section.style.display = 'block';
+    container.innerHTML = popular.map(item => `
+        <div class="popular-card" data-id="${item.id}" data-category="${item.category}">
+            <img class="popular-image" src="${item.image || 'https://placehold.co/200x200/1E293B/3B82F6?text=No+Image'}" loading="lazy" onerror="this.src='https://placehold.co/200x200/1E293B/3B82F6?text=No+Image'">
+            <div class="popular-name">${escapeHtml(item.name)}</div>
+            <div class="popular-price">${item.price} ₽</div>
+            <div style="font-size: 10px; color: #94A3B8; margin-top: 4px;">👁️ ${item.views} просмотров</div>
+        </div>
+    `).join('');
+    
+    document.querySelectorAll('.popular-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const category = card.dataset.category;
+            const id = parseInt(card.dataset.id);
+            openCategory(category);
+            setTimeout(() => {
+                const items = allItems[category];
+                const item = items.find(i => i.id === id);
+                if (item?.flavors) openFlavors(item);
+            }, 100);
+        });
+    });
+}
+
+// ========== ИСТОРИЯ ПРОСМОТРОВ ==========
+const HISTORY_KEY = "view_history";
+const MAX_HISTORY = 10;
+
+function saveToHistory(item, variantName = null) {
+    let history = getHistory();
+    const displayName = variantName ? `${item.name} — ${variantName}` : item.name;
+    const itemId = variantName ? `${item.id}_${variantName}` : item.id;
+    
+    history = history.filter(h => h.id !== itemId);
+    history.unshift({
+        id: itemId,
+        name: displayName,
+        image: item.image,
+        category: currentCategory,
+        price: variantName ? item.flavors?.find(f => f.name === variantName)?.price : (item.flavors ? `от ${Math.min(...item.flavors.map(f => f.price))}` : item.price),
+        timestamp: Date.now()
+    });
+    if (history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    renderHistoryBlock();
+}
+
+function getHistory() {
+    const history = localStorage.getItem(HISTORY_KEY);
+    if (history) return JSON.parse(history);
+    return [];
+}
+
+function clearHistory() {
+    localStorage.removeItem(HISTORY_KEY);
+    renderHistoryBlock();
+    showToast("📜 История просмотров очищена", false);
+}
+
+function renderHistoryBlock() {
+    const history = getHistory();
+    const historySection = document.getElementById('historySection');
+    const container = document.getElementById('historyContainer');
+    if (!historySection || !container) return;
+    
+    if (history.length === 0) {
+        historySection.style.display = 'none';
+        return;
+    }
+    historySection.style.display = 'block';
+    container.innerHTML = history.map(item => `
+        <div class="history-card" data-category="${item.category}" data-name="${escapeHtml(item.name)}">
+            <img class="history-image" src="${item.image || 'https://placehold.co/100x100/1E293B/3B82F6?text=No+Image'}" loading="lazy" onerror="this.src='https://placehold.co/100x100/1E293B/3B82F6?text=No+Image'">
+            <div class="history-name">${escapeHtml(item.name)}</div>
+        </div>
+    `).join('');
+    
+    document.querySelectorAll('.history-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const category = card.dataset.category;
+            const name = card.dataset.name;
+            openCategory(category);
+            setTimeout(() => {
+                const items = allItems[category];
+                const item = items.find(i => name.includes(i.name));
+                if (item?.flavors) {
+                    const variantName = name.includes('—') ? name.split('—')[1].trim() : null;
+                    openFlavors(item, variantName);
+                }
+            }, 100);
+        });
+    });
+}
+
 // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
 function escapeHtml(str) {
     if (!str) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+    return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
 }
 
 function formatStock(stock) {
-    if (stock === undefined || stock === null) {
-        return { text: "Нет в наличии", isOutOfStock: true, available: 0 };
-    }
+    if (stock === undefined || stock === null) return { text: "Нет в наличии", isOutOfStock: true, available: 0 };
     let numStock = Number(stock);
     if (!isNaN(numStock) && typeof stock !== 'boolean') {
         if (numStock <= 0) return { text: "Нет в наличии", isOutOfStock: true, available: 0 };
@@ -89,7 +340,7 @@ function updateCartIcon() {
 function addToCart(productName, variantName, price, image, maxStock) {
     const currentQty = getCartQuantity(productName, variantName);
     if (currentQty >= maxStock) {
-        showToast(`❌ Нельзя добавить больше ${maxStock} шт. товара "${variantName}"`);
+        showToast(`❌ Нельзя добавить больше ${maxStock} шт`, true);
         return false;
     }
     const existingItem = cart.find(item => item.productName === productName && item.variantName === variantName);
@@ -106,53 +357,33 @@ function addToCart(productName, variantName, price, image, maxStock) {
         });
     }
     updateCartIcon();
-    showToast(`✅ ${productName} (${variantName}) добавлен в корзину`);
+    showToast(`✅ Добавлено в корзину!`, false);
     return true;
 }
 
 function showCartModal() {
     if (cart.length === 0) {
-        showToast("🛒 Корзина пуста");
+        showToast("🛒 Корзина пуста", false);
         return;
     }
     const modalDiv = document.createElement('div');
     modalDiv.className = 'modal';
     modalDiv.style.display = 'flex';
-    let cartHtml = `
-        <div class="modal-content" style="max-width:500px; max-height:80vh; overflow-y:auto;">
-            <h3>🛒 Ваша корзина</h3>
-            <div style="margin:15px 0;">
-    `;
+    let cartHtml = `<div class="modal-content" style="max-width:500px; max-height:80vh; overflow-y:auto;"><h3>🛒 Ваша корзина</h3><div style="margin:15px 0;">`;
     let totalPrice = 0;
     cart.forEach((item, index) => {
         const itemTotal = item.price * item.quantity;
         totalPrice += itemTotal;
-        cartHtml += `
-            <div style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #1F2A44; flex-wrap:wrap;">
-                <img src="${item.image || 'https://placehold.co/50x50/1E293B/3B82F6?text=No+Image'}" style="width:50px; height:50px; object-fit:cover; border-radius:10px;">
-                <div style="flex:1;">
-                    <div><strong>${escapeHtml(item.productName)}</strong></div>
-                    <div style="font-size:0.8rem; color:#94A3B8;">${escapeHtml(item.variantName)}</div>
-                    <div style="color:#FACC15;">${item.price} ₽ × ${item.quantity} = ${itemTotal} ₽</div>
-                </div>
-                <div style="display:flex; gap:5px;">
-                    <button class="cart-minus" data-index="${index}" style="background:#EF4444; border:none; width:30px; height:30px; border-radius:50%; color:white; cursor:pointer;">-</button>
-                    <span style="min-width:30px; text-align:center;">${item.quantity}</span>
-                    <button class="cart-plus" data-index="${index}" style="background:#10B981; border:none; width:30px; height:30px; border-radius:50%; color:white; cursor:pointer;">+</button>
-                </div>
-            </div>
-        `;
+        cartHtml += `<div style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #1F2A44; flex-wrap:wrap;">
+            <img src="${item.image || 'https://placehold.co/50x50/1E293B/3B82F6?text=No+Image'}" style="width:50px; height:50px; object-fit:cover; border-radius:10px;">
+            <div style="flex:1;"><div><strong>${escapeHtml(item.productName)}</strong></div><div style="font-size:0.8rem; color:#94A3B8;">${escapeHtml(item.variantName)}</div><div style="color:#FACC15;">${item.price} ₽ × ${item.quantity} = ${itemTotal} ₽</div></div>
+            <div style="display:flex; gap:5px;"><button class="cart-minus" data-index="${index}" style="background:#EF4444; border:none; width:30px; height:30px; border-radius:50%; color:white; cursor:pointer;">-</button><span style="min-width:30px; text-align:center;">${item.quantity}</span><button class="cart-plus" data-index="${index}" style="background:#10B981; border:none; width:30px; height:30px; border-radius:50%; color:white; cursor:pointer;">+</button></div>
+            </div>`;
     });
-    cartHtml += `
-            </div>
-            <div style="text-align:right; padding:10px; font-size:1.2rem; font-weight:bold; border-top:1px solid #1F2A44;">
-                Итого: ${totalPrice} ₽
-            </div>
-            <button class="order-submit" id="checkoutBtn" style="background:#10B981; margin-top:10px;">📤 Оформить заказ</button>
-            <button class="cancel-modal" id="clearCartBtn" style="background:#EF4444;">🗑️ Очистить корзину</button>
-            <button class="cancel-modal" id="closeCartBtn">Закрыть</button>
-        </div>
-    `;
+    cartHtml += `</div><div style="text-align:right; padding:10px; font-size:1.2rem; font-weight:bold; border-top:1px solid #1F2A44;">Итого: ${totalPrice} ₽</div>
+        <button class="order-submit" id="checkoutBtn" style="background:#10B981; margin-top:10px;">📤 Оформить заказ</button>
+        <button class="cancel-modal" id="clearCartBtn" style="background:#EF4444;">🗑️ Очистить корзину</button>
+        <button class="cancel-modal" id="closeCartBtn">Закрыть</button></div>`;
     modalDiv.innerHTML = cartHtml;
     document.body.appendChild(modalDiv);
     
@@ -160,43 +391,40 @@ function showCartModal() {
         btn.addEventListener('click', () => {
             const idx = parseInt(btn.dataset.index);
             const item = cart[idx];
-            if (item.quantity >= item.maxStock) {
-                showToast(`❌ Нельзя добавить больше ${item.maxStock} шт. товара "${item.variantName}"`);
-                return;
+            if (item.quantity >= item.maxStock) { 
+                showToast(`❌ Нельзя добавить больше ${item.maxStock} шт`, true); 
+                return; 
             }
-            cart[idx].quantity++;
-            modalDiv.remove();
+            cart[idx].quantity++; 
+            modalDiv.remove(); 
             showCartModal();
         });
     });
     modalDiv.querySelectorAll('.cart-minus').forEach(btn => {
         btn.addEventListener('click', () => {
             const idx = parseInt(btn.dataset.index);
-            if (cart[idx].quantity > 1) {
-                cart[idx].quantity--;
-            } else {
-                cart.splice(idx, 1);
+            if (cart[idx].quantity > 1) cart[idx].quantity--;
+            else cart.splice(idx, 1);
+            if (cart.length === 0) { 
+                modalDiv.remove(); 
+                updateCartIcon(); 
+                showToast("🛒 Корзина очищена", false); 
+                return; 
             }
-            if (cart.length === 0) {
-                modalDiv.remove();
-                updateCartIcon();
-                showToast("🛒 Корзина очищена");
-                return;
-            }
-            modalDiv.remove();
+            modalDiv.remove(); 
             showCartModal();
         });
     });
-    modalDiv.querySelector('#clearCartBtn').onclick = () => {
-        cart = [];
-        modalDiv.remove();
-        updateCartIcon();
-        showToast("🗑️ Корзина очищена");
+    modalDiv.querySelector('#clearCartBtn').onclick = () => { 
+        cart = []; 
+        modalDiv.remove(); 
+        updateCartIcon(); 
+        showToast("🗑️ Корзина очищена", false); 
     };
     modalDiv.querySelector('#closeCartBtn').onclick = () => modalDiv.remove();
-    modalDiv.querySelector('#checkoutBtn').onclick = () => {
-        modalDiv.remove();
-        showManagerModalForCart();
+    modalDiv.querySelector('#checkoutBtn').onclick = () => { 
+        modalDiv.remove(); 
+        showManagerModalForCart(); 
     };
 }
 
@@ -204,30 +432,16 @@ function showManagerModalForCart() {
     const modalDiv = document.createElement('div');
     modalDiv.className = 'modal';
     modalDiv.style.display = 'flex';
-    modalDiv.innerHTML = `
-        <div class="modal-content">
-            <h3>📱 Выберите менеджера</h3>
-            <div id="managerOptionsTemp"></div>
-            <button class="cancel-modal" id="cancelManagerBtn">Отмена</button>
-        </div>
-    `;
+    modalDiv.innerHTML = `<div class="modal-content"><h3>📱 Выберите менеджера</h3><div id="managerOptionsTemp"></div><button class="cancel-modal" id="cancelManagerBtn">Отмена</button></div>`;
     document.body.appendChild(modalDiv);
-    
     const opts = modalDiv.querySelector('#managerOptionsTemp');
-    opts.innerHTML = managers.map(m => `
-        <div class="manager-option" data-tg="${m.tg}">
-            ${escapeHtml(m.name)}
-        </div>
-    `).join('');
-    
+    opts.innerHTML = managers.map(m => `<div class="manager-option" data-tg="${m.tg}">${escapeHtml(m.name)}</div>`).join('');
     modalDiv.querySelectorAll('.manager-option').forEach(opt => {
-        opt.addEventListener('click', () => {
-            const tg = opt.dataset.tg;
-            modalDiv.remove();
-            showAgeConfirmForCart(tg);
+        opt.addEventListener('click', () => { 
+            modalDiv.remove(); 
+            showAgeConfirmForCart(opt.dataset.tg); 
         });
     });
-    
     modalDiv.querySelector('#cancelManagerBtn').onclick = () => modalDiv.remove();
 }
 
@@ -235,105 +449,70 @@ function showAgeConfirmForCart(managerTg) {
     const modalDiv = document.createElement('div');
     modalDiv.className = 'order-modal';
     modalDiv.style.display = 'flex';
-    modalDiv.innerHTML = `
-        <div class="order-content">
-            <h3>📦 Оформление заказа</h3>
-            <p style="margin:15px 0;">Подтвердите возраст и отправьте заказ</p>
-            <div class="order-checkbox">
-                <input type="checkbox" id="orderAgeConfirm">
-                <label for="orderAgeConfirm">Подтверждаю, что мне есть 18 лет</label>
-            </div>
-            <button class="order-submit" id="submitOrderBtn" disabled>📤 Отправить заказ</button>
-            <button class="cancel-order" id="cancelOrderBtn">Отмена</button>
-        </div>
-    `;
+    modalDiv.innerHTML = `<div class="order-content"><h3>📦 Оформление заказа</h3><p style="margin:15px 0;">Подтвердите возраст и отправьте заказ</p><div class="order-checkbox"><input type="checkbox" id="orderAgeConfirm"><label for="orderAgeConfirm">Подтверждаю, что мне есть 18 лет</label></div><button class="order-submit" id="submitOrderBtn" disabled>📤 Отправить заказ</button><button class="cancel-order" id="cancelOrderBtn">Отмена</button></div>`;
     document.body.appendChild(modalDiv);
-    
     const orderCheck = modalDiv.querySelector('#orderAgeConfirm');
     const submitBtn = modalDiv.querySelector('#submitOrderBtn');
-    
-    orderCheck.addEventListener('change', () => {
-        submitBtn.disabled = !orderCheck.checked;
-    });
-    
-    submitBtn.onclick = () => {
-        if (orderCheck.checked) {
-            sendCartToTelegram(managerTg);
-            modalDiv.remove();
-        }
+    orderCheck.addEventListener('change', () => { submitBtn.disabled = !orderCheck.checked; });
+    submitBtn.onclick = () => { 
+        if (orderCheck.checked) { 
+            sendCartToTelegram(managerTg); 
+            modalDiv.remove(); 
+        } 
     };
-    
     modalDiv.querySelector('#cancelOrderBtn').onclick = () => modalDiv.remove();
 }
 
-// ========== ЗАПИСЬ ЗАКАЗА В СТАТИСТИКУ ==========
 function saveOrderToStats(cartItems, totalPrice, managerTg) {
     const statsKey = "shop_statistics";
     const existingStats = JSON.parse(localStorage.getItem(statsKey) || '{"orders":[], "totalOrders":0, "totalRevenue":0}');
-    existingStats.orders.push({
-        id: Date.now(),
-        date: new Date().toISOString(),
-        items: cartItems.map(item => ({
-            productName: item.productName,
-            variantName: item.variantName,
-            price: item.price,
-            quantity: item.quantity
-        })),
-        total: totalPrice,
-        manager: managerTg
+    existingStats.orders.push({ 
+        id: Date.now(), 
+        date: new Date().toISOString(), 
+        items: cartItems.map(item => ({ 
+            productName: item.productName, 
+            variantName: item.variantName, 
+            price: item.price, 
+            quantity: item.quantity 
+        })), 
+        total: totalPrice, 
+        manager: managerTg 
     });
     existingStats.totalOrders = existingStats.orders.length;
     existingStats.totalRevenue = existingStats.orders.reduce((sum, o) => sum + o.total, 0);
     localStorage.setItem(statsKey, JSON.stringify(existingStats));
-    console.log('✅ Заказ записан в статистику');
 }
 
 async function sendCartToTelegram(managerTg) {
     let message = "🛒 *НОВЫЙ ЗАКАЗ* 🛒\n\n";
     let totalPrice = 0;
-    
     cart.forEach((item, index) => {
         const itemTotal = item.price * item.quantity;
         totalPrice += itemTotal;
-        message += `${index + 1}. *${item.productName}*\n`;
-        message += `   Вариант: ${item.variantName}\n`;
-        message += `   Цена: ${item.price} ₽\n`;
-        message += `   Количество: ${item.quantity} шт\n`;
-        message += `   Сумма: ${itemTotal} ₽\n\n`;
+        message += `${index + 1}. *${item.productName}*\n   Вариант: ${item.variantName}\n   Цена: ${item.price} ₽\n   Количество: ${item.quantity} шт\n   Сумма: ${itemTotal} ₽\n\n`;
     });
-    
-    message += `────────────────\n`;
-    message += `💰 *ИТОГО: ${totalPrice} ₽*\n\n`;
-    message += `🕐 Заказ отправлен с сайта ICESHOP39`;
-    
+    message += `────────────────\n💰 *ИТОГО: ${totalPrice} ₽*\n\n🕐 Заказ отправлен с сайта ICESHOP39`;
     window.open(`https://t.me/${managerTg}?text=${encodeURIComponent(message)}`, '_blank');
-    
     if (ADMIN_BOT_TOKEN && ADMIN_BOT_TOKEN !== "") {
         try {
-            const notifyMessage = `🔔 *НОВЫЙ ЗАКАЗ!*\n\nМенеджер: @${managerTg}\nСумма: ${totalPrice} ₽\nТоваров: ${cart.length}\n\nНажми на ссылку, чтобы ответить: https://t.me/${managerTg}`;
             await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, {
-                method: 'POST',
+                method: 'POST', 
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: ADMIN_CHAT_ID,
-                    text: notifyMessage,
-                    parse_mode: 'Markdown'
+                body: JSON.stringify({ 
+                    chat_id: ADMIN_CHAT_ID, 
+                    text: `🔔 *НОВЫЙ ЗАКАЗ!*\n\nМенеджер: @${managerTg}\nСумма: ${totalPrice} ₽\nТоваров: ${cart.length}`, 
+                    parse_mode: 'Markdown' 
                 })
             });
-        } catch(e) {
-            console.error('Ошибка уведомления админа:', e);
-        }
+        } catch(e) { console.error(e); }
     }
-    
-    // Сохраняем статистику
     saveOrderToStats(cart, totalPrice, managerTg);
-    
-    cart = [];
-    updateCartIcon();
-    showToast("✅ Заказ отправлен! Корзина очищена");
+    cart = []; 
+    updateCartIcon(); 
+    showToast("✅ Заказ отправлен! Корзина очищена", false);
 }
 
-function showToast(message) {
+function showToast(message, isError = false) {
     let toast = document.getElementById('toast');
     if (!toast) {
         toast = document.createElement('div');
@@ -342,10 +521,9 @@ function showToast(message) {
         document.body.appendChild(toast);
     }
     toast.textContent = message;
+    toast.style.background = isError ? '#EF4444' : '#10B981';
     toast.style.display = 'block';
-    setTimeout(() => {
-        toast.style.display = 'none';
-    }, 2500);
+    setTimeout(() => { toast.style.display = 'none'; }, 2500);
 }
 
 // ========== ЗАГРУЗКА ДАННЫХ ==========
@@ -359,181 +537,172 @@ async function loadCategory(catName) {
         const text = await res.text();
         let clean = text.trim();
         if (clean.startsWith('\uFEFF')) clean = clean.substring(1);
-        try {
-            return JSON.parse(clean);
-        } catch(e) {
-            if (file === "Ispariteli.json") {
-                const match = clean.match(/\[\s*\{[\s\S]*?\}\s*\]/);
-                if (match) return JSON.parse(match[0]);
-            }
+        try { return JSON.parse(clean); } catch(e) {
+            if (file === "Ispariteli.json") { const match = clean.match(/\[\s*\{[\s\S]*?\}\s*\]/); if (match) return JSON.parse(match[0]); }
             return [];
         }
-    } catch(e) {
-        console.error(`Ошибка загрузки ${catName}:`, e);
-        return [];
-    }
+    } catch(e) { return []; }
 }
 
 async function loadAllData() {
     for (const cat of categories) {
         allItems[cat.name] = await loadCategory(cat.name);
+        console.log(`Загружено ${cat.name}:`, allItems[cat.name].length);
     }
     renderCategories();
     renderManagers();
     updateCartIcon();
+    loadFavorites();
+    loadViewStats();
+    renderHistoryBlock();
+    renderPopularBlock();
 }
 
 function renderManagers() {
     const container = document.getElementById('managersGrid');
     if (!container) return;
-    container.innerHTML = managers.map(m => `
-        <a href="https://t.me/${m.tg}" target="_blank" class="manager-card">
-            <span>${m.name}</span>
-        </a>
-    `).join('');
+    container.innerHTML = managers.map(m => `<a href="https://t.me/${m.tg}" target="_blank" class="manager-card"><span>${m.name}</span></a>`).join('');
 }
 
-function getCount(catName) {
-    return allItems[catName]?.length || 0;
-}
+function getCount(catName) { return allItems[catName]?.length || 0; }
 
 function renderCategories() {
     const container = document.getElementById("categoriesGrid");
     if (!container) return;
-    container.innerHTML = categories.map(cat => `
-        <div class="category-card" data-category="${cat.name}">
-            <div class="category-icon">${cat.icon}</div>
-            <div class="category-name">${cat.name}</div>
-            <div class="category-count">${getCount(cat.name)} товаров</div>
-        </div>
-    `).join('');
-    
-    document.querySelectorAll('.category-card').forEach(card => {
-        card.addEventListener('click', () => openCategory(card.dataset.category));
-    });
+    container.innerHTML = categories.map(cat => `<div class="category-card" data-category="${cat.name}"><div class="category-icon">${cat.icon}</div><div class="category-name">${cat.name}</div><div class="category-count">${getCount(cat.name)} товаров</div></div>`).join('');
+    document.querySelectorAll('.category-card').forEach(card => card.addEventListener('click', () => openCategory(card.dataset.category)));
 }
 
 function openCategory(catName) {
     currentCategory = catName;
     const items = allItems[catName] || [];
+    console.log(`Открываем категорию ${catName}, товаров: ${items.length}`);
     
     document.getElementById('mainPage').style.display = 'none';
     document.getElementById('productsPage').classList.add('active');
     document.getElementById('flavorsPage').classList.remove('active');
     document.getElementById('productsPageTitle').textContent = catName;
-    
     const container = document.getElementById('productsContainer');
-    if (!items.length) {
-        container.innerHTML = '<div class="empty-msg">📭 Товары отсутствуют.</div>';
-        return;
+    if (!items.length) { 
+        container.innerHTML = '<div class="empty-msg">📭 Товары отсутствуют.</div>'; 
+        return; 
     }
     
     container.innerHTML = items.map(item => {
         const itemName = escapeHtml(item.name);
         const itemImage = item.image || 'https://placehold.co/400x300/1E293B/3B82F6?text=No+Image';
         const itemDesc = item.desc ? escapeHtml(item.desc) : '';
+        const priceDisplay = item.flavors?.length ? `от ${Math.min(...item.flavors.map(f => f.price))} ₽` : `${item.price} ₽`;
         
         if (item.flavors?.length) {
-            const prices = item.flavors.map(f => f.price);
-            const minPrice = Math.min(...prices);
-            return `
-                <div class="product-card" data-id="${item.id}" data-has-flavors="true">
-                    <img class="product-image" src="${itemImage}" loading="lazy" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
-                    <div class="product-title">${itemName}</div>
-                    <div class="product-price">от ${minPrice} ₽</div>
-                    <div class="product-desc">${itemDesc}</div>
-                </div>
-            `;
+            return `<div class="product-card" data-id="${item.id}" data-has-flavors="true">
+                <img class="product-image" src="${itemImage}" loading="lazy" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
+                <div class="product-title">${itemName}</div>
+                <div class="product-price">${priceDisplay}</div>
+                <div class="product-desc">${itemDesc}</div>
+            </div>`;
         } else {
-            const itemPrice = item.price || 0;
             const stockInfo = formatStock(item.stock);
-            return `
-                <div class="product-card" data-id="${item.id}" data-has-flavors="false">
-                    <img class="product-image" src="${itemImage}" loading="lazy" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
+            const isFav = isFavorite(item.id, 0, true);
+            const stockText = stockInfo.isOutOfStock ? 'Нет в наличии' : `${stockInfo.available} шт`;
+            const stockClass = stockInfo.isOutOfStock ? 'stock-out' : (stockInfo.isLow ? 'stock-low' : '');
+            
+            return `<div class="product-card" data-id="${item.id}" data-has-flavors="false">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div class="product-title">${itemName}</div>
-                    <div class="product-price">${itemPrice} ₽</div>
-                    <div class="product-desc">${itemDesc}</div>
-                    ${!stockInfo.isOutOfStock ? '<button class="order-pill" data-order-name="' + itemName + '" data-order-price="' + itemPrice + '" data-order-image="' + itemImage + '" data-order-maxstock="' + stockInfo.available + '">📦 В корзину</button>' : '<div class="stock-warning" style="color:#EF4444; font-size:0.8rem;">❌ Нет в наличии</div>'}
+                    <button class="favorite-btn-simple ${isFav ? 'active' : ''}" data-product-id="${item.id}" data-product-name="${itemName}" data-price="${item.price}" data-image="${itemImage}" data-category="${catName}">${isFav ? '❤️' : '🤍'}</button>
                 </div>
-            `;
+                <img class="product-image" src="${itemImage}" loading="lazy" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
+                <div class="product-price">${priceDisplay}</div>
+                <div class="product-desc">${itemDesc}</div>
+                <div style="margin: 5px 0; font-size: 0.8rem; color: #94A3B8;">📦 Остаток: ${stockText}</div>
+                ${!stockInfo.isOutOfStock ? `<button class="order-pill" data-order-name="${itemName}" data-order-price="${item.price}" data-order-image="${itemImage}" data-order-maxstock="${stockInfo.available}">📦 В корзину</button>` : '<div class="stock-warning" style="color:#EF4444; font-size:0.8rem; text-align:center; padding:10px;">❌ Нет в наличии</div>'}
+            </div>`;
         }
     }).join('');
     
-    document.querySelectorAll('.order-pill').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const name = btn.dataset.orderName;
-            const price = parseInt(btn.dataset.orderPrice);
-            const image = btn.dataset.orderImage;
-            const maxStock = parseInt(btn.dataset.orderMaxstock);
-            addToCart(name, 'стандарт', price, image, maxStock);
-        });
-    });
+    document.querySelectorAll('.order-pill').forEach(btn => btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const maxStock = parseInt(btn.dataset.orderMaxstock);
+        addToCart(btn.dataset.orderName, btn.dataset.orderName, parseInt(btn.dataset.orderPrice), btn.dataset.orderImage, maxStock);
+    }));
+    
+    document.querySelectorAll('.favorite-btn-simple').forEach(btn => btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const productId = parseInt(btn.dataset.productId);
+        const productName = btn.dataset.productName;
+        const price = parseInt(btn.dataset.price);
+        const image = btn.dataset.image;
+        const category = btn.dataset.category;
+        toggleFavorite(productName, null, price, image, category, productId, 0, true);
+    }));
     
     document.querySelectorAll('.product-card[data-has-flavors="true"]').forEach(card => {
         const id = parseInt(card.dataset.id);
         const item = items.find(i => i.id === id);
-        if (item?.flavors) {
-            card.addEventListener('click', () => openFlavors(item));
-        }
+        if (item?.flavors) card.addEventListener('click', () => openFlavors(item));
     });
-    
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function openFlavors(parentItem) {
+function openFlavors(parentItem, highlightVariant = null) {
+    saveToHistory(parentItem);
+    recordView(parentItem.id, parentItem.name, parentItem.image, parentItem.flavors ? `от ${Math.min(...parentItem.flavors.map(f => f.price))}` : parentItem.price, currentCategory);
+    
     document.getElementById('productsPage').classList.remove('active');
     document.getElementById('flavorsPage').classList.add('active');
     document.getElementById('flavorsPageTitle').textContent = `${parentItem.name} — выберите вариант`;
-    
     const container = document.getElementById('flavorsContainer');
-    if (!parentItem.flavors?.length) {
-        container.innerHTML = '<div class="empty-msg">📭 Список вариантов пуст.</div>';
-        return;
+    if (!parentItem.flavors?.length) { container.innerHTML = '<div class="empty-msg">📭 Список вариантов пуст.</div>'; return; }
+    
+    container.innerHTML = `<div class="flavors-list">${parentItem.flavors.map((f, idx) => {
+        const stockInfo = formatStock(f.stock);
+        const isFav = isFavorite(parentItem.id, idx, false);
+        return `<div class="flavor-item" data-variant-idx="${idx}">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div class="flavor-name">${escapeHtml(f.name)}</div>
+                <button class="favorite-btn-option ${isFav ? 'active' : ''}" data-product-id="${parentItem.id}" data-variant-id="${idx}" data-product-name="${escapeHtml(parentItem.name)}" data-variant-name="${escapeHtml(f.name)}" data-price="${f.price}" data-image="${parentItem.image}" data-category="${currentCategory}">${isFav ? '❤️' : '🤍'}</button>
+            </div>
+            <span class="flavor-price">${f.price} ₽</span>
+            <span class="flavor-stock ${stockInfo.isOutOfStock || stockInfo.isLow ? 'stock-low' : ''}">${stockInfo.text}</span>
+            <button class="flavor-order-btn" data-flavor-name="${escapeHtml(f.name)}" data-flavor-price="${f.price}" data-product-name="${escapeHtml(parentItem.name)}" data-product-image="${parentItem.image || ''}" data-product-maxstock="${stockInfo.available}" ${stockInfo.isOutOfStock ? 'disabled' : ''}>📦 В корзину</button>
+        </div>`;
+    }).join('')}</div>`;
+    
+    document.querySelectorAll('.flavor-order-btn:not([disabled])').forEach(btn => btn.addEventListener('click', () => {
+        const maxStock = parseInt(btn.dataset.productMaxstock);
+        addToCart(btn.dataset.productName, btn.dataset.flavorName, parseInt(btn.dataset.flavorPrice), btn.dataset.productImage, maxStock);
+    }));
+    
+    document.querySelectorAll('.favorite-btn-option').forEach(btn => btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const productId = parseInt(btn.dataset.productId);
+        const variantId = parseInt(btn.dataset.variantId);
+        const productName = btn.dataset.productName;
+        const variantName = btn.dataset.variantName;
+        const price = parseInt(btn.dataset.price);
+        const image = btn.dataset.image;
+        const category = btn.dataset.category;
+        toggleFavorite(productName, variantName, price, image, category, productId, variantId, false);
+    }));
+    
+    if (highlightVariant) {
+        const items = document.querySelectorAll('.flavor-item');
+        for (let item of items) {
+            const nameEl = item.querySelector('.flavor-name');
+            if (nameEl && nameEl.textContent.trim() === highlightVariant) {
+                item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                item.style.transform = 'scale(1.02)';
+                item.style.transition = 'all 0.3s';
+                setTimeout(() => item.style.transform = '', 1000);
+                break;
+            }
+        }
     }
-    
-    container.innerHTML = `
-        <div class="flavors-list">
-            ${parentItem.flavors.map(f => {
-                const stockInfo = formatStock(f.stock);
-                const flavorName = escapeHtml(f.name);
-                return `
-                    <div class="flavor-item">
-                        <div class="flavor-name">${flavorName}</div>
-                        <span class="flavor-price">${f.price} ₽</span>
-                        <span class="flavor-stock ${stockInfo.isOutOfStock || stockInfo.isLow ? 'stock-low' : ''}">
-                            ${stockInfo.text}
-                        </span>
-                        <button class="flavor-order-btn" 
-                                data-flavor-name="${flavorName}" 
-                                data-flavor-price="${f.price}"
-                                data-product-name="${escapeHtml(parentItem.name)}"
-                                data-product-image="${parentItem.image || ''}"
-                                data-product-maxstock="${stockInfo.available}"
-                                ${stockInfo.isOutOfStock ? 'disabled' : ''}>
-                            📦 В корзину
-                        </button>
-                    </div>
-                `;
-            }).join('')}
-        </div>
-    `;
-    
-    document.querySelectorAll('.flavor-order-btn:not([disabled])').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const productName = btn.dataset.productName;
-            const variantName = btn.dataset.flavorName;
-            const price = parseInt(btn.dataset.flavorPrice);
-            const image = btn.dataset.productImage;
-            const maxStock = parseInt(btn.dataset.productMaxstock);
-            addToCart(productName, variantName, price, image, maxStock);
-        });
-    });
     
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// ========== НАВИГАЦИЯ ==========
 function goToHome() {
     document.getElementById('mainPage').style.display = 'block';
     document.getElementById('productsPage').classList.remove('active');
@@ -544,194 +713,72 @@ function goToHome() {
 function goBackToCategory() {
     document.getElementById('flavorsPage').classList.remove('active');
     document.getElementById('productsPage').classList.add('active');
-    if (currentCategory) {
-        openCategory(currentCategory);
-    }
+    if (currentCategory) openCategory(currentCategory);
 }
 
 function handleScroll() {
     const header = document.getElementById('header');
-    if (window.scrollY > 100) {
-        header.classList.add('visible');
-    } else {
-        header.classList.remove('visible');
-    }
+    if (window.scrollY > 100) header.classList.add('visible');
+    else header.classList.remove('visible');
 }
 
-// ========== РОТАЦИЯ ФОНОВ ==========
-const backgrounds = [
-    "https://i.ibb.co/5hYz909b/istockphoto-1399967405-612x612.jpg",
-    "https://i.ibb.co/mrGR4qTc/2026-04-05-122820613.png",
-    "https://i.ibb.co/YBH1vwHc/2026-04-05-122925535.png"
-];
+const backgrounds = ["https://i.ibb.co/5hYz909b/istockphoto-1399967405-612x612.jpg", "https://i.ibb.co/mrGR4qTc/2026-04-05-122820613.png", "https://i.ibb.co/YBH1vwHc/2026-04-05-122925535.png"];
 let bgIndex = 0;
 const hero = document.getElementById('heroSection');
-if (hero) {
-    setInterval(() => {
-        bgIndex = (bgIndex + 1) % backgrounds.length;
-        hero.style.backgroundImage = `url('${backgrounds[bgIndex]}')`;
-    }, 4500);
-}
+if (hero) setInterval(() => { bgIndex = (bgIndex + 1) % backgrounds.length; hero.style.backgroundImage = `url('${backgrounds[bgIndex]}')`; }, 4500);
 
-// ========== ПОИСК ==========
 let searchTimeout;
-
 function setupSearch() {
     const searchInput = document.getElementById('searchInput');
     const searchResults = document.getElementById('searchResults');
-    
     if (!searchInput) return;
-    
     searchInput.addEventListener('input', function() {
         clearTimeout(searchTimeout);
         const query = this.value.trim().toLowerCase();
-        
-        if (query.length < 2) {
-            searchResults.classList.remove('show');
-            return;
-        }
-        
-        searchTimeout = setTimeout(() => {
-            performSearch(query);
-        }, 300);
+        if (query.length < 2) { searchResults.classList.remove('show'); return; }
+        searchTimeout = setTimeout(() => performSearch(query), 300);
     });
-    
-    document.addEventListener('click', function(e) {
-        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-            searchResults.classList.remove('show');
-        }
-    });
+    document.addEventListener('click', function(e) { if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) searchResults.classList.remove('show'); });
 }
 
 function performSearch(query) {
     const results = [];
-    
     for (const [category, items] of Object.entries(allItems)) {
         for (const item of items) {
-            if (item.name.toLowerCase().includes(query)) {
-                results.push({
-                    name: item.name,
-                    category: category,
-                    price: item.flavors ? `от ${Math.min(...item.flavors.map(f => f.price))} ₽` : `${item.price} ₽`,
-                    id: item.id,
-                    hasFlavors: !!item.flavors,
-                    item: item
-                });
-                continue;
-            }
-            
-            if (item.flavors) {
+            if (item.name.toLowerCase().includes(query)) results.push({ name: item.name, category: category, price: item.flavors ? `от ${Math.min(...item.flavors.map(f => f.price))} ₽` : `${item.price} ₽`, id: item.id, hasFlavors: !!item.flavors, item: item });
+            else if (item.flavors) {
                 for (const flavor of item.flavors) {
-                    if (flavor.name.toLowerCase().includes(query)) {
-                        results.push({
-                            name: `${item.name} — ${flavor.name}`,
-                            category: category,
-                            price: `${flavor.price} ₽`,
-                            id: item.id,
-                            hasFlavors: true,
-                            flavorName: flavor.name,
-                            item: item
-                        });
-                        break;
-                    }
+                    if (flavor.name.toLowerCase().includes(query)) { results.push({ name: `${item.name} — ${flavor.name}`, category: category, price: `${flavor.price} ₽`, id: item.id, hasFlavors: true, flavorName: flavor.name, item: item }); break; }
                 }
             }
         }
     }
-    
-    const limitedResults = results.slice(0, 10);
-    renderSearchResults(limitedResults);
+    renderSearchResults(results.slice(0, 10));
 }
 
 function renderSearchResults(results) {
     const searchResults = document.getElementById('searchResults');
-    
-    if (results.length === 0) {
-        searchResults.innerHTML = '<div class="search-result-item" style="color:#94A3B8;">😔 Ничего не найдено</div>';
-        searchResults.classList.add('show');
-        return;
-    }
-    
-    searchResults.innerHTML = results.map(r => `
-        <div class="search-result-item" data-category="${r.category}" data-id="${r.id}" data-has-flavors="${r.hasFlavors}" data-flavor-name="${r.flavorName || ''}">
-            <div class="search-result-name">${escapeHtml(r.name)}</div>
-            <div class="search-result-category">${escapeHtml(r.category)}</div>
-            <div class="search-result-price">${r.price}</div>
-        </div>
-    `).join('');
-    
+    if (results.length === 0) { searchResults.innerHTML = '<div class="search-result-item" style="color:#94A3B8;">😔 Ничего не найдено</div>'; searchResults.classList.add('show'); return; }
+    searchResults.innerHTML = results.map(r => `<div class="search-result-item" data-category="${r.category}" data-id="${r.id}" data-has-flavors="${r.hasFlavors}" data-flavor-name="${r.flavorName || ''}"><div class="search-result-name">${escapeHtml(r.name)}</div><div class="search-result-category">${escapeHtml(r.category)}</div><div class="search-result-price">${r.price}</div></div>`).join('');
     searchResults.classList.add('show');
-    
-    document.querySelectorAll('.search-result-item').forEach(el => {
-        el.addEventListener('click', () => {
-            const category = el.dataset.category;
-            const id = parseInt(el.dataset.id);
-            const hasFlavors = el.dataset.hasFlavors === 'true';
-            const flavorName = el.dataset.flavorName;
-            
-            document.getElementById('searchResults').classList.remove('show');
-            document.getElementById('searchInput').value = '';
-            
-            openCategory(category);
-            
-            if (hasFlavors) {
-                setTimeout(() => {
-                    const items = allItems[category];
-                    const item = items.find(i => i.id === id);
-                    if (item?.flavors) {
-                        openFlavors(item);
-                        if (flavorName) {
-                            setTimeout(() => {
-                                const btns = document.querySelectorAll('.flavor-order-btn');
-                                for (let btn of btns) {
-                                    if (btn.dataset.flavorName === flavorName) {
-                                        btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                        btn.style.transform = 'scale(1.05)';
-                                        setTimeout(() => btn.style.transform = '', 1000);
-                                        break;
-                                    }
-                                }
-                            }, 300);
-                        }
-                    }
-                }, 100);
-            }
-        });
-    });
+    document.querySelectorAll('.search-result-item').forEach(el => el.addEventListener('click', () => {
+        const category = el.dataset.category, id = parseInt(el.dataset.id), hasFlavors = el.dataset.hasFlavors === 'true', flavorName = el.dataset.flavorName;
+        document.getElementById('searchResults').classList.remove('show'); document.getElementById('searchInput').value = '';
+        openCategory(category);
+        if (hasFlavors) setTimeout(() => {
+            const items = allItems[category], item = items.find(i => i.id === id);
+            if (item?.flavors) openFlavors(item, flavorName);
+        }, 100);
+    }));
 }
 
-// ========== КНОПКА "НАВЕРХ" ==========
-function setupGoTop() {
-    const goTopBtn = document.getElementById('goTopBtn');
-    if (!goTopBtn) return;
-    
-    window.addEventListener('scroll', () => {
-        if (window.scrollY > 300) {
-            goTopBtn.style.display = 'flex';
-            goTopBtn.style.alignItems = 'center';
-            goTopBtn.style.justifyContent = 'center';
-        } else {
-            goTopBtn.style.display = 'none';
-        }
-    });
-    
-    goTopBtn.addEventListener('click', () => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    });
-}
-
-// ========== ИНИЦИАЛИЗАЦИЯ ==========
 document.getElementById('backHomeBtn')?.addEventListener('click', goToHome);
 document.getElementById('backFlavorsHomeBtn')?.addEventListener('click', goBackToCategory);
 document.getElementById('homeLogoBtn')?.addEventListener('click', goToHome);
-document.getElementById('scrollHint')?.addEventListener('click', () => {
-    document.getElementById('categoriesSection')?.scrollIntoView({ behavior: 'smooth' });
-});
+document.getElementById('scrollHint')?.addEventListener('click', () => document.getElementById('categoriesSection')?.scrollIntoView({ behavior: 'smooth' }));
 window.addEventListener('scroll', handleScroll);
 loadAllData();
 handleScroll();
-
-setTimeout(() => {
-    setupSearch();
-    setupGoTop();
-}, 1000);
+setTimeout(() => { setupSearch(); }, 1000);
+document.getElementById('clearHistoryBtn')?.addEventListener('click', clearHistory);
+document.getElementById('clearFavoritesBtn')?.addEventListener('click', () => { favorites = []; saveFavorites(); showToast("❤️ Избранное очищено", false); });
