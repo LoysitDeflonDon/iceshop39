@@ -11,9 +11,18 @@ button, .category-card, .manager-card, .manager-option, .flavor-order-btn, .orde
 }
 
 body {
-    background: #0A0F1E;
+    background: linear-gradient(135deg, #0A0F1E 0%, #0F172A 50%, #1A1F2E 100%);
+    background-attachment: fixed;
+    background-size: 200% 200%;
+    animation: gradientShift 10s ease infinite;
     color: #EDF2FF;
     overflow-x: hidden;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
 }
 
 :root {
@@ -27,6 +36,7 @@ body {
     --neon-blue: #3B82F6;
 }
 
+/* ========== HERO СЕКЦИЯ С АНИМАЦИЕЙ ========== */
 .hero-section {
     min-height: 100vh;
     display: flex;
@@ -123,8 +133,9 @@ body {
     50% { transform: translateX(-50%) translateY(10px); }
 }
 
+/* ========== ШАПКА С ЭФФЕКТОМ СТЕКЛА ========== */
 .header {
-    background: rgba(10, 15, 30, 0.96);
+    background: rgba(10, 15, 30, 0.8);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border-dim);
     padding: 12px 20px;
@@ -153,6 +164,7 @@ body {
     font-weight: 800; 
 }
 
+/* ========== ПОИСК ========== */
 .search-container {
     position: relative;
     flex: 1;
@@ -189,9 +201,7 @@ body {
     display: none;
 }
 
-.search-results.show {
-    display: block;
-}
+.search-results.show { display: block; }
 
 .search-result-item {
     padding: 10px 15px;
@@ -200,39 +210,21 @@ body {
     transition: background 0.2s;
 }
 
-.search-result-item:hover {
-    background: #3B82F6;
+.search-result-item:hover { background: #3B82F6; }
+
+.search-result-name { font-weight: 600; font-size: 14px; }
+.search-result-category { font-size: 11px; color: #94A3B8; }
+.search-result-price { font-size: 12px; color: #FACC15; }
+
+/* ========== КАТЕГОРИИ ========== */
+.categories-section { padding: 50px 20px; background: transparent; }
+
+.section-title { 
+    text-align: center; 
+    font-size: clamp(1.5rem, 6vw, 2rem); 
+    margin-bottom: 30px;
+    text-shadow: 0 0 10px rgba(59,130,246,0.5), 0 0 20px rgba(59,130,246,0.3);
 }
-
-.search-result-name {
-    font-weight: 600;
-    font-size: 14px;
-}
-
-.search-result-category {
-    font-size: 11px;
-    color: #94A3B8;
-}
-
-.search-result-price {
-    font-size: 12px;
-    color: #FACC15;
-}
-
-@media (max-width: 700px) {
-    .header {
-        flex-direction: column;
-        padding: 10px;
-    }
-    .search-container {
-        max-width: 100%;
-        width: 100%;
-    }
-}
-
-.categories-section { padding: 50px 20px; background: var(--bg-deep); }
-
-.section-title { text-align: center; font-size: clamp(1.5rem, 6vw, 2rem); margin-bottom: 30px; }
 
 .categories-grid {
     display: grid;
@@ -246,8 +238,9 @@ body {
 @media (max-width: 550px) { .categories-grid { grid-template-columns: 1fr; } }
 
 .category-card { 
-    background: var(--card-dark); 
-    border: 1px solid var(--border-dim); 
+    background: rgba(17, 24, 39, 0.85);
+    backdrop-filter: blur(2px);
+    border: 1px solid rgba(59, 130, 246, 0.2);
     border-radius: 28px; 
     padding: 30px 15px; 
     text-align: center; 
@@ -255,7 +248,14 @@ body {
     transition: all 0.4s; 
     position: relative; 
     overflow: hidden; 
-    min-width: 0; 
+    min-width: 0;
+    animation: fadeInUp 0.4s ease forwards;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+@keyframes fadeInUp {
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .category-card::before {
@@ -283,22 +283,33 @@ body {
 .category-card > * { position: relative; z-index: 2; }
 
 .category-card:hover {
-    transform: translateY(-8px);
+    transform: translateY(-8px) rotateX(4deg) rotateY(4deg);
     border-color: #3B82F6;
-    box-shadow: 0 0 15px rgba(59,130,246,0.3);
+    box-shadow: 0 0 20px rgba(59,130,246,0.5), 0 0 5px rgba(59,130,246,0.3);
 }
 
-.category-icon { font-size: clamp(2.5rem, 8vw, 4rem); margin-bottom: 15px; }
+.category-icon { font-size: clamp(2.5rem, 8vw, 4rem); margin-bottom: 15px; transition: text-shadow 0.3s ease; }
+.category-card:hover .category-icon { text-shadow: 0 0 15px #3B82F6, 0 0 25px #2563EB; }
 .category-name { font-size: clamp(1rem, 5vw, 1.3rem); font-weight: 700; margin-bottom: 10px; word-break: break-word; }
 .category-count { color: var(--text-secondary); font-size: 0.85rem; }
 
+/* Каскадные задержки */
+.categories-grid .category-card:nth-child(1) { animation-delay: 0.05s; }
+.categories-grid .category-card:nth-child(2) { animation-delay: 0.1s; }
+.categories-grid .category-card:nth-child(3) { animation-delay: 0.15s; }
+.categories-grid .category-card:nth-child(4) { animation-delay: 0.2s; }
+.categories-grid .category-card:nth-child(5) { animation-delay: 0.25s; }
+.categories-grid .category-card:nth-child(6) { animation-delay: 0.3s; }
+
+/* ========== СТРАНИЦЫ ТОВАРОВ ========== */
 .products-page, .flavors-page { display: none; padding: 90px 20px 50px; min-height: 100vh; }
 .products-page.active, .flavors-page.active { display: block; animation: fadeIn 0.5s ease; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 .back-home {
-    background: var(--card-dark);
+    background: rgba(17, 24, 39, 0.85);
+    backdrop-filter: blur(2px);
     border: 1px solid var(--border-dim);
     border-radius: 40px;
     padding: 8px 20px;
@@ -314,10 +325,10 @@ body {
 .back-home:hover {
     background: #3B82F6;
     transform: translateX(-5px);
-    box-shadow: 0 0 10px rgba(59,130,246,0.5);
+    box-shadow: 0 0 15px rgba(59,130,246,0.5);
 }
 
-.page-title { font-size: clamp(1.5rem, 6vw, 2rem); margin-bottom: 25px; text-align: center; }
+.page-title { font-size: clamp(1.5rem, 6vw, 2rem); margin-bottom: 25px; text-align: center; text-shadow: 0 0 10px rgba(59,130,246,0.5); }
 
 .products-grid {
     display: grid;
@@ -325,28 +336,46 @@ body {
     gap: 20px;
     max-width: 1300px;
     margin: 0 auto;
-    align-items: stretch;
 }
 
 .product-card {
-    background: var(--card-dark);
-    border: 1px solid var(--border-dim);
+    background: rgba(17, 24, 39, 0.85);
+    backdrop-filter: blur(2px);
+    border: 1px solid rgba(59, 130, 246, 0.2);
     border-radius: 24px;
     padding: 16px;
-    transition: all 0.4s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    gap: 10px;
     cursor: pointer;
-    height: 100%;
-    min-height: 380px;
+    position: relative;
+    animation: fadeInUp 0.4s ease forwards;
+    opacity: 0;
+    transform: translateY(20px);
 }
 
 .product-card:hover {
-    transform: translateY(-6px);
+    transform: translateY(-10px) rotateX(6deg) rotateY(6deg);
     border-color: #3B82F6;
-    box-shadow: 0 0 12px rgba(59,130,246,0.3);
+    box-shadow: 0 25px 35px -15px rgba(0, 0, 0, 0.5), 0 0 25px rgba(59, 130, 246, 0.4);
 }
+
+.product-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 60%);
+    border-radius: 24px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.product-card:hover::after { opacity: 1; }
 
 .product-image {
     width: 100%;
@@ -356,20 +385,23 @@ body {
     background: #1E293B;
 }
 
-.product-title { font-size: clamp(1rem, 4vw, 1.2rem); font-weight: 700; margin-top: 8px; }
+.product-title { font-size: clamp(1rem, 4vw, 1.2rem); font-weight: 700; }
 .product-price { font-size: clamp(1.3rem, 5vw, 1.7rem); font-weight: 800; color: #FACC15; }
-.product-desc { 
-    color: var(--text-secondary); 
-    font-size: 0.85rem; 
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.product-stock { font-size: 0.8rem; color: #94A3B8; margin: 5px 0; }
+.product-desc { color: var(--text-secondary); font-size: 0.85rem; line-height: 1.4; }
 
+/* Каскадные задержки для товаров */
+.products-grid .product-card:nth-child(1) { animation-delay: 0.05s; }
+.products-grid .product-card:nth-child(2) { animation-delay: 0.1s; }
+.products-grid .product-card:nth-child(3) { animation-delay: 0.15s; }
+.products-grid .product-card:nth-child(4) { animation-delay: 0.2s; }
+.products-grid .product-card:nth-child(5) { animation-delay: 0.25s; }
+.products-grid .product-card:nth-child(6) { animation-delay: 0.3s; }
+.products-grid .product-card:nth-child(7) { animation-delay: 0.35s; }
+.products-grid .product-card:nth-child(8) { animation-delay: 0.4s; }
+.products-grid .product-card:nth-child(9) { animation-delay: 0.45s; }
+.products-grid .product-card:nth-child(10) { animation-delay: 0.5s; }
+
+/* ========== КНОПКИ ========== */
 .order-pill { 
     background: var(--success);
     border: none;
@@ -386,16 +418,45 @@ body {
     box-shadow: 0 0 5px rgba(16,185,129,0.3);
 }
 
-.order-pill:hover { background: #059669; transform: scale(1.02); }
-.order-pill:disabled { background: #4B5563; cursor: not-allowed; opacity: 0.6; transform: none; }
+.order-pill:hover { 
+    background: #059669; 
+    transform: scale(1.02); 
+    box-shadow: 0 0 15px rgba(16,185,129,0.5), 0 0 5px rgba(16,185,129,0.3);
+}
 
-.empty-msg { text-align: center; color: var(--text-secondary); padding: 50px 20px; font-size: 1rem; }
+/* ========== 2. ПУЛЬСИРУЮЩАЯ КНОПКА КОРЗИНЫ ========== */
+.cart-icon {
+    transition: all 0.3s ease;
+}
 
+.cart-icon:active {
+    animation: cartPulse 0.3s ease;
+}
+
+@keyframes cartPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); box-shadow: 0 0 25px rgba(59,130,246,0.8); }
+    100% { transform: scale(1); }
+}
+
+/* Анимация при добавлении товара */
+@keyframes cartBump {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.cart-icon.bump {
+    animation: cartBump 0.3s ease;
+}
+
+/* ========== ВАРИАНТЫ ТОВАРОВ ========== */
 .flavors-list { display: flex; flex-direction: column; gap: 12px; }
 
 .flavor-item {
-    background: var(--card-dark);
-    border: 1px solid var(--border-dim);
+    background: rgba(17, 24, 39, 0.85);
+    backdrop-filter: blur(2px);
+    border: 1px solid rgba(59, 130, 246, 0.2);
     border-radius: 20px;
     padding: 14px;
     display: flex;
@@ -403,6 +464,15 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
+    animation: fadeInUp 0.4s ease forwards;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.flavor-item:hover {
+    transform: translateX(8px) rotateY(3deg);
+    background: #1A2744;
+    box-shadow: -5px 0 15px rgba(59, 130, 246, 0.2);
 }
 
 .flavor-name { font-weight: 600; flex: 2; min-width: 120px; word-break: break-word; }
@@ -423,8 +493,19 @@ body {
     box-shadow: 0 0 3px rgba(16,185,129,0.3);
 }
 
-.flavor-order-btn:hover { box-shadow: 0 0 8px rgba(16,185,129,0.6); transform: scale(1.02); }
-.flavor-order-btn:disabled { background: #4B5563; cursor: not-allowed; opacity: 0.6; box-shadow: none; transform: none; }
+.flavor-order-btn:hover { 
+    box-shadow: 0 0 15px rgba(16,185,129,0.5), 0 0 5px rgba(16,185,129,0.3); 
+    transform: scale(1.02); 
+}
+
+.flavor-order-btn:disabled { background: #4B5563; cursor: not-allowed; opacity: 0.6; }
+
+/* Каскадные задержки для вариантов */
+.flavors-list .flavor-item:nth-child(1) { animation-delay: 0.05s; }
+.flavors-list .flavor-item:nth-child(2) { animation-delay: 0.1s; }
+.flavors-list .flavor-item:nth-child(3) { animation-delay: 0.15s; }
+.flavors-list .flavor-item:nth-child(4) { animation-delay: 0.2s; }
+.flavors-list .flavor-item:nth-child(5) { animation-delay: 0.25s; }
 
 @media (max-width: 550px) {
     .flavor-item { flex-direction: column; align-items: stretch; text-align: center; }
@@ -432,6 +513,7 @@ body {
     .flavor-order-btn { margin-top: 5px; }
 }
 
+/* ========== МОДАЛЬНЫЕ ОКНА ========== */
 .age-modal, .order-modal, .modal {
     position: fixed;
     top: 0;
@@ -444,11 +526,18 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    animation: modalFadeIn 0.2s ease;
+}
+
+@keyframes modalFadeIn {
+    from { opacity: 0; backdrop-filter: blur(0px); }
+    to { opacity: 1; backdrop-filter: blur(12px); }
 }
 
 .age-content, .order-content, .modal-content {
-    background: #0F172A;
-    border: 2px solid var(--neon-red);
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(59, 130, 246, 0.3);
     border-radius: 40px;
     padding: 30px;
     max-width: 450px;
@@ -497,6 +586,7 @@ body {
     margin-top: 10px;
 }
 
+/* ========== ВЫБОР МЕНЕДЖЕРА ========== */
 .manager-option {
     background: #1E293B;
     border: 1px solid var(--border-dim);
@@ -519,9 +609,10 @@ body {
     background: #3B82F6;
     border-color: #3B82F6;
     transform: translateX(5px);
-    box-shadow: 0 0 12px rgba(59,130,246,0.5);
+    box-shadow: 0 0 15px rgba(59,130,246,0.5);
 }
 
+/* ========== МЕНЕДЖЕРЫ ========== */
 .managers-section { padding: 50px 20px 30px; border-top: 1px solid var(--border-dim); }
 
 .managers-grid {
@@ -535,8 +626,9 @@ body {
 @media (max-width: 700px) { .managers-grid { grid-template-columns: 1fr; } }
 
 .manager-card {
-    background: var(--card-dark);
-    border: 1px solid var(--border-dim);
+    background: rgba(17, 24, 39, 0.85);
+    backdrop-filter: blur(2px);
+    border: 1px solid rgba(59, 130, 246, 0.2);
     border-radius: 60px;
     padding: 14px 20px;
     display: flex;
@@ -552,9 +644,83 @@ body {
 .manager-card:hover {
     background: #3B82F6;
     transform: translateY(-3px);
-    box-shadow: 0 0 12px rgba(59,130,246,0.4);
+    box-shadow: 0 0 15px rgba(59,130,246,0.5);
 }
 
+/* ========== ИСТОРИЯ, ИЗБРАННОЕ, ПОПУЛЯРНЫЕ ========== */
+.history-section, .favorites-section, .compare-section, .popular-section {
+    padding: 50px 20px;
+    background: transparent;
+    border-top: 1px solid var(--border-dim);
+}
+
+.history-grid, .favorites-grid, .compare-grid, .popular-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.history-card, .favorite-card, .popular-card {
+    background: rgba(17, 24, 39, 0.85);
+    backdrop-filter: blur(2px);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 16px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+    animation: fadeInUp 0.4s ease forwards;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.history-card:hover, .favorite-card:hover, .popular-card:hover {
+    transform: translateY(-6px) rotateX(3deg) rotateY(3deg);
+    border-color: #3B82F6;
+    box-shadow: 0 0 15px rgba(59,130,246,0.4);
+}
+
+.history-image, .favorite-image, .popular-image {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 12px;
+    margin-bottom: 8px;
+}
+
+.history-name, .favorite-name, .popular-name {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: white;
+}
+
+.history-price, .favorite-price, .popular-price {
+    font-size: 0.8rem;
+    color: #FACC15;
+    margin-top: 5px;
+}
+
+/* ========== КНОПКИ ОЧИСТКИ ========== */
+.clear-history-btn, .clear-favorites-btn, .clear-compare-btn {
+    display: block;
+    margin: 20px auto 0;
+    background: #334155;
+    border: none;
+    border-radius: 40px;
+    padding: 8px 20px;
+    color: white;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.3s;
+}
+
+.clear-history-btn:hover, .clear-favorites-btn:hover, .clear-compare-btn:hover {
+    background: #EF4444;
+}
+
+/* ========== ФУТЕР ========== */
 footer {
     text-align: center;
     padding: 25px 20px;
@@ -563,8 +729,32 @@ footer {
     font-size: 0.8rem;
 }
 
-.loader { text-align: center; padding: 50px; color: var(--text-secondary); }
+/* ========== ЗАГРУЗЧИК ========== */
+.loader {
+    text-align: center;
+    padding: 50px;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
 
+.loader::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border: 2px solid #1F2A44;
+    border-top-color: #3B82F6;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ========== КНОПКА НАВЕРХ ========== */
 .go-top {
     position: fixed;
     bottom: 90px;
@@ -588,545 +778,7 @@ footer {
     background: #2563EB;
 }
 
-/* ========== ИСТОРИЯ ПРОСМОТРОВ ========== */
-.history-section {
-    padding: 50px 20px;
-    background: var(--bg-deep);
-    border-top: 1px solid var(--border-dim);
-}
-
-.history-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 15px;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.history-card {
-    background: var(--card-dark);
-    border: 1px solid var(--border-dim);
-    border-radius: 16px;
-    padding: 12px;
-    cursor: pointer;
-    transition: all 0.3s;
-    text-align: center;
-}
-
-.history-card:hover {
-    transform: translateY(-5px);
-    border-color: #3B82F6;
-    box-shadow: 0 0 12px rgba(59,130,246,0.3);
-}
-
-.history-image {
-    width: 100%;
-    height: 100px;
-    object-fit: cover;
-    border-radius: 12px;
-    margin-bottom: 8px;
-}
-
-.history-name {
-    font-size: 0.8rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.clear-history-btn {
-    display: block;
-    margin: 20px auto 0;
-    background: #334155;
-    border: none;
-    border-radius: 40px;
-    padding: 8px 20px;
-    color: white;
-    cursor: pointer;
-    font-size: 0.8rem;
-    transition: all 0.3s;
-}
-
-.clear-history-btn:hover {
-    background: #EF4444;
-}
-
-/* ========== ПОПУЛЯРНЫЕ ТОВАРЫ ========== */
-.popular-section {
-    padding: 50px 20px;
-    background: var(--bg-deep);
-    border-top: 1px solid var(--border-dim);
-    border-bottom: 1px solid var(--border-dim);
-}
-
-.popular-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.popular-card {
-    background: var(--card-dark);
-    border: 1px solid var(--border-dim);
-    border-radius: 20px;
-    padding: 12px;
-    cursor: pointer;
-    transition: all 0.3s;
-    text-align: center;
-    position: relative;
-}
-
-.popular-card:hover {
-    transform: translateY(-5px);
-    border-color: #3B82F6;
-    box-shadow: 0 0 15px rgba(59,130,246,0.3);
-}
-
-.popular-badge {
-    position: absolute;
-    top: -10px;
-    left: -10px;
-    background: #EF4444;
-    color: white;
-    font-size: 0.7rem;
-    font-weight: bold;
-    padding: 4px 8px;
-    border-radius: 20px;
-    z-index: 10;
-}
-
-.popular-image {
-    width: 100%;
-    height: 150px;
-    object-fit: cover;
-    border-radius: 12px;
-    margin-bottom: 10px;
-}
-
-.popular-name {
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-bottom: 5px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.popular-variant {
-    font-size: 0.7rem;
-    color: #94A3B8;
-    margin-bottom: 5px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.popular-price {
-    color: #FACC15;
-    font-weight: 700;
-    font-size: 1rem;
-}
-
-.popular-orders {
-    font-size: 0.7rem;
-    color: #94A3B8;
-    margin-top: 5px;
-}
-
-@media (max-width: 550px) {
-    .popular-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 12px;
-    }
-    .popular-image {
-        height: 120px;
-    }
-    .popular-name {
-        font-size: 0.8rem;
-    }
-    .history-grid {
-        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-        gap: 10px;
-    }
-    .history-image {
-        height: 80px;
-    }
-    .history-name {
-        font-size: 0.7rem;
-    }
-}
-/* ========== ПОПУЛЯРНЫЕ ТОВАРЫ ========== */
-.popular-section, .favorites-section, .compare-section {
-    padding: 50px 20px;
-    background: var(--bg-deep);
-    border-top: 1px solid var(--border-dim);
-}
-
-.popular-grid, .favorites-grid, .compare-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 20px;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.popular-card, .favorite-card, .compare-card {
-    background: var(--card-dark);
-    border: 1px solid var(--border-dim);
-    border-radius: 16px;
-    padding: 12px;
-    cursor: pointer;
-    transition: all 0.3s;
-    text-align: center;
-    position: relative;
-}
-
-.popular-card:hover, .favorite-card:hover, .compare-card:hover {
-    transform: translateY(-5px);
-    border-color: #3B82F6;
-    box-shadow: 0 0 12px rgba(59,130,246,0.3);
-}
-
-.popular-image, .favorite-image, .compare-image {
-    width: 100%;
-    height: 120px;
-    object-fit: cover;
-    border-radius: 12px;
-    margin-bottom: 8px;
-}
-
-.popular-name, .favorite-name, .compare-name {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: white;
-}
-
-.popular-price, .favorite-price, .compare-price {
-    font-size: 0.8rem;
-    color: #FACC15;
-    margin-top: 5px;
-}
-
-.remove-favorite, .remove-compare {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    background: #EF4444;
-    border: none;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    color: white;
-    cursor: pointer;
-    font-size: 12px;
-}
-
-.clear-favorites-btn, .clear-compare-btn {
-    display: block;
-    margin: 20px auto 0;
-    background: #334155;
-    border: none;
-    border-radius: 40px;
-    padding: 8px 20px;
-    color: white;
-    cursor: pointer;
-    font-size: 0.8rem;
-    transition: all 0.3s;
-}
-
-.clear-favorites-btn:hover, .clear-compare-btn:hover {
-    background: #EF4444;
-}
-
-.favorite-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: rgba(0,0,0,0.5);
-    border: none;
-    border-radius: 50%;
-    width: 32px;
-    height: 32px;
-    cursor: pointer;
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-    z-index: 10;
-}
-
-.favorite-btn.active {
-    color: #EF4444;
-    background: rgba(0,0,0,0.7);
-}
-
-.compare-checkbox {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    background: rgba(0,0,0,0.5);
-    border: none;
-    border-radius: 20px;
-    padding: 4px 8px;
-    font-size: 11px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    z-index: 10;
-}
-
-@media (max-width: 550px) {
-    .popular-grid, .favorites-grid, .compare-grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-        gap: 10px;
-    }
-    .popular-image, .favorite-image, .compare-image {
-        height: 100px;
-    }
-}
-/* ========== ГРАДИЕНТНЫЙ ФОН ДЛЯ BODY ========== */
-body {
-    background: linear-gradient(135deg, #0A0F1E 0%, #0F172A 50%, #0A0F1E 100%);
-    background-attachment: fixed;
-}
-
-/* ========== НЕОНОВЫЕ АКЦЕНТЫ ========== */
-/* Неоновая рамка для активных элементов */
-.category-card.active,
-.product-card:hover,
-.flavor-item:hover,
-.manager-card:hover {
-    box-shadow: 0 0 15px rgba(59,130,246,0.5), 0 0 5px rgba(59,130,246,0.3);
-}
-
-/* Неоновый текст для заголовков */
-.hero-title,
-.section-title,
-.managers-title {
-    text-shadow: 0 0 10px rgba(59,130,246,0.5), 0 0 20px rgba(59,130,246,0.3);
-}
-
-/* Неоновая кнопка при наведении */
-.order-pill:hover,
-.flavor-order-btn:hover,
-.back-home:hover {
-    box-shadow: 0 0 15px rgba(16,185,129,0.5), 0 0 5px rgba(16,185,129,0.3);
-}
-
-/* Неоновое свечение для сердечек в избранном */
-.favorite-btn.active,
-.favorite-btn-option.active,
-.favorite-btn-simple.active {
-    text-shadow: 0 0 8px #EF4444, 0 0 3px #EF4444;
-}
-
-/* ========== МИКРО-АНИМАЦИИ КНОПОК ========== */
-/* Плавное появление и эффект нажатия */
-button,
-.category-card,
-.product-card,
-.manager-card,
-.flavor-order-btn,
-.order-pill,
-.back-home,
-.favorite-btn,
-.favorite-btn-option,
-.favorite-btn-simple {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Эффект нажатия для всех кнопок */
-button:active,
-.order-pill:active,
-.flavor-order-btn:active,
-.back-home:active,
-.favorite-btn:active,
-.favorite-btn-option:active,
-.favorite-btn-simple:active {
-    transform: scale(0.96);
-}
-
-/* Лёгкое поднятие при наведении */
-.category-card:hover,
-.product-card:hover,
-.manager-card:hover {
-    transform: translateY(-4px);
-}
-
-/* Пульсация для иконки корзины при добавлении */
-@keyframes cartBump {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.15); }
-    100% { transform: scale(1); }
-}
-
-.cart-icon:active {
-    animation: cartBump 0.2s ease;
-}
-
-/* Плавное изменение прозрачности для кнопок */
-.order-pill,
-.flavor-order-btn {
-    transition: all 0.2s ease;
-}
-
-/* ========== АНИМАЦИЯ ЗАГРУЗКИ ========== */
-/* Спиннер вместо текста "Загрузка" */
-.loader {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    color: #3B82F6;
-    font-size: 1rem;
-}
-
-.loader::before {
-    content: '';
-    width: 20px;
-    height: 20px;
-    border: 2px solid #1F2A44;
-    border-top-color: #3B82F6;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* Анимация для появления контента */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(15px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.categories-grid .category-card,
-.products-grid .product-card,
-.flavors-list .flavor-item,
-.history-grid .history-card,
-.popular-grid .popular-card,
-.favorites-grid .favorite-card {
-    animation: fadeInUp 0.3s ease forwards;
-}
-
-/* Задержки для последовательного появления карточек */
-.categories-grid .category-card:nth-child(1) { animation-delay: 0.05s; }
-.categories-grid .category-card:nth-child(2) { animation-delay: 0.1s; }
-.categories-grid .category-card:nth-child(3) { animation-delay: 0.15s; }
-.categories-grid .category-card:nth-child(4) { animation-delay: 0.2s; }
-.categories-grid .category-card:nth-child(5) { animation-delay: 0.25s; }
-.categories-grid .category-card:nth-child(6) { animation-delay: 0.3s; }
-
-/* Плавное появление модальных окон */
-.modal,
-.order-modal,
-.age-modal {
-    animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-/* Анимация для тост-уведомлений */
-#toast {
-    animation: slideInUp 0.3s ease;
-}
-
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateX(-50%) translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(-50%) translateY(0);
-    }
-}
-/* ========== 3D-КАРТОЧКИ ТОВАРОВ (УСИЛЕННЫЕ) ========== */
-.product-card {
-    transform-style: preserve-3d;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-}
-
-.product-card:hover {
-    transform: translateY(-10px) rotateX(6deg) rotateY(6deg);
-    box-shadow: 0 25px 35px -15px rgba(0, 0, 0, 0.5), 0 0 25px rgba(59, 130, 246, 0.4);
-}
-
-/* 3D-эффект для карточек категорий */
-.category-card {
-    transform-style: preserve-3d;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.category-card:hover {
-    transform: translateY(-8px) rotateX(4deg) rotateY(4deg);
-    box-shadow: 0 20px 30px -12px rgba(0, 0, 0, 0.4);
-}
-
-/* 3D-эффект для избранного, истории, популярных */
-.favorite-card,
-.history-card,
-.popular-card {
-    transform-style: preserve-3d;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.favorite-card:hover,
-.history-card:hover,
-.popular-card:hover {
-    transform: translateY(-6px) rotateX(3deg) rotateY(3deg);
-    box-shadow: 0 15px 25px -10px rgba(0, 0, 0, 0.4);
-}
-
-/* Эффект для вариантов товаров */
-.flavor-item {
-    transform-style: preserve-3d;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.flavor-item:hover {
-    transform: translateX(8px) rotateY(3deg);
-    background: #1A2744;
-    box-shadow: -5px 0 15px rgba(59, 130, 246, 0.2);
-}
-
-/* Блик на карточке при наведении */
-.product-card::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 60%);
-    border-radius: 24px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-}
-
-.product-card:hover::after {
-    opacity: 1;
-}
-
-/* Для мобильных устройств — оставляем только лёгкое поднятие */
+/* ========== АДАПТАЦИЯ ПОД ТЕЛЕФОН ========== */
 @media (max-width: 768px) {
     .product-card:hover,
     .category-card:hover,
@@ -1134,316 +786,54 @@ button:active,
     .history-card:hover,
     .popular-card:hover {
         transform: translateY(-4px);
-        box-shadow: 0 10px 20px -8px rgba(0, 0, 0, 0.4);
     }
+    
+    .product-card::after { display: none; }
     
     .flavor-item:hover {
         transform: translateX(4px);
     }
     
-    .product-card::after {
-        display: none;
+    .header {
+        flex-direction: column;
+        padding: 10px;
+    }
+    
+    .search-container {
+        max-width: 100%;
+        width: 100%;
+    }
+    
+    .history-grid, .favorites-grid, .popular-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 10px;
+    }
+    
+    .history-image, .favorite-image, .popular-image {
+        height: 80px;
+    }
+    
+    .history-name, .favorite-name, .popular-name {
+        font-size: 0.7rem;
     }
 }
 
-/* ========== ПОЛНОСТЬЮ УБИРАЕМ СИНЕЕ ВЫДЕЛЕНИЕ ========== */
-*,
-*::before,
-*::after {
-    -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
+/* ========== УБИРАЕМ СИНЕЕ ВЫДЕЛЕНИЕ ========== */
+* {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+*:focus, *:focus-visible, *:active {
+    outline: none !important;
+}
+
+button, .category-card, .product-card, .favorite-card, .history-card, .popular-card,
+.flavor-item, .manager-card, .manager-option, .flavor-order-btn, .order-pill,
+.back-home, .age-btn, .order-submit, .cancel-order, .cancel-modal, .cart-icon,
+.favorite-btn, .favorite-btn-option, .favorite-btn-simple, .remove-favorite,
+.clear-history-btn, .clear-favorites-btn, a {
     -webkit-tap-highlight-color: transparent !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
+    outline: none !important;
     user-select: none !important;
-}
-
-/* Убираем всё при фокусе и активации */
-*:focus,
-*:focus-visible,
-*:active,
-*:visited,
-*:hover,
-*:target {
-    outline: none !important;
-    outline-width: 0 !important;
-    outline-style: none !important;
-    outline-color: transparent !important;
-}
-
-/* Для всех интерактивных элементов */
-a,
-button,
-div,
-span,
-img,
-.category-card,
-.product-card,
-.favorite-card,
-.history-card,
-.popular-card,
-.flavor-item,
-.manager-card,
-.manager-option,
-.flavor-order-btn,
-.order-pill,
-.back-home,
-.age-btn,
-.order-submit,
-.cancel-order,
-.cancel-modal,
-.cart-icon,
-.favorite-btn,
-.favorite-btn-option,
-.favorite-btn-simple,
-.compare-checkbox,
-.remove-favorite,
-.remove-compare,
-.clear-history-btn,
-.clear-favorites-btn,
-.clear-compare-btn,
-[onclick],
-[role="button"],
-[tabindex] {
-    -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
-    -webkit-tap-highlight-color: transparent !important;
-    outline: none !important;
-    outline-width: 0 !important;
-}
-
-/* Специально для карточек товаров */
-.product-card:active,
-.product-card:focus,
-.product-card:focus-visible,
-.category-card:active,
-.category-card:focus,
-.category-card:focus-visible {
-    background-color: transparent !important;
-    outline: none !important;
-    transform: scale(0.98);
-}
-
-/* Для touch-устройств */
-@media (hover: none) and (pointer: coarse) {
-    * {
-        -webkit-tap-highlight-color: rgba(0, 0, 0, 0) !important;
-        -webkit-tap-highlight-color: transparent !important;
-    }
-    
-    .product-card:active,
-    .category-card:active {
-        background-color: rgba(59, 130, 246, 0.05) !important;
-        transition: background-color 0.05s;
-    }
-}
-
-/* ========== 1. ГРАДИЕНТНЫЙ ФОН ========== */
-body {
-    background: linear-gradient(135deg, #0A0F1E 0%, #0F172A 50%, #0A0F1E 100%);
-    background-attachment: fixed;
-}
-
-/* ========== 2. НЕОНОВЫЕ АКЦЕНТЫ ========== */
-/* Неоновая рамка для карточек при наведении */
-.product-card:hover,
-.category-card:hover,
-.favorite-card:hover,
-.history-card:hover,
-.popular-card:hover {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 5px rgba(59, 130, 246, 0.3);
-    border-color: #3B82F6;
-}
-
-/* Неоновое свечение для кнопок */
-.order-pill:hover,
-.flavor-order-btn:hover,
-.back-home:hover {
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.5), 0 0 5px rgba(16, 185, 129, 0.3);
-}
-
-/* Неоновый текст для заголовков */
-.hero-title,
-.section-title,
-.managers-title,
-.page-title {
-    text-shadow: 0 0 10px rgba(59, 130, 246, 0.5), 0 0 20px rgba(59, 130, 246, 0.3);
-}
-
-/* Неоновое свечение для активных элементов */
-.category-btn.active,
-.manager-option:hover {
-    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
-}
-
-/* ========== 3. ЭФФЕКТ СТЕКЛА (GLASSMORPHISM) ========== */
-.category-card,
-.product-card,
-.favorite-card,
-.history-card,
-.popular-card,
-.flavor-item,
-.manager-card,
-.product-form,
-.stats-section,
-.modal-content,
-.order-content,
-.age-content {
-    backdrop-filter: blur(2px);
-    background: rgba(17, 24, 39, 0.85);
-    border: 1px solid rgba(59, 130, 246, 0.2);
-}
-
-/* Усиленный эффект стекла для модальных окон */
-.modal-content,
-.order-content,
-.age-content {
-    backdrop-filter: blur(10px);
-    background: rgba(15, 23, 42, 0.95);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-/* Эффект стекла для шапки */
-.header {
-    backdrop-filter: blur(12px);
-    background: rgba(10, 15, 30, 0.8);
-}
-
-/* ========== 4. АНИМАЦИЯ ПОЯВЛЕНИЯ КАРТОЧЕК ========== */
-/* Плавное появление с каскадом */
-.category-card,
-.product-card,
-.favorite-card,
-.history-card,
-.popular-card,
-.flavor-item {
-    animation: fadeInUp 0.4s ease forwards;
-    opacity: 0;
-    transform: translateY(20px);
-}
-
-@keyframes fadeInUp {
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Каскадные задержки для категорий */
-.categories-grid .category-card:nth-child(1) { animation-delay: 0.05s; }
-.categories-grid .category-card:nth-child(2) { animation-delay: 0.1s; }
-.categories-grid .category-card:nth-child(3) { animation-delay: 0.15s; }
-.categories-grid .category-card:nth-child(4) { animation-delay: 0.2s; }
-.categories-grid .category-card:nth-child(5) { animation-delay: 0.25s; }
-.categories-grid .category-card:nth-child(6) { animation-delay: 0.3s; }
-
-/* Каскадные задержки для товаров */
-.products-grid .product-card:nth-child(1) { animation-delay: 0.05s; }
-.products-grid .product-card:nth-child(2) { animation-delay: 0.1s; }
-.products-grid .product-card:nth-child(3) { animation-delay: 0.15s; }
-.products-grid .product-card:nth-child(4) { animation-delay: 0.2s; }
-.products-grid .product-card:nth-child(5) { animation-delay: 0.25s; }
-.products-grid .product-card:nth-child(6) { animation-delay: 0.3s; }
-.products-grid .product-card:nth-child(7) { animation-delay: 0.35s; }
-.products-grid .product-card:nth-child(8) { animation-delay: 0.4s; }
-.products-grid .product-card:nth-child(9) { animation-delay: 0.45s; }
-.products-grid .product-card:nth-child(10) { animation-delay: 0.5s; }
-
-/* Анимация для вариантов товаров */
-.flavors-list .flavor-item:nth-child(1) { animation-delay: 0.05s; }
-.flavors-list .flavor-item:nth-child(2) { animation-delay: 0.1s; }
-.flavors-list .flavor-item:nth-child(3) { animation-delay: 0.15s; }
-.flavors-list .flavor-item:nth-child(4) { animation-delay: 0.2s; }
-.flavors-list .flavor-item:nth-child(5) { animation-delay: 0.25s; }
-
-/* ========== 9. ПАРАЛЛАКС ПРИ СКРОЛЛЕ ========== */
-.hero-section {
-    background-attachment: fixed;
-    background-position: center;
-    background-size: cover;
-    background-repeat: no-repeat;
-}
-
-/* Параллакс для категорий при скролле */
-.categories-section {
-    background-attachment: fixed;
-    background: linear-gradient(135deg, #0A0F1E 0%, #0F172A 100%);
-}
-
-/* Плавный переход между секциями */
-.categories-section,
-.history-section,
-.favorites-section,
-.compare-section,
-.popular-section,
-.managers-section {
-    position: relative;
-    z-index: 1;
-}
-
-/* Эффект глубины при скролле */
-@media (min-width: 768px) {
-    .hero-section::before {
-        background: rgba(10, 15, 30, 0.5);
-        transition: background 0.3s ease;
-    }
-    
-    body {
-        perspective: 1px;
-        transform-style: preserve-3d;
-    }
-    
-    .hero-section {
-        transform-style: preserve-3d;
-    }
-}
-
-/* ========== ДОПОЛНИТЕЛЬНЫЕ ЭФФЕКТЫ ========== */
-/* Плавное появление страницы */
-body {
-    animation: bodyFadeIn 0.5s ease;
-}
-
-@keyframes bodyFadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-/* Анимация для модальных окон */
-.modal,
-.order-modal,
-.age-modal {
-    animation: modalFadeIn 0.2s ease;
-}
-
-@keyframes modalFadeIn {
-    from {
-        opacity: 0;
-        backdrop-filter: blur(0px);
-    }
-    to {
-        opacity: 1;
-        backdrop-filter: blur(12px);
-    }
-}
-
-/* Свечение для иконок категорий при наведении */
-.category-icon {
-    transition: text-shadow 0.3s ease;
-}
-
-.category-card:hover .category-icon {
-    text-shadow: 0 0 15px #3B82F6, 0 0 25px #2563EB;
-}
-
-/* Анимация для кнопки корзины */
-.cart-icon {
-    transition: all 0.3s ease;
-}
-
-.cart-icon:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
 }
