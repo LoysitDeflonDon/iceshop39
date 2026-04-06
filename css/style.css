@@ -1235,3 +1235,215 @@ img,
         transition: background-color 0.05s;
     }
 }
+
+/* ========== 1. ГРАДИЕНТНЫЙ ФОН ========== */
+body {
+    background: linear-gradient(135deg, #0A0F1E 0%, #0F172A 50%, #0A0F1E 100%);
+    background-attachment: fixed;
+}
+
+/* ========== 2. НЕОНОВЫЕ АКЦЕНТЫ ========== */
+/* Неоновая рамка для карточек при наведении */
+.product-card:hover,
+.category-card:hover,
+.favorite-card:hover,
+.history-card:hover,
+.popular-card:hover {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5), 0 0 5px rgba(59, 130, 246, 0.3);
+    border-color: #3B82F6;
+}
+
+/* Неоновое свечение для кнопок */
+.order-pill:hover,
+.flavor-order-btn:hover,
+.back-home:hover {
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.5), 0 0 5px rgba(16, 185, 129, 0.3);
+}
+
+/* Неоновый текст для заголовков */
+.hero-title,
+.section-title,
+.managers-title,
+.page-title {
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.5), 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+/* Неоновое свечение для активных элементов */
+.category-btn.active,
+.manager-option:hover {
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
+}
+
+/* ========== 3. ЭФФЕКТ СТЕКЛА (GLASSMORPHISM) ========== */
+.category-card,
+.product-card,
+.favorite-card,
+.history-card,
+.popular-card,
+.flavor-item,
+.manager-card,
+.product-form,
+.stats-section,
+.modal-content,
+.order-content,
+.age-content {
+    backdrop-filter: blur(2px);
+    background: rgba(17, 24, 39, 0.85);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Усиленный эффект стекла для модальных окон */
+.modal-content,
+.order-content,
+.age-content {
+    backdrop-filter: blur(10px);
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* Эффект стекла для шапки */
+.header {
+    backdrop-filter: blur(12px);
+    background: rgba(10, 15, 30, 0.8);
+}
+
+/* ========== 4. АНИМАЦИЯ ПОЯВЛЕНИЯ КАРТОЧЕК ========== */
+/* Плавное появление с каскадом */
+.category-card,
+.product-card,
+.favorite-card,
+.history-card,
+.popular-card,
+.flavor-item {
+    animation: fadeInUp 0.4s ease forwards;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Каскадные задержки для категорий */
+.categories-grid .category-card:nth-child(1) { animation-delay: 0.05s; }
+.categories-grid .category-card:nth-child(2) { animation-delay: 0.1s; }
+.categories-grid .category-card:nth-child(3) { animation-delay: 0.15s; }
+.categories-grid .category-card:nth-child(4) { animation-delay: 0.2s; }
+.categories-grid .category-card:nth-child(5) { animation-delay: 0.25s; }
+.categories-grid .category-card:nth-child(6) { animation-delay: 0.3s; }
+
+/* Каскадные задержки для товаров */
+.products-grid .product-card:nth-child(1) { animation-delay: 0.05s; }
+.products-grid .product-card:nth-child(2) { animation-delay: 0.1s; }
+.products-grid .product-card:nth-child(3) { animation-delay: 0.15s; }
+.products-grid .product-card:nth-child(4) { animation-delay: 0.2s; }
+.products-grid .product-card:nth-child(5) { animation-delay: 0.25s; }
+.products-grid .product-card:nth-child(6) { animation-delay: 0.3s; }
+.products-grid .product-card:nth-child(7) { animation-delay: 0.35s; }
+.products-grid .product-card:nth-child(8) { animation-delay: 0.4s; }
+.products-grid .product-card:nth-child(9) { animation-delay: 0.45s; }
+.products-grid .product-card:nth-child(10) { animation-delay: 0.5s; }
+
+/* Анимация для вариантов товаров */
+.flavors-list .flavor-item:nth-child(1) { animation-delay: 0.05s; }
+.flavors-list .flavor-item:nth-child(2) { animation-delay: 0.1s; }
+.flavors-list .flavor-item:nth-child(3) { animation-delay: 0.15s; }
+.flavors-list .flavor-item:nth-child(4) { animation-delay: 0.2s; }
+.flavors-list .flavor-item:nth-child(5) { animation-delay: 0.25s; }
+
+/* ========== 9. ПАРАЛЛАКС ПРИ СКРОЛЛЕ ========== */
+.hero-section {
+    background-attachment: fixed;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+}
+
+/* Параллакс для категорий при скролле */
+.categories-section {
+    background-attachment: fixed;
+    background: linear-gradient(135deg, #0A0F1E 0%, #0F172A 100%);
+}
+
+/* Плавный переход между секциями */
+.categories-section,
+.history-section,
+.favorites-section,
+.compare-section,
+.popular-section,
+.managers-section {
+    position: relative;
+    z-index: 1;
+}
+
+/* Эффект глубины при скролле */
+@media (min-width: 768px) {
+    .hero-section::before {
+        background: rgba(10, 15, 30, 0.5);
+        transition: background 0.3s ease;
+    }
+    
+    body {
+        perspective: 1px;
+        transform-style: preserve-3d;
+    }
+    
+    .hero-section {
+        transform-style: preserve-3d;
+    }
+}
+
+/* ========== ДОПОЛНИТЕЛЬНЫЕ ЭФФЕКТЫ ========== */
+/* Плавное появление страницы */
+body {
+    animation: bodyFadeIn 0.5s ease;
+}
+
+@keyframes bodyFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Анимация для модальных окон */
+.modal,
+.order-modal,
+.age-modal {
+    animation: modalFadeIn 0.2s ease;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        backdrop-filter: blur(0px);
+    }
+    to {
+        opacity: 1;
+        backdrop-filter: blur(12px);
+    }
+}
+
+/* Свечение для иконок категорий при наведении */
+.category-icon {
+    transition: text-shadow 0.3s ease;
+}
+
+.category-card:hover .category-icon {
+    text-shadow: 0 0 15px #3B82F6, 0 0 25px #2563EB;
+}
+
+/* Анимация для кнопки корзины */
+.cart-icon {
+    transition: all 0.3s ease;
+}
+
+.cart-icon:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+}
