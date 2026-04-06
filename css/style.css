@@ -753,26 +753,6 @@ footer {
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
-
-/* ========== КНОПКА НАВЕРХ ========== */
-.go-top {
-    position: fixed;
-    bottom: 90px;
-    left: 20px;
-    background: #3B82F6;
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    border: none;
-    color: white;
-    font-size: 20px;
-    cursor: pointer;
-    display: none;
-    z-index: 1000;
-    box-shadow: 0 0 10px rgba(59,130,246,0.5);
-    transition: all 0.3s;
-}
-
 .go-top:hover {
     transform: scale(1.1);
     background: #2563EB;
@@ -877,7 +857,29 @@ button, .category-card, .product-card, .favorite-card, .history-card, .popular-c
     }
 }
 
-/* ========== НОВАЯ НАДПИСЬ "ЦЕНЫ У МЕНЕДЖЕРА" ========== */
+/* ========== НАДПИСЬ 18+ ========== */
+.age-warning {
+    margin-top: 25px;
+    font-size: 0.85rem;
+    color: #ff8888;
+    background: rgba(0, 0, 0, 0.5);
+    display: inline-block;
+    padding: 6px 18px;
+    border-radius: 60px;
+    backdrop-filter: blur(4px);
+    transform: translateY(30px);
+    opacity: 0;
+    animation: slideUpFadeAge 0.8s ease 0.8s forwards;
+}
+
+@keyframes slideUpFadeAge {
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* ========== НАДПИСЬ "ЦЕНЫ У МЕНЕДЖЕРА" (аналогично age-warning) ========== */
 .price-warning {
     margin-top: 12px;
     font-size: 0.8rem;
@@ -891,7 +893,7 @@ button, .category-card, .product-card, .favorite-card, .history-card, .popular-c
     opacity: 0;
     animation: slideUpFadePrice 0.8s ease 1.1s forwards;
     border: 1px solid rgba(250, 204, 21, 0.3);
-    letter-spacing: 0.3px;
+    pointer-events: none; /* Ключевое свойство — запрещает любые взаимодействия с элементом */
 }
 
 @keyframes slideUpFadePrice {
@@ -899,9 +901,4 @@ button, .category-card, .product-card, .favorite-card, .history-card, .popular-c
         transform: translateY(0);
         opacity: 1;
     }
-}
-
-/* Убираем hover-эффекты, чтобы надпись не пропадала */
-.price-warning:hover {
-    /* Никаких изменений при наведении */
 }
