@@ -7,7 +7,7 @@ const managers = [
 
 const categories = [
     { id: "Жидкости", name: "Жидкости", icon: "💧" },
-    { id: "Снюс", name: "Снюс", icon: "👅" },
+    { id: "Снюс", name: "Шайбы", icon: "👅" },
     { id: "Вейпы", name: "Вейпы", icon: "💨" },
     { id: "Испарители", name: "Испарители", icon: "🔥" },
     { id: "Картриджи", name: "Картриджи", icon: "⚡" },
