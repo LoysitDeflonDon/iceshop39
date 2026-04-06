@@ -538,7 +538,7 @@ async function loadAllData() {
         
         // Маппинг категорий
         allItems["Жидкости"] = record.Zhitkosty || [];
-        allItems["Снюс"] = record.Snus || [];
+        allItems["Шайбы"] = record.Snus || [];
         allItems["Вейпы"] = record.Vapes || [];
         allItems["Испарители"] = record.Ispariteli || [];
         allItems["Картриджи"] = record.Kartdritzhy || [];
