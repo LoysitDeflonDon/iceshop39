@@ -257,7 +257,7 @@ function renderPopularBlock() {
 }
 // ========== ИСТОРИЯ ПРОСМОТРОВ ==========
 const HISTORY_KEY = "view_history";
-const MAX_HISTORY = 10;
+const MAX_HISTORY = 5;
 
 function saveToHistory(item, variantName = null) {
     let history = getHistory();
@@ -682,7 +682,7 @@ function openCategory(catName) {
 
 function openFlavors(parentItem, highlightVariant = null) {
     saveToHistory(parentItem);
-    recordView(parentItem.id, parentItem.name, parentItem.image, parentItem.flavors ? `от ${Math.min(...parentItem.flavors.map(f => f.price))}` : parentItem.price, currentCategory);
+    recordView(parentItem.id, currentCategory);
     
     document.getElementById('productsPage').classList.remove('active');
     document.getElementById('flavorsPage').classList.add('active');
