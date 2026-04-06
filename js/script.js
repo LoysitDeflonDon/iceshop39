@@ -40,7 +40,7 @@ const ADMIN_CHAT_ID = "6919484181";
 // ========== КОРЗИНА ==========
 let cart = [];
 
-// ========== ИЗБРАННОЕ (ВАРИАНТЫ ТОВАРОВ) ==========
+// ========== ИЗБРАННОЕ ==========
 let favorites = [];
 
 function loadFavorites() {
@@ -357,7 +357,7 @@ function addToCart(productName, variantName, price, image, maxStock) {
         });
     }
     updateCartIcon();
-    showToast(`✅ ${productName} (${variantName}) добавлен в корзину`, false);
+    showToast(`✅ Добавлено в корзину!`, false);
     return true;
 }
 
@@ -545,7 +545,10 @@ async function loadCategory(catName) {
 }
 
 async function loadAllData() {
-    for (const cat of categories) allItems[cat.name] = await loadCategory(cat.name);
+    for (const cat of categories) {
+        allItems[cat.name] = await loadCategory(cat.name);
+        console.log(`Загружено ${cat.name}:`, allItems[cat.name].length);
+    }
     renderCategories();
     renderManagers();
     updateCartIcon();
@@ -573,12 +576,18 @@ function renderCategories() {
 function openCategory(catName) {
     currentCategory = catName;
     const items = allItems[catName] || [];
+    console.log(`Открываем категорию ${catName}, товаров: ${items.length}`);
+    
     document.getElementById('mainPage').style.display = 'none';
     document.getElementById('productsPage').classList.add('active');
     document.getElementById('flavorsPage').classList.remove('active');
     document.getElementById('productsPageTitle').textContent = catName;
     const container = document.getElementById('productsContainer');
-    if (!items.length) { container.innerHTML = '<div class="empty-msg">📭 Товары отсутствуют.</div>'; return; }
+    if (!items.length) { 
+        container.innerHTML = '<div class="empty-msg">📭 Товары отсутствуют.</div>'; 
+        return; 
+    }
+    
     container.innerHTML = items.map(item => {
         const itemName = escapeHtml(item.name);
         const itemImage = item.image || 'https://placehold.co/400x300/1E293B/3B82F6?text=No+Image';
@@ -595,6 +604,9 @@ function openCategory(catName) {
         } else {
             const stockInfo = formatStock(item.stock);
             const isFav = isFavorite(item.id, 0, true);
+            const stockText = stockInfo.isOutOfStock ? 'Нет в наличии' : `${stockInfo.available} шт`;
+            const stockClass = stockInfo.isOutOfStock ? 'stock-out' : (stockInfo.isLow ? 'stock-low' : '');
+            
             return `<div class="product-card" data-id="${item.id}" data-has-flavors="false">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div class="product-title">${itemName}</div>
@@ -603,7 +615,8 @@ function openCategory(catName) {
                 <img class="product-image" src="${itemImage}" loading="lazy" onerror="this.src='https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'">
                 <div class="product-price">${priceDisplay}</div>
                 <div class="product-desc">${itemDesc}</div>
-                ${!stockInfo.isOutOfStock ? `<button class="order-pill" data-order-name="${itemName}" data-order-price="${item.price}" data-order-image="${itemImage}" data-order-maxstock="${stockInfo.available}">📦 В корзину</button>` : '<div class="stock-warning" style="color:#EF4444; font-size:0.8rem;">❌ Нет в наличии</div>'}
+                <div style="margin: 5px 0; font-size: 0.8rem; color: #94A3B8;">📦 Остаток: ${stockText}</div>
+                ${!stockInfo.isOutOfStock ? `<button class="order-pill" data-order-name="${itemName}" data-order-price="${item.price}" data-order-image="${itemImage}" data-order-maxstock="${stockInfo.available}">📦 В корзину</button>` : '<div class="stock-warning" style="color:#EF4444; font-size:0.8rem; text-align:center; padding:10px;">❌ Нет в наличии</div>'}
             </div>`;
         }
     }).join('');
