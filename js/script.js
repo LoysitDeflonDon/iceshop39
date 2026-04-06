@@ -536,15 +536,16 @@ async function loadAllData() {
         const data = await response.json();
         const record = data.record || {};
         
-        // Маппинг категорий
+        // Маппинг категорий — ВАЖНО: "Шайбы" берёт данные из "Snus" в JSONBin
         allItems["Жидкости"] = record.Zhitkosty || [];
-        allItems["Шайбы"] = record.Snus || [];
+        allItems["Шайбы"] = record.Snus || [];      // ← ЭТО ГЛАВНОЕ ИСПРАВЛЕНИЕ
         allItems["Вейпы"] = record.Vapes || [];
         allItems["Испарители"] = record.Ispariteli || [];
         allItems["Картриджи"] = record.Kartdritzhy || [];
         allItems["Одноразки"] = record.Odnorazki || [];
         
         console.log("Данные загружены из JSONBin");
+        console.log("Шайбы загружено:", allItems["Шайбы"].length);
         renderCategories();
         renderManagers();
         updateCartIcon();
