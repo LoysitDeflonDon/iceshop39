@@ -915,7 +915,7 @@ button, .category-card, .product-card, .favorite-card, .history-card, .popular-c
     transform: translateY(20px);
     opacity: 0;
     animation: slideUpFadePrice 0.8s ease 1.2s forwards;
-    pointer-events: none;
+    pointer-events: none; /* ← ЗАЩИТА ОТ ПРОПАДАНИЯ */
 }
 
 @keyframes slideUpFadePrice {
