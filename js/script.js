@@ -64,7 +64,7 @@ function toggleFavorite(productName, variantName, price, image, category, produc
         favorites.push({
             uniqueId: uniqueId,
             productName: productName,
-            variantName: variantName || "Стандарт",
+            variantName: variantName || productName,
             price: price,
             image: image,
             category: category,
@@ -85,7 +85,6 @@ function isFavorite(productId, variantId, isSimple = false) {
 }
 
 function updateAllFavoriteButtons() {
-    // Обновляем кнопки на странице вариантов
     document.querySelectorAll('.favorite-btn-option').forEach(btn => {
         const productId = parseInt(btn.dataset.productId);
         const variantId = parseInt(btn.dataset.variantId);
@@ -98,7 +97,6 @@ function updateAllFavoriteButtons() {
         }
     });
     
-    // Обновляем кнопки на карточках простых товаров
     document.querySelectorAll('.favorite-btn-simple').forEach(btn => {
         const productId = parseInt(btn.dataset.productId);
         if (isFavorite(productId, 0, true)) {
@@ -144,7 +142,6 @@ function renderFavoritesBlock() {
                 const item = items.find(i => i.id === productId);
                 if (item) {
                     if (isSimple || !item.flavors) {
-                        // Для простых товаров — просто открываем категорию
                         openCategory(category);
                     } else if (item.flavors) {
                         openFlavors(item, variantName);
@@ -343,7 +340,7 @@ function updateCartIcon() {
 function addToCart(productName, variantName, price, image, maxStock) {
     const currentQty = getCartQuantity(productName, variantName);
     if (currentQty >= maxStock) {
-        showToast(`❌ Нельзя добавить больше ${maxStock} шт. товара "${variantName}"`);
+        showToast(`❌ Нельзя добавить больше ${maxStock} шт`, true);
         return false;
     }
     const existingItem = cart.find(item => item.productName === productName && item.variantName === variantName);
@@ -360,13 +357,13 @@ function addToCart(productName, variantName, price, image, maxStock) {
         });
     }
     updateCartIcon();
-    showToast(`✅ ${productName} (${variantName}) добавлен в корзину`);
+    showToast(`✅ ${productName} (${variantName}) добавлен в корзину`, false);
     return true;
 }
 
 function showCartModal() {
     if (cart.length === 0) {
-        showToast("🛒 Корзина пуста");
+        showToast("🛒 Корзина пуста", false);
         return;
     }
     const modalDiv = document.createElement('div');
@@ -394,8 +391,13 @@ function showCartModal() {
         btn.addEventListener('click', () => {
             const idx = parseInt(btn.dataset.index);
             const item = cart[idx];
-            if (item.quantity >= item.maxStock) { showToast(`❌ Нельзя добавить больше ${item.maxStock} шт.`, true); return; }
-            cart[idx].quantity++; modalDiv.remove(); showCartModal();
+            if (item.quantity >= item.maxStock) { 
+                showToast(`❌ Нельзя добавить больше ${item.maxStock} шт`, true); 
+                return; 
+            }
+            cart[idx].quantity++; 
+            modalDiv.remove(); 
+            showCartModal();
         });
     });
     modalDiv.querySelectorAll('.cart-minus').forEach(btn => {
@@ -403,13 +405,27 @@ function showCartModal() {
             const idx = parseInt(btn.dataset.index);
             if (cart[idx].quantity > 1) cart[idx].quantity--;
             else cart.splice(idx, 1);
-            if (cart.length === 0) { modalDiv.remove(); updateCartIcon(); showToast("🛒 Корзина очищена"); return; }
-            modalDiv.remove(); showCartModal();
+            if (cart.length === 0) { 
+                modalDiv.remove(); 
+                updateCartIcon(); 
+                showToast("🛒 Корзина очищена", false); 
+                return; 
+            }
+            modalDiv.remove(); 
+            showCartModal();
         });
     });
-    modalDiv.querySelector('#clearCartBtn').onclick = () => { cart = []; modalDiv.remove(); updateCartIcon(); showToast("🗑️ Корзина очищена"); };
+    modalDiv.querySelector('#clearCartBtn').onclick = () => { 
+        cart = []; 
+        modalDiv.remove(); 
+        updateCartIcon(); 
+        showToast("🗑️ Корзина очищена", false); 
+    };
     modalDiv.querySelector('#closeCartBtn').onclick = () => modalDiv.remove();
-    modalDiv.querySelector('#checkoutBtn').onclick = () => { modalDiv.remove(); showManagerModalForCart(); };
+    modalDiv.querySelector('#checkoutBtn').onclick = () => { 
+        modalDiv.remove(); 
+        showManagerModalForCart(); 
+    };
 }
 
 function showManagerModalForCart() {
@@ -421,7 +437,10 @@ function showManagerModalForCart() {
     const opts = modalDiv.querySelector('#managerOptionsTemp');
     opts.innerHTML = managers.map(m => `<div class="manager-option" data-tg="${m.tg}">${escapeHtml(m.name)}</div>`).join('');
     modalDiv.querySelectorAll('.manager-option').forEach(opt => {
-        opt.addEventListener('click', () => { modalDiv.remove(); showAgeConfirmForCart(opt.dataset.tg); });
+        opt.addEventListener('click', () => { 
+            modalDiv.remove(); 
+            showAgeConfirmForCart(opt.dataset.tg); 
+        });
     });
     modalDiv.querySelector('#cancelManagerBtn').onclick = () => modalDiv.remove();
 }
@@ -435,14 +454,30 @@ function showAgeConfirmForCart(managerTg) {
     const orderCheck = modalDiv.querySelector('#orderAgeConfirm');
     const submitBtn = modalDiv.querySelector('#submitOrderBtn');
     orderCheck.addEventListener('change', () => { submitBtn.disabled = !orderCheck.checked; });
-    submitBtn.onclick = () => { if (orderCheck.checked) { sendCartToTelegram(managerTg); modalDiv.remove(); } };
+    submitBtn.onclick = () => { 
+        if (orderCheck.checked) { 
+            sendCartToTelegram(managerTg); 
+            modalDiv.remove(); 
+        } 
+    };
     modalDiv.querySelector('#cancelOrderBtn').onclick = () => modalDiv.remove();
 }
 
 function saveOrderToStats(cartItems, totalPrice, managerTg) {
     const statsKey = "shop_statistics";
     const existingStats = JSON.parse(localStorage.getItem(statsKey) || '{"orders":[], "totalOrders":0, "totalRevenue":0}');
-    existingStats.orders.push({ id: Date.now(), date: new Date().toISOString(), items: cartItems.map(item => ({ productName: item.productName, variantName: item.variantName, price: item.price, quantity: item.quantity })), total: totalPrice, manager: managerTg });
+    existingStats.orders.push({ 
+        id: Date.now(), 
+        date: new Date().toISOString(), 
+        items: cartItems.map(item => ({ 
+            productName: item.productName, 
+            variantName: item.variantName, 
+            price: item.price, 
+            quantity: item.quantity 
+        })), 
+        total: totalPrice, 
+        manager: managerTg 
+    });
     existingStats.totalOrders = existingStats.orders.length;
     existingStats.totalRevenue = existingStats.orders.reduce((sum, o) => sum + o.total, 0);
     localStorage.setItem(statsKey, JSON.stringify(existingStats));
@@ -461,13 +496,20 @@ async function sendCartToTelegram(managerTg) {
     if (ADMIN_BOT_TOKEN && ADMIN_BOT_TOKEN !== "") {
         try {
             await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: ADMIN_CHAT_ID, text: `🔔 *НОВЫЙ ЗАКАЗ!*\n\nМенеджер: @${managerTg}\nСумма: ${totalPrice} ₽\nТоваров: ${cart.length}`, parse_mode: 'Markdown' })
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    chat_id: ADMIN_CHAT_ID, 
+                    text: `🔔 *НОВЫЙ ЗАКАЗ!*\n\nМенеджер: @${managerTg}\nСумма: ${totalPrice} ₽\nТоваров: ${cart.length}`, 
+                    parse_mode: 'Markdown' 
+                })
             });
         } catch(e) { console.error(e); }
     }
     saveOrderToStats(cart, totalPrice, managerTg);
-    cart = []; updateCartIcon(); showToast("✅ Заказ отправлен! Корзина очищена");
+    cart = []; 
+    updateCartIcon(); 
+    showToast("✅ Заказ отправлен! Корзина очищена", false);
 }
 
 function showToast(message, isError = false) {
@@ -568,7 +610,8 @@ function openCategory(catName) {
     
     document.querySelectorAll('.order-pill').forEach(btn => btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        addToCart(btn.dataset.orderName, 'стандарт', parseInt(btn.dataset.orderPrice), btn.dataset.orderImage, parseInt(btn.dataset.orderMaxstock));
+        const maxStock = parseInt(btn.dataset.orderMaxstock);
+        addToCart(btn.dataset.orderName, btn.dataset.orderName, parseInt(btn.dataset.orderPrice), btn.dataset.orderImage, maxStock);
     }));
     
     document.querySelectorAll('.favorite-btn-simple').forEach(btn => btn.addEventListener('click', (e) => {
@@ -613,7 +656,10 @@ function openFlavors(parentItem, highlightVariant = null) {
         </div>`;
     }).join('')}</div>`;
     
-    document.querySelectorAll('.flavor-order-btn:not([disabled])').forEach(btn => btn.addEventListener('click', () => addToCart(btn.dataset.productName, btn.dataset.flavorName, parseInt(btn.dataset.flavorPrice), btn.dataset.productImage, parseInt(btn.dataset.productMaxstock))));
+    document.querySelectorAll('.flavor-order-btn:not([disabled])').forEach(btn => btn.addEventListener('click', () => {
+        const maxStock = parseInt(btn.dataset.productMaxstock);
+        addToCart(btn.dataset.productName, btn.dataset.flavorName, parseInt(btn.dataset.flavorPrice), btn.dataset.productImage, maxStock);
+    }));
     
     document.querySelectorAll('.favorite-btn-option').forEach(btn => btn.addEventListener('click', (e) => {
         e.stopPropagation();
