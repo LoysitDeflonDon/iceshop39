@@ -24,12 +24,9 @@ let allItems = {
 };
 let currentCategory = null;
 
-// ========== JSONBIN НАСТРОЙКИ ==========
+// ========== JSONBIN НАСТРОЙКИ (ТВОИ КЛЮЧИ) ==========
 const JSONBIN_BIN_ID = "69d507df856a6821890a0bcb";
 const JSONBIN_API_KEY = "$2a$10$fmNbLUMTq997mQ0dglWhu.RfIQ6pp4mNvfltiUzaQPOPQDlh.NpUi";
-
-// ========== СТАТИСТИКА — НОВЫЙ БИН (ЗАМЕНИ НА СВОЙ ID) ==========
-const STATS_BIN_ID = "69d503fdaaba882197d23907"; // 👈 ВСТАВЬ ID СВОЕГО БИНА ДЛЯ СТАТИСТИКИ
 
 // ========== TELEGRAM БОТ ==========
 const ADMIN_BOT_TOKEN = "8552470788:AAGB1Q36M-gPlnTebMXJWw8e8GmcCXk00y4";
@@ -200,6 +197,7 @@ function renderPopularBlock() {
         return;
     }
     
+    // Собираем актуальные данные для каждого популярного товара
     const popularWithData = [];
     for (const stat of popular) {
         const category = stat.category;
@@ -209,6 +207,7 @@ function renderPopularBlock() {
         const item = items.find(i => i.id === stat.id);
         if (!item) continue;
         
+        // Получаем актуальную цену
         let price = '';
         if (item.flavors && item.flavors.length > 0) {
             const prices = item.flavors.map(f => f.price);
@@ -256,7 +255,6 @@ function renderPopularBlock() {
         });
     });
 }
-
 // ========== ИСТОРИЯ ПРОСМОТРОВ ==========
 const HISTORY_KEY = "view_history";
 const MAX_HISTORY = 5;
@@ -492,121 +490,24 @@ function showAgeConfirmForCart(managerTg) {
     modalDiv.querySelector('#cancelOrderBtn').onclick = () => modalDiv.remove();
 }
 
-// ========== ГЛОБАЛЬНАЯ СТАТИСТИКА ЧЕРЕЗ JSONBIN ==========
-async function getGlobalStatistics() {
-    try {
-        const response = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
-            headers: {
-                'X-Master-Key': JSONBIN_API_KEY
-            }
-        });
-        
-        if (!response.ok) {
-            return { orders: [], totalOrders: 0, totalRevenue: 0 };
-        }
-        
-        const data = await response.json();
-        const record = data.record;
-        if (record.orders && typeof record.totalOrders === 'undefined') {
-            return {
-                orders: record.orders,
-                totalOrders: record.orders.length,
-                totalRevenue: record.orders.reduce((sum, o) => sum + (o.total || 0), 0)
-            };
-        }
-        return record || { orders: [], totalOrders: 0, totalRevenue: 0 };
-    } catch (error) {
-        console.error('Ошибка загрузки статистики:', error);
-        return { orders: [], totalOrders: 0, totalRevenue: 0 };
-    }
-}
-
-async function saveOrderToGlobalStats(orderData) {
-    try {
-        const stats = await getGlobalStatistics();
-        
-        const newOrder = {
-            id: Date.now(),
-            date: new Date().toISOString(),
-            ...orderData
-        };
-        
-        stats.orders.unshift(newOrder);
-        stats.totalOrders = stats.orders.length;
-        stats.totalRevenue = stats.orders.reduce((sum, o) => sum + (o.total || 0), 0);
-        
-        const response = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Master-Key': JSONBIN_API_KEY
-            },
-            body: JSON.stringify(stats)
-        });
-        
-        if (response.ok) {
-            console.log('Статистика обновлена');
-            return true;
-        } else {
-            console.error('Ошибка сохранения статистики');
-            return false;
-        }
-    } catch (error) {
-        console.error('Ошибка:', error);
-        return false;
-    }
-}
-
-async function migrateLocalStatsToCloud() {
-    const localStats = JSON.parse(localStorage.getItem('shop_statistics') || '{"orders":[], "totalOrders":0, "totalRevenue":0}');
-    
-    if (localStats.orders && localStats.orders.length > 0) {
-        console.log(`Переносим ${localStats.orders.length} заказов из localStorage в облако...`);
-        
-        const cloudStats = await getGlobalStatistics();
-        const existingIds = new Set(cloudStats.orders.map(o => o.id));
-        const newOrders = localStats.orders.filter(o => !existingIds.has(o.id));
-        
-        if (newOrders.length > 0) {
-            const allOrders = [...newOrders, ...cloudStats.orders];
-            allOrders.sort((a, b) => b.id - a.id);
-            
-            const mergedStats = {
-                orders: allOrders,
-                totalOrders: allOrders.length,
-                totalRevenue: allOrders.reduce((sum, o) => sum + (o.total || 0), 0)
-            };
-            
-            const response = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Master-Key': JSONBIN_API_KEY
-                },
-                body: JSON.stringify(mergedStats)
-            });
-            
-            if (response.ok) {
-                console.log('Локальная статистика перенесена в облако!');
-                localStorage.setItem('stats_migrated', 'true');
-            }
-        }
-    }
-}
-
-async function saveOrderToStats(cartItems, totalPrice, managerTg) {
-    const orderForStats = {
-        total: totalPrice,
-        manager: managerTg,
-        items: cartItems.map(item => ({
-            productName: item.productName,
-            variantName: item.variantName,
-            price: item.price,
-            quantity: item.quantity
-        }))
-    };
-    
-    await saveOrderToGlobalStats(orderForStats);
+function saveOrderToStats(cartItems, totalPrice, managerTg) {
+    const statsKey = "shop_statistics";
+    const existingStats = JSON.parse(localStorage.getItem(statsKey) || '{"orders":[], "totalOrders":0, "totalRevenue":0}');
+    existingStats.orders.push({ 
+        id: Date.now(), 
+        date: new Date().toISOString(), 
+        items: cartItems.map(item => ({ 
+            productName: item.productName, 
+            variantName: item.variantName, 
+            price: item.price, 
+            quantity: item.quantity 
+        })), 
+        total: totalPrice, 
+        manager: managerTg 
+    });
+    existingStats.totalOrders = existingStats.orders.length;
+    existingStats.totalRevenue = existingStats.orders.reduce((sum, o) => sum + o.total, 0);
+    localStorage.setItem(statsKey, JSON.stringify(existingStats));
 }
 
 async function sendCartToTelegram(managerTg) {
@@ -619,9 +520,6 @@ async function sendCartToTelegram(managerTg) {
     });
     message += `────────────────\n💰 *ИТОГО: ${totalPrice} ₽*\n\n🕐 Заказ отправлен с сайта ICESHOP39`;
     window.open(`https://t.me/${managerTg}?text=${encodeURIComponent(message)}`, '_blank');
-    
-    await saveOrderToStats(cart, totalPrice, managerTg);
-    
     if (ADMIN_BOT_TOKEN && ADMIN_BOT_TOKEN !== "") {
         try {
             await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, {
@@ -635,7 +533,7 @@ async function sendCartToTelegram(managerTg) {
             });
         } catch(e) { console.error(e); }
     }
-    
+    saveOrderToStats(cart, totalPrice, managerTg);
     cart = []; 
     updateCartIcon(); 
     showToast("✅ Заказ отправлен! Корзина очищена", false);
@@ -670,8 +568,9 @@ async function loadAllData() {
         const data = await response.json();
         const record = data.record || {};
         
+        // Маппинг категорий — ВАЖНО: "Шайбы" берёт данные из "Snus" в JSONBin
         allItems["Жидкости"] = record.Zhitkosty || [];
-        allItems["Шайбы"] = record.Snus || [];
+        allItems["Шайбы"] = record.Snus || [];      // ← ЭТО ГЛАВНОЕ ИСПРАВЛЕНИЕ
         allItems["Вейпы"] = record.Vapes || [];
         allItems["Испарители"] = record.Ispariteli || [];
         allItems["Картриджи"] = record.Kartdritzhy || [];
@@ -686,12 +585,6 @@ async function loadAllData() {
         loadViewStats();
         renderHistoryBlock();
         renderPopularBlock();
-        
-        // Переносим локальную статистику в облако, если ещё не переносили
-        if (!localStorage.getItem('stats_migrated')) {
-            await migrateLocalStatsToCloud();
-        }
-        
         showToast("✅ Товары загружены", false);
     } catch(e) {
         console.error('Ошибка загрузки:', e);
