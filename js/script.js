@@ -2,7 +2,7 @@
 const managers = [
     { name: "🏢 КСиПТ", tg: "ICE_SHOP39" },
     { name: "🏘️ Гурьевск", tg: "IceShop_Gur" },
-    { name: "🌆 Калининград", tg: "iceshop_kld" }
+    { name: "🌆 Калининград", tg: "iceshop_kld39" }
 ];
 
 const categories = [
