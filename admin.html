@@ -475,27 +475,55 @@ let editId = null;
 let currentFlavors = [];
 let cachedAllData = null;
 
-// ========== СТАТИСТИКА ==========
-const STATS_KEY = "shop_statistics";
+// ========== ГЛОБАЛЬНАЯ СТАТИСТИКА ЧЕРЕЗ JSONBIN ==========
+const STATS_BIN_ID = "ТВОЙ_BIN_ID_СЮДА"; // ТОТ ЖЕ ID, ЧТО И В script.js
 
-function loadStatistics() {
-    return JSON.parse(localStorage.getItem(STATS_KEY) || '{"orders":[], "totalOrders":0, "totalRevenue":0}');
+async function loadStatistics() {
+    try {
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
+            headers: {
+                'X-Master-Key': JSONBIN_API_KEY
+            }
+        });
+        
+        if (!response.ok) {
+            return { orders: [], totalOrders: 0, totalRevenue: 0 };
+        }
+        
+        const data = await response.json();
+        const record = data.record;
+        return record || { orders: [], totalOrders: 0, totalRevenue: 0 };
+    } catch (error) {
+        console.error('Ошибка загрузки статистики:', error);
+        return { orders: [], totalOrders: 0, totalRevenue: 0 };
+    }
 }
 
-function updateStatsDisplay() {
-    const stats = loadStatistics();
+async function updateStatsDisplay() {
+    const stats = await loadStatistics();
     document.getElementById('totalOrders').textContent = stats.totalOrders || 0;
     document.getElementById('totalRevenue').textContent = (stats.totalRevenue || 0).toLocaleString();
     const avgOrder = stats.totalOrders > 0 ? Math.round(stats.totalRevenue / stats.totalOrders) : 0;
     document.getElementById('avgOrder').textContent = avgOrder.toLocaleString();
 }
 
-// ========== ОЧИСТКА СТАТИСТИКИ ==========
-function clearStatistics() {
+async function clearStatistics() {
     if (confirm("🗑️ Очистить всю статистику? Это действие нельзя отменить!")) {
-        localStorage.setItem(STATS_KEY, '{"orders":[], "totalOrders":0, "totalRevenue":0}');
-        updateStatsDisplay();
-        showToast("📊 Статистика очищена", false);
+        const emptyStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
+        try {
+            await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Master-Key': JSONBIN_API_KEY
+                },
+                body: JSON.stringify(emptyStats)
+            });
+            await updateStatsDisplay();
+            showToast("📊 Статистика очищена", false);
+        } catch(e) {
+            showToast("❌ Ошибка очистки статистики", true);
+        }
     }
 }
 
@@ -763,7 +791,7 @@ async function deleteProduct(id) {
 function cancelEdit() {
     editId = null;
     currentFlavors = [];
-    document.getElementById('formTitle').content = '➕ Новый товар';
+    document.getElementById('formTitle').textContent = '➕ Новый товар';
     document.getElementById('productName').value = '';
     document.getElementById('productImage').value = '';
     document.getElementById('productDesc').value = '';
