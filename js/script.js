@@ -514,24 +514,48 @@ function showAgeConfirmForCart(managerTg) {
     modalDiv.querySelector('#cancelOrderBtn').onclick = () => modalDiv.remove();
 }
 
-function saveOrderToStats(cartItems, totalPrice, managerTg) {
-    const statsKey = "shop_statistics";
-    const existingStats = JSON.parse(localStorage.getItem(statsKey) || '{"orders":[], "totalOrders":0, "totalRevenue":0}');
-    existingStats.orders.push({ 
-        id: Date.now(), 
-        date: new Date().toISOString(), 
-        items: cartItems.map(item => ({ 
-            productName: item.productName, 
-            variantName: item.variantName, 
-            price: item.price, 
-            quantity: item.quantity 
-        })), 
-        total: totalPrice, 
-        manager: managerTg 
-    });
-    existingStats.totalOrders = existingStats.orders.length;
-    existingStats.totalRevenue = existingStats.orders.reduce((sum, o) => sum + o.total, 0);
-    localStorage.setItem(statsKey, JSON.stringify(existingStats));
+async function saveOrderToStats(cartItems, totalPrice, managerTg) {
+    try {
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
+            headers: { 'X-Master-Key': JSONBIN_API_KEY }
+        });
+        const data = await response.json();
+        const record = data.record || {};
+        
+        const orders = record.orders || [];
+        orders.push({
+            id: Date.now(),
+            date: new Date().toISOString(),
+            items: cartItems.map(item => ({
+                productName: item.productName,
+                variantName: item.variantName,
+                price: item.price,
+                quantity: item.quantity
+            })),
+            total: totalPrice,
+            manager: managerTg
+        });
+        
+        const totalOrders = orders.length;
+        const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+        
+        await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': JSONBIN_API_KEY
+            },
+            body: JSON.stringify({
+                views: record.views || {},
+                orders: orders,
+                totalOrders: totalOrders,
+                totalRevenue: totalRevenue,
+                lastUpdated: new Date().toISOString()
+            })
+        });
+    } catch(e) {
+        console.error('Ошибка сохранения заказа:', e);
+    }
 }
 
 // Вспомогательная функция для экранирования Markdown (добавь её перед sendCartToTelegram)
