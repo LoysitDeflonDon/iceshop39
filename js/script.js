@@ -534,29 +534,75 @@ function saveOrderToStats(cartItems, totalPrice, managerTg) {
     localStorage.setItem(statsKey, JSON.stringify(existingStats));
 }
 
+// Вспомогательная функция для экранирования Markdown (добавь её перед sendCartToTelegram)
+function escapeMarkdown(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
+}
+
 async function sendCartToTelegram(managerTg) {
+    // Формируем сообщение для менеджера
     let message = "🛒 *НОВЫЙ ЗАКАЗ* 🛒\n\n";
     let totalPrice = 0;
+    
     cart.forEach((item, index) => {
         const itemTotal = item.price * item.quantity;
         totalPrice += itemTotal;
-        message += `${index + 1}. *${item.productName}*\n   Вариант: ${item.variantName}\n   Цена: ${item.price} ₽\n   Количество: ${item.quantity} шт\n   Сумма: ${itemTotal} ₽\n\n`;
+        message += `${index + 1}\\. *${escapeMarkdown(item.productName)}*\n`;
+        message += `   Вариант: ${escapeMarkdown(item.variantName)}\n`;
+        message += `   Цена: ${item.price} ₽\n`;
+        message += `   Количество: ${item.quantity} шт\n`;
+        message += `   Сумма: ${itemTotal} ₽\n\n`;
     });
-    message += `────────────────\n💰 *ИТОГО: ${totalPrice} ₽*\n\n🕐 Заказ отправлен с сайта ICESHOP39`;
+    
+    message += `────────────────\n`;
+    message += `💰 *ИТОГО: ${totalPrice} ₽*\n\n`;
+    message += `🕐 Заказ отправлен с сайта ICESHOP39`;
+    
+    // Открываем чат с менеджером
     window.open(`https://t.me/${managerTg}?text=${encodeURIComponent(message)}`, '_blank');
+    
+    // Отправляем уведомление админу
     if (ADMIN_BOT_TOKEN && ADMIN_BOT_TOKEN !== "") {
         try {
-            await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, {
-                method: 'POST', 
+            let adminMessage = `🔔 *НОВЫЙ ЗАКАЗ!*\n\n`;
+            adminMessage += `👤 *Менеджер:* @${managerTg}\n`;
+            adminMessage += `💰 *Сумма:* ${totalPrice} ₽\n`;
+            adminMessage += `📦 *Товаров:* ${cart.length}\n\n`;
+            adminMessage += `*Состав заказа:*\n`;
+            
+            cart.forEach((item, index) => {
+                adminMessage += `${index + 1}\\. ${escapeMarkdown(item.productName)} — ${escapeMarkdown(item.variantName)} × ${item.quantity} = ${item.price * item.quantity} ₽\n`;
+            });
+            
+            const response = await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    chat_id: ADMIN_CHAT_ID, 
-                    text: `🔔 *НОВЫЙ ЗАКАЗ!*\n\nМенеджер: @${managerTg}\nСумма: ${totalPrice} ₽\nТоваров: ${cart.length}`, 
-                    parse_mode: 'Markdown' 
+                body: JSON.stringify({
+                    chat_id: ADMIN_CHAT_ID,
+                    text: adminMessage,
+                    parse_mode: 'MarkdownV2'
                 })
             });
-        } catch(e) { console.error(e); }
+            
+            const result = await response.json();
+            if (!result.ok) {
+                // Если с MarkdownV2 ошибка — пробуем без форматирования
+                await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: ADMIN_CHAT_ID,
+                        text: `🔔 НОВЫЙ ЗАКАЗ!\n\nМенеджер: @${managerTg}\nСумма: ${totalPrice} ₽\nТоваров: ${cart.length}`
+                    })
+                });
+            }
+        } catch(e) {
+            console.error('Ошибка отправки админу:', e);
+        }
     }
+    
     saveOrderToStats(cart, totalPrice, managerTg);
     cart = []; 
     updateCartIcon(); 
