@@ -20,7 +20,6 @@
             padding-bottom: 30px;
         }
 
-        /* ========== ЛОГИН ========== */
         .login-box { 
             max-width: 350px; 
             margin: 80px auto; 
@@ -31,11 +30,7 @@
             border: 1px solid #1F2A44;
         }
 
-        .login-box h2 {
-            margin-bottom: 20px;
-            color: #3B82F6;
-        }
-
+        .login-box h2 { margin-bottom: 20px; color: #3B82F6; }
         .login-box input { 
             width: 100%; 
             padding: 14px; 
@@ -46,7 +41,6 @@
             color: white; 
             font-size: 16px; 
         }
-
         .login-box button { 
             background: #3B82F6; 
             color: white; 
@@ -60,18 +54,7 @@
             transition: all 0.2s;
         }
 
-        .login-box button:active {
-            transform: scale(0.97);
-        }
-
-        /* ========== ПАНЕЛЬ АДМИНКИ ========== */
-        .admin-panel { 
-            display: none; 
-            max-width: 1400px; 
-            margin: 0 auto; 
-        }
-
-        /* Шапка */
+        .admin-panel { display: none; max-width: 1400px; margin: 0 auto; }
         .admin-header {
             display: flex;
             justify-content: space-between;
@@ -82,33 +65,15 @@
             padding-bottom: 15px;
             border-bottom: 1px solid #1F2A44;
         }
+        .admin-header h1 { font-size: 1.5rem; color: #3B82F6; }
+        .logout-btn { background: #EF4444; padding: 8px 20px; border-radius: 40px; font-size: 14px; }
 
-        .admin-header h1 {
-            font-size: 1.5rem;
-            color: #3B82F6;
-        }
-
-        .logout-btn {
-            background: #EF4444;
-            padding: 8px 20px;
-            border-radius: 40px;
-            font-size: 14px;
-        }
-
-        /* Категории (скролл на телефоне) */
         .categories-wrapper {
             overflow-x: auto;
             margin: 15px 0;
             -webkit-overflow-scrolling: touch;
         }
-
-        .category-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: nowrap;
-            padding-bottom: 8px;
-        }
-
+        .category-buttons { display: flex; gap: 10px; flex-wrap: nowrap; padding-bottom: 8px; }
         .category-btn { 
             background: #1E293B; 
             padding: 10px 20px; 
@@ -120,24 +85,14 @@
             transition: all 0.2s;
             border: 1px solid #334155;
         }
+        .category-btn.active { background: #3B82F6; border-color: #3B82F6; }
 
-        .category-btn.active { 
-            background: #3B82F6; 
-            border-color: #3B82F6;
-        }
-
-        .category-btn:active {
-            transform: scale(0.96);
-        }
-
-        /* Статистика (компактно) */
         .stats-row {
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
             margin-bottom: 20px;
         }
-
         .stat-card {
             background: #111827;
             padding: 12px 20px;
@@ -147,19 +102,9 @@
             text-align: center;
             border: 1px solid #1F2A44;
         }
+        .stat-number { font-size: 1.6rem; font-weight: bold; color: #3B82F6; }
+        .stat-label { font-size: 0.7rem; color: #94A3B8; }
 
-        .stat-number {
-            font-size: 1.6rem;
-            font-weight: bold;
-            color: #3B82F6;
-        }
-
-        .stat-label {
-            font-size: 0.7rem;
-            color: #94A3B8;
-        }
-
-        /* Кнопка очистки статистики */
         .clear-stats-btn {
             background: #EF4444;
             border: none;
@@ -174,11 +119,6 @@
             transition: all 0.2s;
         }
 
-        .clear-stats-btn:active {
-            transform: scale(0.97);
-        }
-
-        /* Форма добавления/редактирования */
         .product-form {
             background: #111827;
             padding: 20px;
@@ -187,17 +127,8 @@
             border: 1px solid #1F2A44;
         }
 
-        .form-row {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 12px;
-        }
-
-        .form-row input, .form-row textarea {
-            flex: 1;
-            min-width: 150px;
-        }
+        .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+        .form-row input, .form-row textarea { flex: 1; min-width: 150px; }
 
         input, textarea { 
             width: 100%; 
@@ -208,14 +139,8 @@
             color: white; 
             font-size: 14px;
         }
+        textarea { resize: vertical; min-height: 70px; font-family: inherit; }
 
-        textarea {
-            resize: vertical;
-            min-height: 70px;
-            font-family: inherit;
-        }
-
-        /* Загрузка фото */
         .image-row {
             display: flex;
             gap: 10px;
@@ -223,35 +148,12 @@
             align-items: center;
             margin: 12px 0;
         }
+        .image-row input { flex: 1; margin: 0; }
+        .image-row button { background: #334155; width: auto; padding: 12px 16px; margin: 0; white-space: nowrap; }
+        .image-preview { margin-top: 10px; }
+        .image-preview img { max-width: 80px; max-height: 80px; border-radius: 12px; }
 
-        .image-row input {
-            flex: 1;
-            margin: 0;
-        }
-
-        .image-row button {
-            background: #334155;
-            width: auto;
-            padding: 12px 16px;
-            margin: 0;
-            white-space: nowrap;
-        }
-
-        .image-preview {
-            margin-top: 10px;
-        }
-
-        .image-preview img {
-            max-width: 80px;
-            max-height: 80px;
-            border-radius: 12px;
-        }
-
-        /* Варианты товара */
-        .flavors-list {
-            margin: 15px 0;
-        }
-
+        .flavors-list { margin: 15px 0; }
         .flavor-row {
             background: #1E293B;
             padding: 12px;
@@ -262,20 +164,9 @@
             flex-wrap: wrap;
             align-items: center;
         }
+        .flavor-row input { flex: 1; min-width: 100px; margin: 0; }
+        .flavor-row button { background: #EF4444; width: auto; padding: 10px 16px; }
 
-        .flavor-row input {
-            flex: 1;
-            min-width: 100px;
-            margin: 0;
-        }
-
-        .flavor-row button {
-            background: #EF4444;
-            width: auto;
-            padding: 10px 16px;
-        }
-
-        /* Кнопки */
         button { 
             background: #3B82F6; 
             border: none; 
@@ -287,34 +178,19 @@
             font-size: 14px;
             transition: all 0.2s;
         }
-
-        button:active {
-            transform: scale(0.97);
-        }
-
         button.danger { background: #EF4444; }
         button.success { background: #10B981; }
         button.secondary { background: #334155; }
 
-        .action-buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
+        .action-buttons { display: flex; gap: 12px; margin-top: 15px; flex-wrap: wrap; }
+        .action-buttons button { flex: 1; }
 
-        .action-buttons button {
-            flex: 1;
-        }
-
-        /* Список товаров (сетка) */
         .products-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 12px;
             margin-top: 15px;
         }
-
         .product-card {
             background: #111827;
             padding: 14px;
@@ -324,39 +200,13 @@
             justify-content: space-between;
             align-items: center;
             gap: 10px;
-            transition: all 0.2s;
         }
+        .product-info { flex: 1; }
+        .product-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+        .product-meta { font-size: 11px; color: #94A3B8; }
+        .product-actions { display: flex; gap: 8px; }
+        .product-actions button { padding: 8px 12px; font-size: 12px; }
 
-        .product-card:hover {
-            border-color: #3B82F6;
-        }
-
-        .product-info {
-            flex: 1;
-        }
-
-        .product-name {
-            font-weight: 600;
-            font-size: 14px;
-            margin-bottom: 4px;
-        }
-
-        .product-meta {
-            font-size: 11px;
-            color: #94A3B8;
-        }
-
-        .product-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .product-actions button {
-            padding: 8px 12px;
-            font-size: 12px;
-        }
-
-        /* Тосты */
         .toast {
             position: fixed;
             bottom: 20px;
@@ -367,16 +217,43 @@
             border-radius: 60px;
             z-index: 10000;
             font-size: 14px;
-            white-space: nowrap;
             box-shadow: 0 0 15px rgba(0,0,0,0.3);
             max-width: 90%;
-            white-space: normal;
             text-align: center;
         }
 
         .hidden { display: none; }
 
-        /* Адаптация под телефон */
+        /* Таблица заказов */
+        .orders-table-container {
+            background: #111827;
+            border-radius: 20px;
+            padding: 15px;
+            margin: 20px 0;
+            border: 1px solid #1F2A44;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .orders-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .orders-table th {
+            text-align: left;
+            padding: 10px 5px;
+            color: #94A3B8;
+            border-bottom: 1px solid #1F2A44;
+            position: sticky;
+            top: 0;
+            background: #111827;
+        }
+        .orders-table td {
+            padding: 8px 5px;
+            border-bottom: 1px solid #1F2A44;
+        }
+        .orders-table tr:last-child td { border-bottom: none; }
+
         @media (max-width: 600px) {
             body { padding: 10px; }
             .admin-header h1 { font-size: 1.2rem; }
@@ -390,6 +267,7 @@
             .action-buttons button { width: 100%; }
             .form-row { flex-direction: column; }
             .form-row input { width: 100%; }
+            .orders-table { font-size: 10px; }
         }
     </style>
 </head>
@@ -400,7 +278,6 @@
     <h2>🔐 Админ-панель</h2>
     <input type="password" id="password" placeholder="Пароль">
     <button onclick="login()">Войти</button>
-    <p style="margin-top:15px; font-size:12px; color:#94A3B8;">Как ты сюда попал? >:(</p>
 </div>
 
 <!-- АДМИН-ПАНЕЛЬ -->
@@ -410,15 +287,30 @@
         <button class="logout-btn" onclick="logout()">Выйти</button>
     </div>
 
-    <!-- Статистика компактно -->
+    <!-- Статистика -->
     <div class="stats-row">
         <div class="stat-card"><div class="stat-number" id="totalOrders">0</div><div class="stat-label">Заказов</div></div>
         <div class="stat-card"><div class="stat-number" id="totalRevenue" style="color:#FACC15;">0</div><div class="stat-label">Выручка</div></div>
         <div class="stat-card"><div class="stat-number" id="avgOrder" style="color:#10B981;">0</div><div class="stat-label">Средний чек</div></div>
     </div>
     
-    <!-- КНОПКА ОЧИСТКИ СТАТИСТИКИ -->
     <button id="clearStatsBtn" class="clear-stats-btn">🗑️ Очистить статистику</button>
+
+    <!-- Таблица последних заказов -->
+    <div class="orders-table-container">
+        <h3 style="margin-bottom: 15px;">📋 Последние заказы</h3>
+        <table class="orders-table" id="ordersTable">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Менеджер</th>
+                    <th>Сумма</th>
+                    <th>Товары</th>
+                </tr>
+            </thead>
+            <tbody id="ordersTableBody"></tbody>
+        </table>
+    </div>
 
     <!-- Категории -->
     <div class="categories-wrapper">
@@ -459,10 +351,11 @@
 const PASSWORD = "LiniX071";
 const JSONBIN_BIN_ID = "69d507df856a6821890a0bcb";
 const JSONBIN_API_KEY = "$2a$10$02JoCoxrhI2J2COQIvNbM.G5Yh5iYDRA96V93DNU27viKWcqf.g5a";
+const STATS_BIN_ID = "ТВОЙ_BIN_ID_СТАТИСТИКИ"; // ← ЗАМЕНИ НА СВОЙ ID
 
 const categories = [
     { file: "Zhitkosty", name: "Жидкости", icon: "💧" },
-    { file: "Snus", name: "Снюс", icon: "👅" },
+    { file: "Snus", name: "Шайбы", icon: "👅" },
     { file: "Vapes", name: "Вейпы", icon: "💨" },
     { file: "Ispariteli", name: "Испарители", icon: "🔥" },
     { file: "Kartdritzhy", name: "Картриджи", icon: "⚡" },
@@ -475,31 +368,119 @@ let editId = null;
 let currentFlavors = [];
 let cachedAllData = null;
 
-// ========== СТАТИСТИКА ==========
-const STATS_KEY = "shop_statistics";
+// ========== ГЛОБАЛЬНАЯ СТАТИСТИКА ПРОДАЖ ==========
+let globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
 
-function loadStatistics() {
-    return JSON.parse(localStorage.getItem(STATS_KEY) || '{"orders":[], "totalOrders":0, "totalRevenue":0}');
+async function loadGlobalStats() {
+    try {
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
+            headers: { 'X-Master-Key': JSONBIN_API_KEY }
+        });
+        if (!response.ok) throw new Error('Ошибка загрузки');
+        const data = await response.json();
+        const record = data.record || {};
+        globalStats = { 
+            orders: record.orders || [], 
+            totalOrders: record.totalOrders || 0, 
+            totalRevenue: record.totalRevenue || 0 
+        };
+        updateStatsDisplay();
+        renderOrdersTable();
+    } catch(e) {
+        console.warn('Статистика не загружена:', e);
+        globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
+    }
+}
+
+async function saveGlobalStats() {
+    try {
+        await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': JSONBIN_API_KEY
+            },
+            body: JSON.stringify({
+                views: (await loadViewsForStats()) || {},
+                orders: globalStats.orders,
+                totalOrders: globalStats.totalOrders,
+                totalRevenue: globalStats.totalRevenue,
+                lastUpdated: new Date().toISOString()
+            })
+        });
+    } catch(e) {
+        console.error('Ошибка сохранения статистики:', e);
+    }
+}
+
+async function loadViewsForStats() {
+    try {
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
+            headers: { 'X-Master-Key': JSONBIN_API_KEY }
+        });
+        const data = await response.json();
+        return data.record.views || {};
+    } catch { return {}; }
 }
 
 function updateStatsDisplay() {
-    const stats = loadStatistics();
-    document.getElementById('totalOrders').textContent = stats.totalOrders || 0;
-    document.getElementById('totalRevenue').textContent = (stats.totalRevenue || 0).toLocaleString();
-    const avgOrder = stats.totalOrders > 0 ? Math.round(stats.totalRevenue / stats.totalOrders) : 0;
+    document.getElementById('totalOrders').textContent = globalStats.totalOrders || 0;
+    document.getElementById('totalRevenue').textContent = (globalStats.totalRevenue || 0).toLocaleString();
+    const avgOrder = globalStats.totalOrders > 0 ? Math.round(globalStats.totalRevenue / globalStats.totalOrders) : 0;
     document.getElementById('avgOrder').textContent = avgOrder.toLocaleString();
 }
 
-// ========== ОЧИСТКА СТАТИСТИКИ ==========
-function clearStatistics() {
+function renderOrdersTable() {
+    const tbody = document.getElementById('ordersTableBody');
+    if (!globalStats.orders.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px; color:#94A3B8;">Нет заказов</td></tr>';
+        return;
+    }
+    
+    const sortedOrders = [...globalStats.orders].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 20);
+    
+    tbody.innerHTML = sortedOrders.map(order => {
+        const date = new Date(order.date).toLocaleString('ru-RU', { 
+            day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' 
+        });
+        const itemsText = order.items.map(i => `${i.productName} (${i.variantName}) ×${i.quantity}`).join(', ');
+        
+        return `<tr>
+            <td>${date}</td>
+            <td>@${order.manager || 'неизвестно'}</td>
+            <td style="color:#FACC15;">${order.total} ₽</td>
+            <td style="max-width:200px; overflow:hidden; text-overflow:ellipsis;" title="${itemsText.replace(/"/g, '&quot;')}">${itemsText.substring(0, 50)}${itemsText.length > 50 ? '...' : ''}</td>
+        </tr>`;
+    }).join('');
+}
+
+async function addOrderToGlobalStats(cartItems, totalPrice, managerTg) {
+    globalStats.orders.push({
+        id: Date.now(),
+        date: new Date().toISOString(),
+        items: cartItems,
+        total: totalPrice,
+        manager: managerTg
+    });
+    globalStats.totalOrders = globalStats.orders.length;
+    globalStats.totalRevenue = globalStats.orders.reduce((sum, o) => sum + o.total, 0);
+    
+    await saveGlobalStats();
+    updateStatsDisplay();
+    renderOrdersTable();
+}
+
+async function clearStatistics() {
     if (confirm("🗑️ Очистить всю статистику? Это действие нельзя отменить!")) {
-        localStorage.setItem(STATS_KEY, '{"orders":[], "totalOrders":0, "totalRevenue":0}');
+        globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
+        await saveGlobalStats();
         updateStatsDisplay();
+        renderOrdersTable();
         showToast("📊 Статистика очищена", false);
     }
 }
 
-// ========== JSONBIN ==========
+// ========== JSONBIN (товары) ==========
 async function loadAllDataFast() {
     try {
         showToast("🔄 Загрузка...", false);
@@ -550,7 +531,7 @@ function login() {
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
         loadCategories();
-        updateStatsDisplay();
+        loadGlobalStats();
         loadAllDataFast();
         showToast("Добро пожаловать!", false);
     } else {
@@ -763,7 +744,7 @@ async function deleteProduct(id) {
 function cancelEdit() {
     editId = null;
     currentFlavors = [];
-    document.getElementById('formTitle').content = '➕ Новый товар';
+    document.getElementById('formTitle').textContent = '➕ Новый товар';
     document.getElementById('productName').value = '';
     document.getElementById('productImage').value = '';
     document.getElementById('productDesc').value = '';
@@ -777,7 +758,6 @@ document.getElementById('productImage').addEventListener('input', function() {
     else document.getElementById('imagePreview').innerHTML = '';
 });
 
-// Кнопка очистки статистики
 document.getElementById('clearStatsBtn')?.addEventListener('click', clearStatistics);
 
 window.addFlavor = addFlavor;
