@@ -27,7 +27,7 @@ let currentCategory = null;
 // ========== JSONBIN НАСТРОЙКИ ==========
 const JSONBIN_BIN_ID = "69d507df856a6821890a0bcb";
 const JSONBIN_API_KEY = "$2a$10$02JoCoxrhI2J2COQIvNbM.G5Yh5iYDRA96V93DNU27viKWcqf.g5a";
-const STATS_BIN_ID = "69de5ed7aaba882197fb041a";
+const STATS_BIN_ID = "69de65c836566621a8b1fd5b";
 
 // ========== TELEGRAM БОТ ==========
 const ADMIN_BOT_TOKEN = "8552470788:AAGB1Q36M-gPlnTebMXJWw8e8GmcCXk00y4";
