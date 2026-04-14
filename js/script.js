@@ -24,9 +24,10 @@ let allItems = {
 };
 let currentCategory = null;
 
-// ========== JSONBIN НАСТРОЙКИ (ТВОИ КЛЮЧИ) ==========
+// ========== JSONBIN НАСТРОЙКИ ==========
 const JSONBIN_BIN_ID = "69d507df856a6821890a0bcb";
 const JSONBIN_API_KEY = "$2a$10$02JoCoxrhI2J2COQIvNbM.G5Yh5iYDRA96V93DNU27viKWcqf.g5a";
+const STATS_BIN_ID = "69de5ed7aaba882197fb041a";
 
 // ========== TELEGRAM БОТ ==========
 const ADMIN_BOT_TOKEN = "8552470788:AAGB1Q36M-gPlnTebMXJWw8e8GmcCXk00y4";
@@ -157,30 +158,54 @@ function renderFavoritesBlock() {
     });
 }
 
-// ========== ПОПУЛЯРНЫЕ ТОВАРЫ ==========
-let viewStats = {};
+// ========== ГЛОБАЛЬНЫЕ ПРОСМОТРЫ ==========
+let globalViews = {};
 
-function loadViewStats() {
-    const saved = localStorage.getItem('view_stats');
-    if (saved) viewStats = JSON.parse(saved);
-    else viewStats = {};
+async function loadGlobalViews() {
+    try {
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
+            headers: { 'X-Master-Key': JSONBIN_API_KEY }
+        });
+        if (!response.ok) throw new Error('Ошибка загрузки');
+        const data = await response.json();
+        globalViews = data.record.views || {};
+        renderPopularBlock();
+    } catch(e) {
+        console.warn('Глобальные просмотры не загружены:', e);
+        globalViews = {};
+    }
 }
 
-function saveViewStats() {
-    localStorage.setItem('view_stats', JSON.stringify(viewStats));
+async function saveGlobalViews() {
+    try {
+        await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Master-Key': JSONBIN_API_KEY
+            },
+            body: JSON.stringify({ 
+                views: globalViews, 
+                lastUpdated: new Date().toISOString() 
+            })
+        });
+    } catch(e) {
+        console.error('Ошибка сохранения:', e);
+    }
+}
+
+async function addGlobalView(itemId, itemCategory) {
+    const key = `${itemCategory}_${itemId}`;
+    if (!globalViews[key]) {
+        globalViews[key] = { id: itemId, category: itemCategory, views: 0 };
+    }
+    globalViews[key].views++;
+    await saveGlobalViews();
+    renderPopularBlock();
 }
 
 function recordView(itemId, itemCategory) {
-    if (!viewStats[itemId]) {
-        viewStats[itemId] = {
-            id: itemId,
-            category: itemCategory,
-            views: 0
-        };
-    }
-    viewStats[itemId].views++;
-    saveViewStats();
-    renderPopularBlock();
+    addGlobalView(itemId, itemCategory);
 }
 
 function renderPopularBlock() {
@@ -188,7 +213,7 @@ function renderPopularBlock() {
     const container = document.getElementById('popularContainer');
     if (!section || !container) return;
     
-    const popular = Object.values(viewStats)
+    const popular = Object.values(globalViews)
         .sort((a, b) => b.views - a.views)
         .slice(0, 8);
     
@@ -197,7 +222,6 @@ function renderPopularBlock() {
         return;
     }
     
-    // Собираем актуальные данные для каждого популярного товара
     const popularWithData = [];
     for (const stat of popular) {
         const category = stat.category;
@@ -207,7 +231,6 @@ function renderPopularBlock() {
         const item = items.find(i => i.id === stat.id);
         if (!item) continue;
         
-        // Получаем актуальную цену
         let price = '';
         if (item.flavors && item.flavors.length > 0) {
             const prices = item.flavors.map(f => f.price);
@@ -255,6 +278,7 @@ function renderPopularBlock() {
         });
     });
 }
+
 // ========== ИСТОРИЯ ПРОСМОТРОВ ==========
 const HISTORY_KEY = "view_history";
 const MAX_HISTORY = 5;
@@ -568,9 +592,8 @@ async function loadAllData() {
         const data = await response.json();
         const record = data.record || {};
         
-        // Маппинг категорий — ВАЖНО: "Шайбы" берёт данные из "Snus" в JSONBin
         allItems["Жидкости"] = record.Zhitkosty || [];
-        allItems["Шайбы"] = record.Snus || [];      // ← ЭТО ГЛАВНОЕ ИСПРАВЛЕНИЕ
+        allItems["Шайбы"] = record.Snus || [];
         allItems["Вейпы"] = record.Vapes || [];
         allItems["Испарители"] = record.Ispariteli || [];
         allItems["Картриджи"] = record.Kartdritzhy || [];
@@ -582,7 +605,7 @@ async function loadAllData() {
         renderManagers();
         updateCartIcon();
         loadFavorites();
-        loadViewStats();
+        await loadGlobalViews();
         renderHistoryBlock();
         renderPopularBlock();
         showToast("✅ Товары загружены", false);
