@@ -516,12 +516,23 @@ function showAgeConfirmForCart(managerTg) {
 
 async function saveOrderToStats(cartItems, totalPrice, managerTg) {
     try {
+        // 1. Получаем текущие данные из JSONBin
         const response = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
             headers: { 'X-Master-Key': JSONBIN_API_KEY }
         });
+        
+        if (!response.ok) {
+            console.error('Ошибка получения статистики:', response.status);
+            return;
+        }
+        
         const data = await response.json();
         const record = data.record || {};
         
+        // 2. ВАЖНО: Сохраняем текущие просмотры (используем глобальную переменную или из record)
+        const currentViews = globalViews || record.views || {};
+        
+        // 3. Добавляем новый заказ
         const orders = record.orders || [];
         orders.push({
             id: Date.now(),
@@ -536,25 +547,30 @@ async function saveOrderToStats(cartItems, totalPrice, managerTg) {
             manager: managerTg
         });
         
+        // 4. Обновляем статистику
         const totalOrders = orders.length;
         const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
         
-        await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
+        // 5. Сохраняем ВСЁ вместе (просмотры + заказы)
+        const putResponse = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Master-Key': JSONBIN_API_KEY
             },
             body: JSON.stringify({
-                views: record.views || {},
+                views: currentViews,  // ← сохраняем просмотры
                 orders: orders,
                 totalOrders: totalOrders,
                 totalRevenue: totalRevenue,
                 lastUpdated: new Date().toISOString()
             })
         });
+        
+        console.log('✅ Заказ сохранён, просмотры не потеряны');
+        
     } catch(e) {
-        console.error('Ошибка сохранения заказа:', e);
+        console.error('❌ Ошибка сохранения заказа:', e);
     }
 }
 
