@@ -36,7 +36,7 @@ const ADMIN_CHAT_ID = "6919484181";
 // ========== КЕШИРОВАНИЕ ==========
 const CACHE_KEY = "iceshop39_products";
 const CACHE_TIME_KEY = "iceshop39_cache_time";
-const CACHE_DURATION = 30 * 60 * 1000; // 30 минут
+const CACHE_DURATION = 30 * 60 * 1000;
 
 // ========== КОРЗИНА ==========
 let cart = [];
@@ -181,6 +181,24 @@ async function loadGlobalViews() {
 
 async function saveGlobalViews() {
     try {
+        // Получаем текущие данные (чтобы не потерять orders)
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
+            headers: { 'X-Master-Key': JSONBIN_API_KEY }
+        });
+        
+        let orders = [];
+        let totalOrders = 0;
+        let totalRevenue = 0;
+        
+        if (response.ok) {
+            const data = await response.json();
+            const record = data.record || {};
+            orders = record.orders || [];
+            totalOrders = record.totalOrders || 0;
+            totalRevenue = record.totalRevenue || 0;
+        }
+        
+        // Сохраняем views + не трогаем orders
         await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
             method: 'PUT',
             headers: {
@@ -188,12 +206,15 @@ async function saveGlobalViews() {
                 'X-Master-Key': JSONBIN_API_KEY
             },
             body: JSON.stringify({ 
-                views: globalViews, 
+                views: globalViews,
+                orders: orders,
+                totalOrders: totalOrders,
+                totalRevenue: totalRevenue,
                 lastUpdated: new Date().toISOString() 
             })
         });
     } catch(e) {
-        console.error('Ошибка сохранения:', e);
+        console.error('Ошибка сохранения просмотров:', e);
     }
 }
 
@@ -530,11 +551,15 @@ async function saveOrderToStats(cartItems, totalPrice, managerTg) {
             headers: { 'X-Master-Key': JSONBIN_API_KEY }
         });
         
-        if (!response.ok) return;
+        if (!response.ok) {
+            console.error('Ошибка получения статистики:', response.status);
+            return;
+        }
         
         const data = await response.json();
         const record = data.record || {};
         const currentViews = globalViews || record.views || {};
+        
         const orders = record.orders || [];
         orders.push({
             id: Date.now(),
@@ -549,6 +574,9 @@ async function saveOrderToStats(cartItems, totalPrice, managerTg) {
             manager: managerTg
         });
         
+        const totalOrders = orders.length;
+        const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+        
         await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
             method: 'PUT',
             headers: {
@@ -558,13 +586,16 @@ async function saveOrderToStats(cartItems, totalPrice, managerTg) {
             body: JSON.stringify({
                 views: currentViews,
                 orders: orders,
-                totalOrders: orders.length,
-                totalRevenue: orders.reduce((sum, o) => sum + o.total, 0),
+                totalOrders: totalOrders,
+                totalRevenue: totalRevenue,
                 lastUpdated: new Date().toISOString()
             })
         });
+        
+        console.log('✅ Заказ сохранён, просмотры не потеряны');
+        
     } catch(e) {
-        console.error('Ошибка сохранения заказа:', e);
+        console.error('❌ Ошибка сохранения заказа:', e);
     }
 }
 
@@ -648,7 +679,6 @@ function getCachedProducts() {
             const cached = localStorage.getItem(CACHE_KEY);
             if (cached) {
                 const data = JSON.parse(cached);
-                // Проверяем что это реальные данные
                 if (data.Zhitkosty && data.Zhitkosty.length > 0) {
                     console.log('📦 Загружено из кеша');
                     return data;
@@ -663,10 +693,7 @@ function setCachedProducts(record) {
     try {
         localStorage.setItem(CACHE_KEY, JSON.stringify(record));
         localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
-        console.log('💾 Данные сохранены в кеш');
-    } catch(e) {
-        console.warn('Не удалось сохранить кеш:', e);
-    }
+    } catch(e) {}
 }
 
 function loadProductsIntoMemory(record) {
@@ -676,22 +703,16 @@ function loadProductsIntoMemory(record) {
     allItems["Испарители"] = record.Ispariteli || [];
     allItems["Картриджи"] = record.Kartdritzhy || [];
     allItems["Одноразки"] = record.Odnorazki || [];
-    
-    console.log('📊 Загружено:', Object.entries(allItems).map(([k,v]) => `${k}: ${v.length}`).join(', '));
 }
 
 async function loadAllData() {
-    // 1. Пробуем кеш
     const cached = getCachedProducts();
     if (cached) {
         loadProductsIntoMemory(cached);
         renderAll();
-        // Фоновое обновление
         fetchFreshData(false);
         return;
     }
-    
-    // 2. Грузим с JSONBin
     await fetchFreshData(true);
 }
 
@@ -721,9 +742,8 @@ async function fetchFreshData(showLoader) {
         if (showLoader) showToast("✅ Товары загружены", false);
         
     } catch(e) {
-        console.error('❌ Ошибка загрузки с сервера:', e);
+        console.error('❌ Ошибка загрузки:', e);
         
-        // Пробуем любой кеш (даже просроченный)
         try {
             const oldCache = localStorage.getItem(CACHE_KEY);
             if (oldCache) {
@@ -735,7 +755,6 @@ async function fetchFreshData(showLoader) {
             }
         } catch(e2) {}
         
-        // Вообще ничего нет
         renderAll();
         if (showLoader) showToast("❌ Не удалось загрузить товары", true);
     }
@@ -959,7 +978,6 @@ function renderSearchResults(results) {
     }));
 }
 
-// ========== ЗАПУСК ==========
 document.getElementById('backHomeBtn')?.addEventListener('click', goToHome);
 document.getElementById('backFlavorsHomeBtn')?.addEventListener('click', goBackToCategory);
 document.getElementById('homeLogoBtn')?.addEventListener('click', goToHome);
