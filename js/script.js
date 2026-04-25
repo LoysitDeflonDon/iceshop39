@@ -320,10 +320,30 @@ async function loadCategoryFromBin(catName, binId) {
 }
 
 async function loadAllData() {
+    console.log('START loadAllData');
     showToast("🔄 Загрузка...", false);
-    const proms = Object.entries(CATEGORY_BINS).map(async ([cn, bid]) => { const c = getCachedCategory(cn); if (c) allItems[cn] = c; const f = await loadCategoryFromBin(cn, bid); if (f.length > 0) allItems[cn] = f; });
-    await Promise.all(proms);
+    
+    try {
+        const proms = Object.entries(CATEGORY_BINS).map(async ([cn, bid]) => {
+            console.log(`Начинаю загрузку ${cn} из ${bid}`);
+            const c = getCachedCategory(cn);
+            if (c) {
+                console.log(`${cn}: кеш ${c.length}`);
+                allItems[cn] = c;
+            }
+            const f = await loadCategoryFromBin(cn, bid);
+            console.log(`${cn}: загружено ${f.length}`);
+            if (f.length > 0) allItems[cn] = f;
+        });
+        
+        await Promise.all(proms);
+        console.log('Все категории загружены');
+    } catch(e) {
+        console.error('ОШИБКА:', e);
+    }
+    
     const total = Object.values(allItems).reduce((s, a) => s + a.length, 0);
+    console.log('Всего товаров:', total);
     renderAll();
     showToast(total > 0 ? `✅ ${total} товаров` : "❌ Ошибка загрузки", total === 0);
 }
