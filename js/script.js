@@ -310,38 +310,50 @@ async function loadCategoryFromBin(catName, binId) {
 }
 
 async function loadAllData() {
-    // 1. Мгновенно грузим всё из кеша
-    let allCached = true;
-    for (const [catName, binId] of Object.entries(CATEGORY_BINS)) {
+    // 1. Сначала кеш
+    let hasCache = false;
+    for (const [catName] of Object.entries(CATEGORY_BINS)) {
         const cached = getCachedCategory(catName);
         if (cached && cached.length > 0) {
             allItems[catName] = cached;
-        } else {
-            allCached = false;
+            hasCache = true;
         }
     }
     
-    // 2. Если есть кеш — сразу показываем
-    if (allCached) {
+    // 2. Показываем кеш мгновенно
+    if (hasCache) {
         renderAll();
-        showToast("✅ Товары загружены", false);
     }
     
-    // 3. Фоновое обновление из JSONBin
+    // 3. Грузим свежее (быстро, без повторных попыток для скорости)
     const proms = Object.entries(CATEGORY_BINS).map(async ([catName, binId]) => {
-        const fresh = await loadCategoryFromBin(catName, binId);
-        if (fresh.length > 0) {
-            allItems[catName] = fresh;
-        }
+        try {
+            const ctrl = new AbortController();
+            const tid = setTimeout(() => ctrl.abort(), 5000);
+            const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+                headers: { 'X-Master-Key': JSONBIN_API_KEY },
+                signal: ctrl.signal
+            });
+            clearTimeout(tid);
+            if (r.ok) {
+                const d = await r.json();
+                let items = d.record || [];
+                if (!items.length && Array.isArray(d)) items = d;
+                if (items.length > 0) {
+                    allItems[catName] = items;
+                    setCachedCategory(catName, items);
+                }
+            }
+        } catch(e) {}
     });
     
     await Promise.all(proms);
     
-    // 4. Перерисовываем с актуальными данными
+    // 4. Финальный рендер
     renderAll();
     
     const total = Object.values(allItems).reduce((s, a) => s + a.length, 0);
-    if (!allCached) {
+    if (!hasCache) {
         showToast(total > 0 ? `✅ ${total} товаров` : "❌ Ошибка загрузки", total === 0);
     }
 }
