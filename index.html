@@ -18,6 +18,14 @@
     <meta property="og:url" content="https://loysitdefldondon.github.io/iceshop39/">
     <meta property="og:type" content="website">
     <meta property="og:locale" content="ru_RU">
+
+    <!-- Предзагрузка фонов категорий -->
+    <link rel="preload" as="image" href="https://i.ibb.co/ZRJWzFgY/i.webp">
+    <link rel="preload" as="image" href="https://i.ibb.co/xKG5BxjK/2026-04-04-124034203.png">
+    <link rel="preload" as="image" href="https://i.ibb.co/k284RcWN/2026-04-04-123830912.png">
+    <link rel="preload" as="image" href="https://i.ibb.co/3Xgr0v8/2026-04-04-124326975.png">
+    <link rel="preload" as="image" href="https://i.ibb.co/W4hXLFkr/2026-04-04-124758580.png">
+    <link rel="preload" as="image" href="https://i.ibb.co/GQ5TZHPL/2026-04-06-231718788.png">
     
     <link rel="canonical" href="https://loysitdefldondon.github.io/iceshop39/">
     <link rel="stylesheet" href="css/style.css">
@@ -43,7 +51,6 @@
         <div class="scroll-hint" id="scrollHint">↓ Листай вниз ↓</div>
     </div>
     
-    <!-- Блок популярных товаров (чаще всего смотрят) -->
     <div id="popularSection" class="popular-section" style="display: none;">
         <h2 class="section-title">🔥 Чаще всего смотрят</h2>
         <div id="popularContainer" class="popular-grid"></div>
@@ -67,13 +74,12 @@
     <div id="flavorsContainer"></div>
 </div>
 
-<!-- Блок избранного -->
 <div id="favoritesSection" class="favorites-section" style="display: none;">
     <h2 class="section-title">❤️ Избранное</h2>
     <div id="favoritesContainer" class="favorites-grid"></div>
     <button id="clearFavoritesBtn" class="clear-favorites-btn">🗑️ Очистить избранное</button>
 </div>
-<!-- Блок истории просмотров -->
+
 <div id="historySection" class="history-section" style="display: none;">
     <h2 class="section-title">📜 Вы недавно смотрели</h2>
     <div id="historyContainer" class="history-grid"></div>
@@ -91,11 +97,9 @@
 
 <script src="js/script.js"></script>
 <script>
-    // Принудительно запускаем анимацию для надписи о ценах
     document.addEventListener('DOMContentLoaded', function() {
         const priceInfo = document.querySelector('.price-info');
         if (priceInfo) {
-            // Убираем класс, если он мешает
             priceInfo.style.animation = 'none';
             setTimeout(() => {
                 priceInfo.style.animation = 'slideUpFadePrice 0.8s ease 1.2s forwards';
