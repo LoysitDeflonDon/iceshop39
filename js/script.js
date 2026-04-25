@@ -297,65 +297,35 @@ function setCachedCategory(c, d) { try { localStorage.setItem(getCacheKey(c), JS
 async function loadCategoryFromBin(catName, binId) {
     for (let attempt = 0; attempt < 3; attempt++) {
         try {
-            const ctrl = new AbortController(); const tid = setTimeout(() => ctrl.abort(), 10000);
-            const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY }, signal: ctrl.signal });
-            clearTimeout(tid);
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
-            const d = await r.json(); let items = d.record || []; if (!items.length && Array.isArray(d)) items = d;
-            console.log(`✅ ${catName}: ${items.length} товаров`);
-            setCachedCategory(catName, items); return items;
-        } catch(e) { console.warn(`⚠️ ${catName}, попытка ${attempt + 1}`); if (attempt < 2) await new Promise(r => setTimeout(r, 1500)); }
-    }
-    const cached = getCachedCategory(catName); console.warn(`⚠️ ${catName}: кеш (${cached ? cached.length : 0})`); return cached || [];
-}
-
-async function loadAllData() {
-    // 1. Сначала кеш
-    let hasCache = false;
-    for (const [catName] of Object.entries(CATEGORY_BINS)) {
-        const cached = getCachedCategory(catName);
-        if (cached && cached.length > 0) {
-            allItems[catName] = cached;
-            hasCache = true;
-        }
-    }
-    
-    // 2. Показываем кеш мгновенно
-    if (hasCache) {
-        renderAll();
-    }
-    
-    // 3. Грузим свежее (быстро, без повторных попыток для скорости)
-    const proms = Object.entries(CATEGORY_BINS).map(async ([catName, binId]) => {
-        try {
             const ctrl = new AbortController();
-            const tid = setTimeout(() => ctrl.abort(), 5000);
+            const tid = setTimeout(() => ctrl.abort(), 8000);
             const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
                 headers: { 'X-Master-Key': JSONBIN_API_KEY },
                 signal: ctrl.signal
             });
             clearTimeout(tid);
-            if (r.ok) {
-                const d = await r.json();
-                let items = d.record || [];
-                if (!items.length && Array.isArray(d)) items = d;
-                if (items.length > 0) {
-                    allItems[catName] = items;
-                    setCachedCategory(catName, items);
-                }
-            }
-        } catch(e) {}
-    });
-    
-    await Promise.all(proms);
-    
-    // 4. Финальный рендер
-    renderAll();
-    
-    const total = Object.values(allItems).reduce((s, a) => s + a.length, 0);
-    if (!hasCache) {
-        showToast(total > 0 ? `✅ ${total} товаров` : "❌ Ошибка загрузки", total === 0);
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const d = await r.json();
+            let items = d.record || [];
+            if (!items.length && Array.isArray(d)) items = d;
+            setCachedCategory(catName, items);
+            return items;
+        } catch(e) {
+            console.warn(`⚠️ ${catName}, попытка ${attempt + 1}`);
+            if (attempt < 2) await new Promise(r => setTimeout(r, 1500));
+        }
     }
+    const cached = getCachedCategory(catName);
+    return cached || [];
+}
+
+async function loadAllData() {
+    showToast("🔄 Загрузка...", false);
+    const proms = Object.entries(CATEGORY_BINS).map(async ([cn, bid]) => { const c = getCachedCategory(cn); if (c) allItems[cn] = c; const f = await loadCategoryFromBin(cn, bid); if (f.length > 0) allItems[cn] = f; });
+    await Promise.all(proms);
+    const total = Object.values(allItems).reduce((s, a) => s + a.length, 0);
+    renderAll();
+    showToast(total > 0 ? `✅ ${total} товаров` : "❌ Ошибка загрузки", total === 0);
 }
 
 function renderCategories() {
