@@ -14,10 +14,10 @@
         .admin-panel { display: none; max-width: 1400px; margin: 0 auto; }
         .admin-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #1F2A44; }
         .admin-header h1 { font-size: 1.5rem; color: #3B82F6; }
-        .logout-btn { background: #EF4444; padding: 8px 20px; border-radius: 40px; font-size: 14px; }
+        .logout-btn { background: #EF4444; padding: 8px 20px; border-radius: 40px; font-size: 14px; border: none; color: white; cursor: pointer; }
         .categories-wrapper { overflow-x: auto; margin: 15px 0; -webkit-overflow-scrolling: touch; }
         .category-buttons { display: flex; gap: 10px; flex-wrap: nowrap; padding-bottom: 8px; }
-        .category-btn { background: #1E293B; padding: 10px 20px; border-radius: 40px; cursor: pointer; white-space: nowrap; font-size: 14px; font-weight: 500; border: 1px solid #334155; }
+        .category-btn { background: #1E293B; padding: 10px 20px; border-radius: 40px; cursor: pointer; white-space: nowrap; font-size: 14px; font-weight: 500; border: 1px solid #334155; color: white; }
         .category-btn.active { background: #3B82F6; border-color: #3B82F6; }
         .stats-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
         .stat-card { background: #111827; padding: 12px 20px; border-radius: 20px; flex: 1; min-width: 100px; text-align: center; border: 1px solid #1F2A44; }
@@ -58,10 +58,8 @@
         .orders-table td { padding: 8px 5px; border-bottom: 1px solid #1F2A44; }
         @media (max-width: 600px) {
             body { padding: 10px; }
-            .admin-header h1 { font-size: 1.2rem; }
             .products-grid { grid-template-columns: 1fr; }
             .flavor-row { flex-direction: column; }
-            .flavor-row input { width: 100%; }
             .action-buttons { flex-direction: column; }
         }
     </style>
@@ -126,14 +124,13 @@ const PASSWORD = "LiniX071";
 const JSONBIN_API_KEY = "$2a$10$02JoCoxrhI2J2COQIvNbM.G5Yh5iYDRA96V93DNU27viKWcqf.g5a";
 const STATS_BIN_ID = "69de65c836566621a8b1fd5b";
 
-// Раздельные Bin ID для каждой категории
 const CATEGORY_BINS = {
-    "Zhitkosty":   "69ecfff9aaba88219738d922",   
-    "Snus":        "69ed003736566621a8ef3796",      
-    "Vapes":       "69ed0016aaba88219738d9bb",      
-    "Ispariteli":  "69ed0049aaba88219738da71", 
-    "Kartdritzhy": "69ed005c36566621a8ef37fc",  
-    "Odnorazki":   "69ed007436566621a8ef382b"    
+    "Zhitkosty":   "69ecfff9aaba88219738d922",
+    "Snus":        "69ed003736566621a8ef3796",
+    "Vapes":       "69ed0016aaba88219738d9bb",
+    "Ispariteli":  "69ed0049aaba88219738da71",
+    "Kartdritzhy": "69ed005c36566621a8ef37fc",
+    "Odnorazki":   "69ed007436566621a8ef382b"
 };
 
 const categories = [
@@ -149,32 +146,53 @@ let currentCategory = null;
 let currentProducts = [];
 let editId = null;
 let currentFlavors = [];
+let productsLoaded = false;
 
-// ========== ГЛОБАЛЬНАЯ СТАТИСТИКА ==========
+// ========== СТАТИСТИКА ==========
 let globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
 
 async function loadGlobalStats() {
     try {
-        const r = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
-        if (!r.ok) throw new Error('Ошибка');
+        const r = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
+            headers: { 'X-Master-Key': JSONBIN_API_KEY }
+        });
+        if (!r.ok) return;
         const d = await r.json();
         const rec = d.record || {};
-        globalStats = { orders: rec.orders || [], totalOrders: rec.totalOrders || 0, totalRevenue: rec.totalRevenue || 0 };
+        globalStats = {
+            orders: rec.orders || [],
+            totalOrders: rec.totalOrders || 0,
+            totalRevenue: rec.totalRevenue || 0
+        };
         updateStatsDisplay();
         renderOrdersTable();
-    } catch(e) { console.warn(e); }
+    } catch(e) {}
 }
 
-async function saveGlobalStats() {
-    try {
-        const r = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
-        const d = await r.json();
-        const rec = d.record || {};
-        await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
-            body: JSON.stringify({ views: rec.views || {}, orders: globalStats.orders, totalOrders: globalStats.totalOrders, totalRevenue: globalStats.totalRevenue, lastUpdated: new Date().toISOString() })
-        });
-    } catch(e) { console.error(e); }
+async function clearStatistics() {
+    if (confirm("Очистить статистику?")) {
+        globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
+        try {
+            const r = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
+                headers: { 'X-Master-Key': JSONBIN_API_KEY }
+            });
+            const rec = r.ok ? ((await r.json()).record || {}) : {};
+            await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+                body: JSON.stringify({
+                    views: rec.views || {},
+                    orders: [],
+                    totalOrders: 0,
+                    totalRevenue: 0,
+                    lastUpdated: new Date().toISOString()
+                })
+            });
+        } catch(e) {}
+        updateStatsDisplay();
+        renderOrdersTable();
+        showToast("Очищено", false);
+    }
 }
 
 function updateStatsDisplay() {
@@ -186,7 +204,10 @@ function updateStatsDisplay() {
 
 function renderOrdersTable() {
     const tbody = document.getElementById('ordersTableBody');
-    if (!globalStats.orders.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#94A3B8;">Нет заказов</td></tr>'; return; }
+    if (!globalStats.orders.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#94A3B8;">Нет заказов</td></tr>';
+        return;
+    }
     const sorted = [...globalStats.orders].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 20);
     tbody.innerHTML = sorted.map(o => {
         const date = new Date(o.date).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
@@ -195,28 +216,27 @@ function renderOrdersTable() {
     }).join('');
 }
 
-async function clearStatistics() {
-    if (confirm("Очистить статистику?")) {
-        globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
-        await saveGlobalStats();
-        updateStatsDisplay();
-        renderOrdersTable();
-        showToast("Очищено", false);
-    }
-}
-
-// ========== ЗАГРУЗКА ТОВАРОВ ПО КАТЕГОРИЯМ ==========
+// ========== ЗАГРУЗКА ТОВАРОВ ==========
 async function loadProducts() {
     if (!currentCategory) return;
     const binId = CATEGORY_BINS[currentCategory];
     showToast("Загрузка...", false);
+    
     try {
-        const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 5000);
+        const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+            headers: { 'X-Master-Key': JSONBIN_API_KEY },
+            signal: ctrl.signal
+        });
+        clearTimeout(tid);
+        
         if (!r.ok) throw new Error('Ошибка');
         const d = await r.json();
         currentProducts = d.record || [];
+        productsLoaded = true;
         renderProducts();
-        showToast("✅ Загружено", false);
+        showToast(`✅ ${currentProducts.length} товаров`, false);
     } catch(e) {
         showToast("❌ Ошибка загрузки", true);
         currentProducts = [];
@@ -227,17 +247,22 @@ async function loadProducts() {
 async function saveProducts() {
     const binId = CATEGORY_BINS[currentCategory];
     try {
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 5000);
         await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
-            body: JSON.stringify(currentProducts)
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+            body: JSON.stringify(currentProducts),
+            signal: ctrl.signal
         });
+        clearTimeout(tid);
         showToast("✅ Сохранено!", false);
     } catch(e) {
         showToast("❌ Ошибка сохранения", true);
     }
 }
 
-// ========== ИНТЕРФЕЙС ==========
+// ========== UI ==========
 function login() {
     if (document.getElementById('password').value === PASSWORD) {
         document.getElementById('loginBox').style.display = 'none';
@@ -252,48 +277,90 @@ function logout() {
     document.getElementById('loginBox').style.display = 'block';
     document.getElementById('adminPanel').style.display = 'none';
     document.getElementById('password').value = '';
+    productsLoaded = false;
 }
 
 function showToast(msg, isError) {
     let t = document.getElementById('toastMsg');
-    if (!t) { t = document.createElement('div'); t.id = 'toastMsg'; t.className = 'toast'; document.body.appendChild(t); }
-    t.textContent = msg; t.style.background = isError ? '#EF4444' : '#10B981'; t.style.display = 'block';
-    setTimeout(() => t.style.display = 'none', 2000);
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'toastMsg';
+        t.className = 'toast';
+        t.style.display = 'none';
+        document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.background = isError ? '#EF4444' : '#10B981';
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 1500);
 }
 
-function escapeHtml(s) { if(!s) return ''; return String(s).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+function escapeHtml(s) {
+    if(!s) return '';
+    return String(s).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+}
 
 function uploadFromGallery() {
-    const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = 'image/*';
     inp.onchange = function(e) {
         const f = e.target.files[0];
-        if (f) { const r = new FileReader(); r.onload = ev => { document.getElementById('productImage').value = ev.target.result; document.getElementById('imagePreview').innerHTML = `<img src="${ev.target.result}" style="max-width:80px;border-radius:12px;">`; }; r.readAsDataURL(f); }
+        if (f) {
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                document.getElementById('productImage').value = ev.target.result;
+                document.getElementById('imagePreview').innerHTML = `<img src="${ev.target.result}" style="max-width:80px;border-radius:12px;">`;
+            };
+            reader.readAsDataURL(f);
+        }
     };
     inp.click();
 }
 
 function loadCategories() {
-    const c = document.getElementById('categoriesBlock'); c.innerHTML = '';
+    const container = document.getElementById('categoriesBlock');
+    container.innerHTML = '';
     categories.forEach(cat => {
-        const btn = document.createElement('span'); btn.className = 'category-btn'; btn.textContent = cat.icon + ' ' + cat.name;
-        btn.onclick = async () => { document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); currentCategory = cat.file; cancelEdit(); await loadProducts(); };
-        c.appendChild(btn);
+        const btn = document.createElement('span');
+        btn.className = 'category-btn';
+        btn.textContent = cat.icon + ' ' + cat.name;
+        btn.onclick = async () => {
+            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentCategory = cat.file;
+            cancelEdit();
+            await loadProducts();
+        };
+        container.appendChild(btn);
     });
 }
 
 function renderProducts() {
-    const c = document.getElementById('productsList');
-    if (!currentProducts.length) { c.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;">📭 Нет товаров</div>'; return; }
-    c.innerHTML = '';
+    const container = document.getElementById('productsList');
+    if (!currentProducts.length) {
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;">📭 Нет товаров</div>';
+        return;
+    }
+    let html = '';
     currentProducts.forEach(p => {
-        const div = document.createElement('div'); div.className = 'product-card';
-        div.innerHTML = `<div class="product-info"><div class="product-name">${escapeHtml(p.name)}</div><div class="product-meta">ID: ${p.id} | ${p.flavors ? p.flavors.length+' вариантов' : p.price+' ₽'}</div></div><div class="product-actions"><button onclick="editProduct(${p.id})">✏️</button><button class="danger" onclick="deleteProduct(${p.id})">🗑️</button></div>`;
-        c.appendChild(div);
+        html += `<div class="product-card">
+            <div class="product-info">
+                <div class="product-name">${escapeHtml(p.name)}</div>
+                <div class="product-meta">ID: ${p.id} | ${p.flavors ? p.flavors.length+' вариантов' : p.price+' ₽'}</div>
+            </div>
+            <div class="product-actions">
+                <button onclick="editProduct(${p.id})">✏️</button>
+                <button class="danger" onclick="deleteProduct(${p.id})">🗑️</button>
+            </div>
+        </div>`;
     });
+    container.innerHTML = html;
 }
 
 function editProduct(id) {
-    const p = currentProducts.find(x => x.id === id); if (!p) return;
+    const p = currentProducts.find(x => x.id === id);
+    if (!p) return;
     editId = id;
     document.getElementById('formTitle').textContent = '✏️ Редактировать';
     document.getElementById('productName').value = p.name;
@@ -305,50 +372,85 @@ function editProduct(id) {
     document.getElementById('cancelBtn').style.display = 'block';
 }
 
-function addFlavor() { currentFlavors.push({ name: "", price: 0, stock: 0 }); renderFlavors(); }
+function addFlavor() {
+    currentFlavors.push({ name: "", price: 0, stock: 0 });
+    renderFlavors();
+}
 
 function renderFlavors() {
-    const c = document.getElementById('flavorsList');
-    if (!currentFlavors.length) { c.innerHTML = '<div style="padding:12px;text-align:center;color:#94A3B8;">Нажмите "+"</div>'; return; }
-    c.innerHTML = '';
+    const container = document.getElementById('flavorsList');
+    if (!currentFlavors.length) {
+        container.innerHTML = '<div style="padding:12px;text-align:center;color:#94A3B8;">Нажмите "+"</div>';
+        return;
+    }
+    container.innerHTML = '';
     currentFlavors.forEach((f, i) => {
-        const div = document.createElement('div'); div.className = 'flavor-row';
-        div.innerHTML = `<input type="text" placeholder="Название" value="${escapeHtml(f.name)}" data-idx="${i}" data-field="name"><input type="number" placeholder="Цена" value="${f.price}" data-idx="${i}" data-field="price"><input type="number" placeholder="Остаток" value="${f.stock}" data-idx="${i}" data-field="stock"><button class="danger" onclick="removeFlavor(${i})">❌</button>`;
-        c.appendChild(div);
-    });
-    document.querySelectorAll('#flavorsList input').forEach(inp => {
-        inp.onchange = function() { const idx = +this.dataset.idx; const field = this.dataset.field; currentFlavors[idx][field] = this.type === 'number' ? +this.value : this.value; };
+        const div = document.createElement('div');
+        div.className = 'flavor-row';
+        div.innerHTML = `
+            <input type="text" placeholder="Название" value="${escapeHtml(f.name)}" onchange="editFlavor(${i},'name',this.value)">
+            <input type="number" placeholder="Цена" value="${f.price}" onchange="editFlavor(${i},'price',+this.value)">
+            <input type="number" placeholder="Остаток" value="${f.stock}" onchange="editFlavor(${i},'stock',+this.value)">
+            <button class="danger" onclick="removeFlavor(${i})">❌</button>`;
+        container.appendChild(div);
     });
 }
 
-function removeFlavor(i) { currentFlavors.splice(i, 1); renderFlavors(); }
+function editFlavor(idx, field, val) {
+    if (currentFlavors[idx]) currentFlavors[idx][field] = val;
+}
+
+function removeFlavor(i) {
+    currentFlavors.splice(i, 1);
+    renderFlavors();
+}
 
 async function saveProduct() {
     const name = document.getElementById('productName').value.trim();
     const image = document.getElementById('productImage').value.trim();
-    const desc = document.getElementById('productDesc').value;
-    if (!name || !image || !currentFlavors.length) { showToast("Заполни все поля!", true); return; }
+    const desc = document.getElementById('productDesc').value.trim();
+    
+    if (!name) { showToast("Введи название!", true); return; }
+    if (!image) { showToast("Добавь картинку!", true); return; }
+    if (!currentFlavors.length) { showToast("Добавь вариант!", true); return; }
     if (!currentCategory) { showToast("Выбери категорию!", true); return; }
-
+    
+    const catName = categories.find(c => c.file === currentCategory)?.name || currentCategory;
+    
     if (editId) {
         const p = currentProducts.find(x => x.id === editId);
-        p.name = name; p.image = image; p.desc = desc;
-        if (currentFlavors.length === 1 && currentFlavors[0].name === "Стандарт") { delete p.flavors; p.price = currentFlavors[0].price; p.stock = currentFlavors[0].stock; }
-        else { p.flavors = currentFlavors.filter(f => f.name.trim()); delete p.price; delete p.stock; }
+        if (!p) return;
+        p.name = name;
+        p.image = image;
+        p.desc = desc;
+        if (currentFlavors.length === 1 && currentFlavors[0].name === "Стандарт") {
+            delete p.flavors;
+            p.price = currentFlavors[0].price;
+            p.stock = currentFlavors[0].stock;
+        } else {
+            p.flavors = currentFlavors.filter(f => f.name.trim());
+            delete p.price;
+            delete p.stock;
+        }
     } else {
-        const newId = Math.max(...currentProducts.map(p => p.id), 0) + 1;
-        const np = { id: newId, name, category: categories.find(c => c.file === currentCategory)?.name || '', image, desc };
-        if (currentFlavors.length === 1 && currentFlavors[0].name === "Стандарт") { np.price = currentFlavors[0].price; np.stock = currentFlavors[0].stock; }
-        else np.flavors = currentFlavors.filter(f => f.name.trim());
+        const newId = Math.max(0, ...currentProducts.map(p => p.id)) + 1;
+        const np = { id: newId, name, category: catName, image, desc };
+        if (currentFlavors.length === 1 && currentFlavors[0].name === "Стандарт") {
+            np.price = currentFlavors[0].price;
+            np.stock = currentFlavors[0].stock;
+        } else {
+            np.flavors = currentFlavors.filter(f => f.name.trim());
+        }
         currentProducts.push(np);
     }
+    
     await saveProducts();
     cancelEdit();
     await loadProducts();
 }
 
 async function deleteProduct(id) {
-    if (!confirm("Удалить?")) return;
+    if (!confirm("Удалить товар?")) return;
     currentProducts = currentProducts.filter(p => p.id !== id);
     await saveProducts();
     if (editId === id) cancelEdit();
@@ -357,7 +459,8 @@ async function deleteProduct(id) {
 }
 
 function cancelEdit() {
-    editId = null; currentFlavors = [];
+    editId = null;
+    currentFlavors = [];
     document.getElementById('formTitle').textContent = '➕ Новый товар';
     document.getElementById('productName').value = '';
     document.getElementById('productImage').value = '';
@@ -370,10 +473,12 @@ function cancelEdit() {
 document.getElementById('productImage').addEventListener('input', function() {
     document.getElementById('imagePreview').innerHTML = this.value ? `<img src="${this.value}" style="max-width:80px;border-radius:12px;">` : '';
 });
+
 document.getElementById('clearStatsBtn')?.addEventListener('click', clearStatistics);
 
 window.addFlavor = addFlavor;
 window.removeFlavor = removeFlavor;
+window.editFlavor = editFlavor;
 window.saveProduct = saveProduct;
 window.deleteProduct = deleteProduct;
 window.editProduct = editProduct;
