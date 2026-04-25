@@ -548,45 +548,73 @@ function setCachedCategory(catName, data) {
 async function loadCategoryFromBin(catName, binId) {
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY }, signal: controller.signal });
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 секунд вместо 5
+        
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+            headers: { 'X-Master-Key': JSONBIN_API_KEY },
+            signal: controller.signal
+        });
         clearTimeout(timeoutId);
+        
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
         const data = await response.json();
-        const items = data.record || [];
+        let items = data.record || [];
+        if (!items.length && Array.isArray(data)) {
+            items = data;
+        }
+        
         setCachedCategory(catName, items);
         return items;
     } catch(e) {
-        console.error(`❌ Ошибка загрузки ${catName}:`, e);
-        const cached = getCachedCategory(catName);
-        if (cached) return cached;
-        try { const old = localStorage.getItem(getCacheKey(catName)); if (old) return JSON.parse(old); } catch(e2) {}
-        return [];
+        console.error(`❌ ${catName}:`, e.message);
+        throw e; // Пробрасываем ошибку для повторных попыток
     }
 }
 
 async function loadAllData() {
+    let allLoaded = true;
+    
+    // Загружаем все категории параллельно
     const loadPromises = Object.entries(CATEGORY_BINS).map(async ([catName, binId]) => {
+        // Сначала кеш
         const cached = getCachedCategory(catName);
         if (cached) {
             allItems[catName] = cached;
-            return;
+            console.log(`📦 ${catName}: ${cached.length} из кеша`);
         }
-        allItems[catName] = await loadCategoryFromBin(catName, binId);
+        
+        // Грузим свежее (3 попытки)
+        for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+                const fresh = await loadCategoryFromBin(catName, binId);
+                if (fresh.length > 0) {
+                    allItems[catName] = fresh;
+                    console.log(`✅ ${catName}: ${fresh.length} товаров`);
+                    return;
+                }
+            } catch(e) {
+                console.warn(`Попытка ${attempt + 1} для ${catName} не удалась`);
+            }
+            if (attempt < 2) await new Promise(r => setTimeout(r, 1000)); // ждём 1 сек перед повтором
+        }
+        
+        // Если не загрузилось — оставляем кеш
+        if (!allItems[catName].length) {
+            console.warn(`⚠️ ${catName}: не удалось загрузить`);
+            allLoaded = false;
+        }
     });
     
     await Promise.all(loadPromises);
     
-    // Фоновое обновление
-    Object.entries(CATEGORY_BINS).forEach(async ([catName, binId]) => {
-        try {
-            const fresh = await loadCategoryFromBin(catName, binId);
-            if (fresh.length > 0) allItems[catName] = fresh;
-        } catch(e) {}
-    });
-    
     renderAll();
-    showToast("✅ Товары загружены", false);
+    
+    if (allLoaded) {
+        showToast("✅ Товары загружены", false);
+    } else {
+        showToast("⚠️ Часть товаров из кеша", true);
+    }
 }
 
 function renderAll() {
