@@ -25,17 +25,25 @@ let allItems = {
 let currentCategory = null;
 
 // ========== JSONBIN НАСТРОЙКИ ==========
-const JSONBIN_BIN_ID = "69d507df856a6821890a0bcb";
 const JSONBIN_API_KEY = "$2a$10$02JoCoxrhI2J2COQIvNbM.G5Yh5iYDRA96V93DNU27viKWcqf.g5a";
 const STATS_BIN_ID = "69de65c836566621a8b1fd5b";
+
+const CATEGORY_BINS = {
+    "Жидкости":   "69ecfff9aaba88219738d922",
+    "Шайбы":     "69ed003736566621a8ef3796",
+    "Вейпы":     "69ed0016aaba88219738d9bb",
+    "Испарители": "69ed0049aaba88219738da71",
+    "Картриджи":  "69ed005c36566621a8ef37fc",
+    "Одноразки":  "69ed007436566621a8ef382b"
+};
 
 // ========== TELEGRAM БОТ ==========
 const ADMIN_BOT_TOKEN = "8552470788:AAGB1Q36M-gPlnTebMXJWw8e8GmcCXk00y4";
 const ADMIN_CHAT_ID = "6919484181";
 
 // ========== КЕШИРОВАНИЕ ==========
-const CACHE_KEY = "iceshop39_products";
-const CACHE_TIME_KEY = "iceshop39_cache_time";
+const CACHE_PREFIX = "iceshop39_";
+const CACHE_TIME_SUFFIX = "_time";
 const CACHE_DURATION = 30 * 60 * 1000;
 
 // ========== КОРЗИНА ==========
@@ -54,9 +62,7 @@ function loadFavorites() {
 }
 
 function saveFavorites() {
-    try {
-        localStorage.setItem('favorites_variants', JSON.stringify(favorites));
-    } catch(e) {}
+    try { localStorage.setItem('favorites_variants', JSON.stringify(favorites)); } catch(e) {}
     renderFavoritesBlock();
     updateAllFavoriteButtons();
 }
@@ -66,16 +72,7 @@ function toggleFavorite(productName, variantName, price, image, category, produc
     const index = favorites.findIndex(f => f.uniqueId === uniqueId);
     
     if (index === -1) {
-        favorites.push({
-            uniqueId: uniqueId,
-            productName: productName,
-            variantName: variantName || productName,
-            price: price,
-            image: image,
-            category: category,
-            productId: productId,
-            isSimple: isSimple
-        });
+        favorites.push({ uniqueId, productName, variantName: variantName || productName, price, image, category, productId, isSimple });
         showToast(`❤️ ${variantName || productName} добавлен в избранное`, false);
     } else {
         favorites.splice(index, 1);
@@ -93,24 +90,14 @@ function updateAllFavoriteButtons() {
     document.querySelectorAll('.favorite-btn-option').forEach(btn => {
         const productId = parseInt(btn.dataset.productId);
         const variantId = parseInt(btn.dataset.variantId);
-        if (isFavorite(productId, variantId, false)) {
-            btn.classList.add('active');
-            btn.innerHTML = '❤️';
-        } else {
-            btn.classList.remove('active');
-            btn.innerHTML = '🤍';
-        }
+        btn.classList.toggle('active', isFavorite(productId, variantId, false));
+        btn.innerHTML = isFavorite(productId, variantId, false) ? '❤️' : '🤍';
     });
     
     document.querySelectorAll('.favorite-btn-simple').forEach(btn => {
         const productId = parseInt(btn.dataset.productId);
-        if (isFavorite(productId, 0, true)) {
-            btn.classList.add('active');
-            btn.innerHTML = '❤️';
-        } else {
-            btn.classList.remove('active');
-            btn.innerHTML = '🤍';
-        }
+        btn.classList.toggle('active', isFavorite(productId, 0, true));
+        btn.innerHTML = isFavorite(productId, 0, true) ? '❤️' : '🤍';
     });
 }
 
@@ -119,10 +106,7 @@ function renderFavoritesBlock() {
     const container = document.getElementById('favoritesContainer');
     if (!section || !container) return;
     
-    if (favorites.length === 0) {
-        section.style.display = 'none';
-        return;
-    }
+    if (favorites.length === 0) { section.style.display = 'none'; return; }
     section.style.display = 'block';
     container.innerHTML = favorites.map(item => `
         <div class="favorite-card" data-category="${item.category}" data-product-id="${item.productId}" data-variant-name="${escapeHtml(item.variantName)}" data-is-simple="${item.isSimple}">
@@ -140,7 +124,6 @@ function renderFavoritesBlock() {
             const productId = parseInt(card.dataset.productId);
             const variantName = card.dataset.variantName;
             const isSimple = card.dataset.isSimple === 'true';
-            
             openCategory(category);
             setTimeout(() => {
                 const items = allItems[category];
@@ -181,14 +164,12 @@ async function loadGlobalViews() {
 
 async function saveGlobalViews() {
     try {
-        // Получаем текущие данные (чтобы не потерять orders)
+        // ВСЕГДА читаем свежие данные перед записью
         const response = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
             headers: { 'X-Master-Key': JSONBIN_API_KEY }
         });
         
-        let orders = [];
-        let totalOrders = 0;
-        let totalRevenue = 0;
+        let orders = [], totalOrders = 0, totalRevenue = 0;
         
         if (response.ok) {
             const data = await response.json();
@@ -198,7 +179,7 @@ async function saveGlobalViews() {
             totalRevenue = record.totalRevenue || 0;
         }
         
-        // Сохраняем views + не трогаем orders
+        // Сохраняем: views ИЗ ПАМЯТИ (самые свежие) + orders из JSONBin
         await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
             method: 'PUT',
             headers: {
@@ -206,78 +187,56 @@ async function saveGlobalViews() {
                 'X-Master-Key': JSONBIN_API_KEY
             },
             body: JSON.stringify({ 
-                views: globalViews,
+                views: globalViews,  // ← самые свежие просмотры из памяти
                 orders: orders,
                 totalOrders: totalOrders,
                 totalRevenue: totalRevenue,
                 lastUpdated: new Date().toISOString() 
             })
         });
+        console.log('✅ Просмотры сохранены:', Object.keys(globalViews).length, 'записей');
     } catch(e) {
-        console.error('Ошибка сохранения просмотров:', e);
+        console.error('❌ Ошибка сохранения просмотров:', e);
     }
 }
 
 async function addGlobalView(itemId, itemCategory) {
     const key = `${itemCategory}_${itemId}`;
-    if (!globalViews[key]) {
-        globalViews[key] = { id: itemId, category: itemCategory, views: 0 };
-    }
+    if (!globalViews[key]) globalViews[key] = { id: itemId, category: itemCategory, views: 0 };
     globalViews[key].views++;
     await saveGlobalViews();
     renderPopularBlock();
 }
 
-function recordView(itemId, itemCategory) {
-    addGlobalView(itemId, itemCategory);
-}
+function recordView(itemId, itemCategory) { addGlobalView(itemId, itemCategory); }
 
 function renderPopularBlock() {
     const section = document.getElementById('popularSection');
     const container = document.getElementById('popularContainer');
     if (!section || !container) return;
     
-    const popular = Object.values(globalViews)
-        .sort((a, b) => b.views - a.views)
-        .slice(0, 8);
+    const popular = Object.values(globalViews).sort((a, b) => b.views - a.views).slice(0, 8);
     
-    if (popular.length === 0) {
-        section.style.display = 'none';
-        return;
-    }
+    if (popular.length === 0) { section.style.display = 'none'; return; }
     
     const popularWithData = [];
     for (const stat of popular) {
         const category = stat.category;
         const items = allItems[category];
         if (!items) continue;
-        
         const item = items.find(i => i.id === stat.id);
         if (!item) continue;
         
         let price = '';
         if (item.flavors && item.flavors.length > 0) {
             const prices = item.flavors.map(f => f.price);
-            const minPrice = Math.min(...prices);
-            price = `от ${minPrice} ₽`;
-        } else {
-            price = `${item.price} ₽`;
-        }
+            price = `от ${Math.min(...prices)} ₽`;
+        } else { price = `${item.price} ₽`; }
         
-        popularWithData.push({
-            id: item.id,
-            category: category,
-            name: item.name,
-            image: item.image,
-            price: price,
-            views: stat.views
-        });
+        popularWithData.push({ id: item.id, category, name: item.name, image: item.image, price, views: stat.views });
     }
     
-    if (popularWithData.length === 0) {
-        section.style.display = 'none';
-        return;
-    }
+    if (popularWithData.length === 0) { section.style.display = 'none'; return; }
     
     section.style.display = 'block';
     container.innerHTML = popularWithData.map(item => `
@@ -305,7 +264,7 @@ function renderPopularBlock() {
 
 // ========== ИСТОРИЯ ПРОСМОТРОВ ==========
 const HISTORY_KEY = "view_history";
-const MAX_HISTORY = 5;
+const MAX_HISTORY = 12;
 
 function saveToHistory(item, variantName = null) {
     let history = getHistory();
@@ -313,32 +272,18 @@ function saveToHistory(item, variantName = null) {
     const itemId = variantName ? `${item.id}_${variantName}` : item.id;
     
     history = history.filter(h => h.id !== itemId);
-    history.unshift({
-        id: itemId,
-        name: displayName,
-        image: item.image,
-        category: currentCategory,
-        price: variantName ? item.flavors?.find(f => f.name === variantName)?.price : (item.flavors ? `от ${Math.min(...item.flavors.map(f => f.price))}` : item.price),
-        timestamp: Date.now()
-    });
+    history.unshift({ id: itemId, name: displayName, image: item.image, category: currentCategory, price: variantName ? item.flavors?.find(f => f.name === variantName)?.price : (item.flavors ? `от ${Math.min(...item.flavors.map(f => f.price))}` : item.price), timestamp: Date.now() });
     if (history.length > MAX_HISTORY) history = history.slice(0, MAX_HISTORY);
     try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch(e) {}
     renderHistoryBlock();
 }
 
 function getHistory() {
-    try {
-        const history = localStorage.getItem(HISTORY_KEY);
-        if (history) return JSON.parse(history);
-    } catch(e) {}
+    try { const h = localStorage.getItem(HISTORY_KEY); if (h) return JSON.parse(h); } catch(e) {}
     return [];
 }
 
-function clearHistory() {
-    localStorage.removeItem(HISTORY_KEY);
-    renderHistoryBlock();
-    showToast("📜 История просмотров очищена", false);
-}
+function clearHistory() { localStorage.removeItem(HISTORY_KEY); renderHistoryBlock(); showToast("📜 История очищена", false); }
 
 function renderHistoryBlock() {
     const history = getHistory();
@@ -346,10 +291,7 @@ function renderHistoryBlock() {
     const container = document.getElementById('historyContainer');
     if (!historySection || !container) return;
     
-    if (history.length === 0) {
-        historySection.style.display = 'none';
-        return;
-    }
+    if (history.length === 0) { historySection.style.display = 'none'; return; }
     historySection.style.display = 'block';
     container.innerHTML = history.map(item => `
         <div class="history-card" data-category="${item.category}" data-name="${escapeHtml(item.name)}">
@@ -376,15 +318,8 @@ function renderHistoryBlock() {
 }
 
 // ========== ХЕЛПЕРЫ ==========
-function escapeHtml(str) {
-    if (!str) return '';
-    return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
-}
-
-function escapeMarkdown(text) {
-    if (!text) return '';
-    return String(text).replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
-}
+function escapeHtml(str) { if (!str) return ''; return String(str).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+function escapeMarkdown(text) { if (!text) return ''; return String(text).replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&'); }
 
 function formatStock(stock) {
     if (stock === undefined || stock === null) return { text: "Нет в наличии", isOutOfStock: true, available: 0 };
@@ -421,41 +356,22 @@ function updateCartIcon() {
 
 function addToCart(productName, variantName, price, image, maxStock) {
     const currentQty = getCartQuantity(productName, variantName);
-    if (currentQty >= maxStock) {
-        showToast(`❌ Нельзя добавить больше ${maxStock} шт`, true);
-        return false;
-    }
+    if (currentQty >= maxStock) { showToast(`❌ Нельзя добавить больше ${maxStock} шт`, true); return false; }
     const existingItem = cart.find(item => item.productName === productName && item.variantName === variantName);
-    if (existingItem) {
-        existingItem.quantity++;
-    } else {
-        cart.push({
-            productName: productName,
-            variantName: variantName,
-            price: price,
-            image: image,
-            quantity: 1,
-            maxStock: maxStock
-        });
-    }
+    if (existingItem) { existingItem.quantity++; }
+    else { cart.push({ productName, variantName, price, image, quantity: 1, maxStock }); }
     updateCartIcon();
     showToast(`✅ Добавлено в корзину!`, false);
     return true;
 }
 
 function showCartModal() {
-    if (cart.length === 0) {
-        showToast("🛒 Корзина пуста", false);
-        return;
-    }
-    const modalDiv = document.createElement('div');
-    modalDiv.className = 'modal';
-    modalDiv.style.display = 'flex';
+    if (cart.length === 0) { showToast("🛒 Корзина пуста", false); return; }
+    const modalDiv = document.createElement('div'); modalDiv.className = 'modal'; modalDiv.style.display = 'flex';
     let cartHtml = `<div class="modal-content" style="max-width:500px; max-height:80vh; overflow-y:auto;"><h3>🛒 Ваша корзина</h3><div style="margin:15px 0;">`;
     let totalPrice = 0;
     cart.forEach((item, index) => {
-        const itemTotal = item.price * item.quantity;
-        totalPrice += itemTotal;
+        const itemTotal = item.price * item.quantity; totalPrice += itemTotal;
         cartHtml += `<div style="display:flex; align-items:center; gap:10px; padding:10px; border-bottom:1px solid #1F2A44; flex-wrap:wrap;">
             <img src="${item.image || 'https://placehold.co/50x50/1E293B/3B82F6?text=No+Image'}" style="width:50px; height:50px; object-fit:cover; border-radius:10px;">
             <div style="flex:1;"><div><strong>${escapeHtml(item.productName)}</strong></div><div style="font-size:0.8rem; color:#94A3B8;">${escapeHtml(item.variantName)}</div><div style="color:#FACC15;">${item.price} ₽ × ${item.quantity} = ${itemTotal} ₽</div></div>
@@ -472,14 +388,8 @@ function showCartModal() {
     modalDiv.querySelectorAll('.cart-plus').forEach(btn => {
         btn.addEventListener('click', () => {
             const idx = parseInt(btn.dataset.index);
-            const item = cart[idx];
-            if (item.quantity >= item.maxStock) { 
-                showToast(`❌ Нельзя добавить больше ${item.maxStock} шт`, true); 
-                return; 
-            }
-            cart[idx].quantity++; 
-            modalDiv.remove(); 
-            showCartModal();
+            if (cart[idx].quantity >= cart[idx].maxStock) { showToast(`❌ Нельзя добавить больше ${cart[idx].maxStock} шт`, true); return; }
+            cart[idx].quantity++; modalDiv.remove(); showCartModal();
         });
     });
     modalDiv.querySelectorAll('.cart-minus').forEach(btn => {
@@ -487,66 +397,38 @@ function showCartModal() {
             const idx = parseInt(btn.dataset.index);
             if (cart[idx].quantity > 1) cart[idx].quantity--;
             else cart.splice(idx, 1);
-            if (cart.length === 0) { 
-                modalDiv.remove(); 
-                updateCartIcon(); 
-                showToast("🛒 Корзина очищена", false); 
-                return; 
-            }
-            modalDiv.remove(); 
-            showCartModal();
+            if (cart.length === 0) { modalDiv.remove(); updateCartIcon(); showToast("🛒 Корзина очищена", false); return; }
+            modalDiv.remove(); showCartModal();
         });
     });
-    modalDiv.querySelector('#clearCartBtn').onclick = () => { 
-        cart = []; 
-        modalDiv.remove(); 
-        updateCartIcon(); 
-        showToast("🗑️ Корзина очищена", false); 
-    };
+    modalDiv.querySelector('#clearCartBtn').onclick = () => { cart = []; modalDiv.remove(); updateCartIcon(); showToast("🗑️ Корзина очищена", false); };
     modalDiv.querySelector('#closeCartBtn').onclick = () => modalDiv.remove();
-    modalDiv.querySelector('#checkoutBtn').onclick = () => { 
-        modalDiv.remove(); 
-        showManagerModalForCart(); 
-    };
+    modalDiv.querySelector('#checkoutBtn').onclick = () => { modalDiv.remove(); showManagerModalForCart(); };
 }
 
 function showManagerModalForCart() {
-    const modalDiv = document.createElement('div');
-    modalDiv.className = 'modal';
-    modalDiv.style.display = 'flex';
+    const modalDiv = document.createElement('div'); modalDiv.className = 'modal'; modalDiv.style.display = 'flex';
     modalDiv.innerHTML = `<div class="modal-content"><h3>📱 Выберите менеджера</h3><div id="managerOptionsTemp"></div><button class="cancel-modal" id="cancelManagerBtn">Отмена</button></div>`;
     document.body.appendChild(modalDiv);
-    const opts = modalDiv.querySelector('#managerOptionsTemp');
-    opts.innerHTML = managers.map(m => `<div class="manager-option" data-tg="${m.tg}">${escapeHtml(m.name)}</div>`).join('');
-    modalDiv.querySelectorAll('.manager-option').forEach(opt => {
-        opt.addEventListener('click', () => { 
-            modalDiv.remove(); 
-            showAgeConfirmForCart(opt.dataset.tg); 
-        });
-    });
+    document.getElementById('managerOptionsTemp').innerHTML = managers.map(m => `<div class="manager-option" data-tg="${m.tg}">${escapeHtml(m.name)}</div>`).join('');
+    modalDiv.querySelectorAll('.manager-option').forEach(opt => { opt.addEventListener('click', () => { modalDiv.remove(); showAgeConfirmForCart(opt.dataset.tg); }); });
     modalDiv.querySelector('#cancelManagerBtn').onclick = () => modalDiv.remove();
 }
 
 function showAgeConfirmForCart(managerTg) {
-    const modalDiv = document.createElement('div');
-    modalDiv.className = 'order-modal';
-    modalDiv.style.display = 'flex';
+    const modalDiv = document.createElement('div'); modalDiv.className = 'order-modal'; modalDiv.style.display = 'flex';
     modalDiv.innerHTML = `<div class="order-content"><h3>📦 Оформление заказа</h3><p style="margin:15px 0;">Подтвердите возраст и отправьте заказ</p><div class="order-checkbox"><input type="checkbox" id="orderAgeConfirm"><label for="orderAgeConfirm">Подтверждаю, что мне есть 18 лет</label></div><button class="order-submit" id="submitOrderBtn" disabled>📤 Отправить заказ</button><button class="cancel-order" id="cancelOrderBtn">Отмена</button></div>`;
     document.body.appendChild(modalDiv);
     const orderCheck = modalDiv.querySelector('#orderAgeConfirm');
     const submitBtn = modalDiv.querySelector('#submitOrderBtn');
     orderCheck.addEventListener('change', () => { submitBtn.disabled = !orderCheck.checked; });
-    submitBtn.onclick = () => { 
-        if (orderCheck.checked) { 
-            sendCartToTelegram(managerTg); 
-            modalDiv.remove(); 
-        } 
-    };
+    submitBtn.onclick = () => { if (orderCheck.checked) { sendCartToTelegram(managerTg); modalDiv.remove(); } };
     modalDiv.querySelector('#cancelOrderBtn').onclick = () => modalDiv.remove();
 }
 
 async function saveOrderToStats(cartItems, totalPrice, managerTg) {
     try {
+        // Читаем свежие данные
         const response = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
             headers: { 'X-Master-Key': JSONBIN_API_KEY }
         });
@@ -558,8 +440,11 @@ async function saveOrderToStats(cartItems, totalPrice, managerTg) {
         
         const data = await response.json();
         const record = data.record || {};
-        const currentViews = globalViews || record.views || {};
         
+        // ВАЖНО: берём просмотры из памяти (они самые актуальные)
+        const currentViews = globalViews;
+        
+        // Добавляем заказ
         const orders = record.orders || [];
         orders.push({
             id: Date.now(),
@@ -577,14 +462,15 @@ async function saveOrderToStats(cartItems, totalPrice, managerTg) {
         const totalOrders = orders.length;
         const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
         
-        await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
+        // Сохраняем всё вместе
+        const putResponse = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'X-Master-Key': JSONBIN_API_KEY
             },
             body: JSON.stringify({
-                views: currentViews,
+                views: currentViews,  // ← просмотры из памяти
                 orders: orders,
                 totalOrders: totalOrders,
                 totalRevenue: totalRevenue,
@@ -592,7 +478,9 @@ async function saveOrderToStats(cartItems, totalPrice, managerTg) {
             })
         });
         
-        console.log('✅ Заказ сохранён, просмотры не потеряны');
+        if (putResponse.ok) {
+            console.log('✅ Заказ сохранён. Заказов:', totalOrders, 'Просмотров:', Object.keys(currentViews).length);
+        }
         
     } catch(e) {
         console.error('❌ Ошибка сохранения заказа:', e);
@@ -604,160 +492,101 @@ async function sendCartToTelegram(managerTg) {
     let totalPrice = 0;
     
     cart.forEach((item, index) => {
-        const itemTotal = item.price * item.quantity;
-        totalPrice += itemTotal;
-        message += `${index + 1}\\. *${escapeMarkdown(item.productName)}*\n`;
-        message += `   Вариант: ${escapeMarkdown(item.variantName)}\n`;
-        message += `   Цена: ${item.price} ₽\n`;
-        message += `   Количество: ${item.quantity} шт\n`;
-        message += `   Сумма: ${itemTotal} ₽\n\n`;
+        const itemTotal = item.price * item.quantity; totalPrice += itemTotal;
+        message += `${index + 1}\\. *${escapeMarkdown(item.productName)}*\n   Вариант: ${escapeMarkdown(item.variantName)}\n   Цена: ${item.price} ₽\n   Количество: ${item.quantity} шт\n   Сумма: ${itemTotal} ₽\n\n`;
     });
     
     message += `────────────────\n💰 *ИТОГО: ${totalPrice} ₽*\n\n🕐 Заказ отправлен с сайта ICESHOP39`;
-    
     window.open(`https://t.me/${managerTg}?text=${encodeURIComponent(message)}`, '_blank');
     
     if (ADMIN_BOT_TOKEN && ADMIN_BOT_TOKEN !== "") {
         try {
             let adminMessage = `🔔 *НОВЫЙ ЗАКАЗ!*\n\n👤 *Менеджер:* @${managerTg}\n💰 *Сумма:* ${totalPrice} ₽\n📦 *Товаров:* ${cart.length}\n\n*Состав заказа:*\n`;
-            
-            cart.forEach((item, index) => {
-                adminMessage += `${index + 1}\\. ${escapeMarkdown(item.productName)} — ${escapeMarkdown(item.variantName)} × ${item.quantity} = ${item.price * item.quantity} ₽\n`;
-            });
-            
-            const response = await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: ADMIN_CHAT_ID,
-                    text: adminMessage,
-                    parse_mode: 'MarkdownV2'
-                })
-            });
-            
+            cart.forEach((item, index) => { adminMessage += `${index + 1}\\. ${escapeMarkdown(item.productName)} — ${escapeMarkdown(item.variantName)} × ${item.quantity} = ${item.price * item.quantity} ₽\n`; });
+            const response = await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: ADMIN_CHAT_ID, text: adminMessage, parse_mode: 'MarkdownV2' }) });
             const result = await response.json();
             if (!result.ok) {
-                await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: ADMIN_CHAT_ID,
-                        text: `🔔 НОВЫЙ ЗАКАЗ!\n\nМенеджер: @${managerTg}\nСумма: ${totalPrice} ₽\nТоваров: ${cart.length}`
-                    })
-                });
+                await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendMessage`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: ADMIN_CHAT_ID, text: `🔔 НОВЫЙ ЗАКАЗ!\n\nМенеджер: @${managerTg}\nСумма: ${totalPrice} ₽\nТоваров: ${cart.length}` }) });
             }
-        } catch(e) {
-            console.error('Ошибка отправки админу:', e);
-        }
+        } catch(e) { console.error('Ошибка отправки админу:', e); }
     }
     
     saveOrderToStats(cart, totalPrice, managerTg);
-    cart = []; 
-    updateCartIcon(); 
-    showToast("✅ Заказ отправлен! Корзина очищена", false);
+    cart = []; updateCartIcon(); showToast("✅ Заказ отправлен! Корзина очищена", false);
 }
 
 function showToast(message, isError = false) {
     let toast = document.getElementById('toast');
     if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'toast';
+        toast = document.createElement('div'); toast.id = 'toast';
         toast.style.cssText = 'position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:#10B981; color:white; padding:12px 20px; border-radius:60px; z-index:10000; font-size:14px; white-space:nowrap; box-shadow:0 0 15px rgba(0,0,0,0.3);';
         document.body.appendChild(toast);
     }
-    toast.textContent = message;
-    toast.style.background = isError ? '#EF4444' : '#10B981';
-    toast.style.display = 'block';
+    toast.textContent = message; toast.style.background = isError ? '#EF4444' : '#10B981'; toast.style.display = 'block';
     setTimeout(() => { toast.style.display = 'none'; }, 2500);
 }
 
-// ========== ЗАГРУЗКА ДАННЫХ С КЕШЕМ ==========
-function getCachedProducts() {
+// ========== ЗАГРУЗКА ДАННЫХ С КЕШЕМ (РАЗДЕЛЬНАЯ) ==========
+function getCacheKey(catName) { return CACHE_PREFIX + catName; }
+function getCacheTimeKey(catName) { return CACHE_PREFIX + catName + CACHE_TIME_SUFFIX; }
+
+function getCachedCategory(catName) {
     try {
-        const cacheTime = localStorage.getItem(CACHE_TIME_KEY);
+        const cacheTime = localStorage.getItem(getCacheTimeKey(catName));
         if (cacheTime && (Date.now() - parseInt(cacheTime)) < CACHE_DURATION) {
-            const cached = localStorage.getItem(CACHE_KEY);
-            if (cached) {
-                const data = JSON.parse(cached);
-                if (data.Zhitkosty && data.Zhitkosty.length > 0) {
-                    console.log('📦 Загружено из кеша');
-                    return data;
-                }
-            }
+            const cached = localStorage.getItem(getCacheKey(catName));
+            if (cached) { console.log(`📦 ${catName} из кеша`); return JSON.parse(cached); }
         }
     } catch(e) {}
     return null;
 }
 
-function setCachedProducts(record) {
-    try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(record));
-        localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
-    } catch(e) {}
+function setCachedCategory(catName, data) {
+    try { localStorage.setItem(getCacheKey(catName), JSON.stringify(data)); localStorage.setItem(getCacheTimeKey(catName), Date.now().toString()); } catch(e) {}
 }
 
-function loadProductsIntoMemory(record) {
-    allItems["Жидкости"] = record.Zhitkosty || [];
-    allItems["Шайбы"] = record.Snus || [];
-    allItems["Вейпы"] = record.Vapes || [];
-    allItems["Испарители"] = record.Ispariteli || [];
-    allItems["Картриджи"] = record.Kartdritzhy || [];
-    allItems["Одноразки"] = record.Odnorazki || [];
+async function loadCategoryFromBin(catName, binId) {
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY }, signal: controller.signal });
+        clearTimeout(timeoutId);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        const items = data.record || [];
+        setCachedCategory(catName, items);
+        return items;
+    } catch(e) {
+        console.error(`❌ Ошибка загрузки ${catName}:`, e);
+        const cached = getCachedCategory(catName);
+        if (cached) return cached;
+        try { const old = localStorage.getItem(getCacheKey(catName)); if (old) return JSON.parse(old); } catch(e2) {}
+        return [];
+    }
 }
 
 async function loadAllData() {
-    const cached = getCachedProducts();
-    if (cached) {
-        loadProductsIntoMemory(cached);
-        renderAll();
-        fetchFreshData(false);
-        return;
-    }
-    await fetchFreshData(true);
-}
-
-async function fetchFreshData(showLoader) {
-    if (showLoader) showToast("🔄 Загрузка товаров...", false);
+    const loadPromises = Object.entries(CATEGORY_BINS).map(async ([catName, binId]) => {
+        const cached = getCachedCategory(catName);
+        if (cached) {
+            allItems[catName] = cached;
+            return;
+        }
+        allItems[catName] = await loadCategoryFromBin(catName, binId);
+    });
     
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        
-        const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
-            headers: { 'X-Master-Key': JSONBIN_API_KEY },
-            signal: controller.signal
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        
-        const data = await response.json();
-        const record = data.record || {};
-        
-        loadProductsIntoMemory(record);
-        setCachedProducts(record);
-        
-        renderAll();
-        if (showLoader) showToast("✅ Товары загружены", false);
-        
-    } catch(e) {
-        console.error('❌ Ошибка загрузки:', e);
-        
+    await Promise.all(loadPromises);
+    
+    // Фоновое обновление
+    Object.entries(CATEGORY_BINS).forEach(async ([catName, binId]) => {
         try {
-            const oldCache = localStorage.getItem(CACHE_KEY);
-            if (oldCache) {
-                const data = JSON.parse(oldCache);
-                loadProductsIntoMemory(data);
-                renderAll();
-                showToast("⚠️ Загружены сохранённые данные", true);
-                return;
-            }
-        } catch(e2) {}
-        
-        renderAll();
-        if (showLoader) showToast("❌ Не удалось загрузить товары", true);
-    }
+            const fresh = await loadCategoryFromBin(catName, binId);
+            if (fresh.length > 0) allItems[catName] = fresh;
+        } catch(e) {}
+    });
+    
+    renderAll();
+    showToast("✅ Товары загружены", false);
 }
 
 function renderAll() {
@@ -793,10 +622,7 @@ function openCategory(catName) {
     document.getElementById('flavorsPage').classList.remove('active');
     document.getElementById('productsPageTitle').textContent = catName;
     const container = document.getElementById('productsContainer');
-    if (!items.length) { 
-        container.innerHTML = '<div class="empty-msg" style="text-align:center;padding:40px;color:#94A3B8;">📭 Товары отсутствуют</div>'; 
-        return; 
-    }
+    if (!items.length) { container.innerHTML = '<div class="empty-msg" style="text-align:center;padding:40px;color:#94A3B8;">📭 Товары отсутствуют</div>'; return; }
     
     container.innerHTML = items.map(item => {
         const itemName = escapeHtml(item.name);
@@ -832,18 +658,12 @@ function openCategory(catName) {
     
     document.querySelectorAll('.order-pill').forEach(btn => btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const maxStock = parseInt(btn.dataset.orderMaxstock);
-        addToCart(btn.dataset.orderName, btn.dataset.orderName, parseInt(btn.dataset.orderPrice), btn.dataset.orderImage, maxStock);
+        addToCart(btn.dataset.orderName, btn.dataset.orderName, parseInt(btn.dataset.orderPrice), btn.dataset.orderImage, parseInt(btn.dataset.orderMaxstock));
     }));
     
     document.querySelectorAll('.favorite-btn-simple').forEach(btn => btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const productId = parseInt(btn.dataset.productId);
-        const productName = btn.dataset.productName;
-        const price = parseInt(btn.dataset.price);
-        const image = btn.dataset.image;
-        const category = btn.dataset.category;
-        toggleFavorite(productName, null, price, image, category, productId, 0, true);
+        toggleFavorite(btn.dataset.productName, null, parseInt(btn.dataset.price), btn.dataset.image, btn.dataset.category, parseInt(btn.dataset.productId), 0, true);
     }));
     
     document.querySelectorAll('.product-card[data-has-flavors="true"]').forEach(card => {
@@ -879,20 +699,12 @@ function openFlavors(parentItem, highlightVariant = null) {
     }).join('')}</div>`;
     
     document.querySelectorAll('.flavor-order-btn:not([disabled])').forEach(btn => btn.addEventListener('click', () => {
-        const maxStock = parseInt(btn.dataset.productMaxstock);
-        addToCart(btn.dataset.productName, btn.dataset.flavorName, parseInt(btn.dataset.flavorPrice), btn.dataset.productImage, maxStock);
+        addToCart(btn.dataset.productName, btn.dataset.flavorName, parseInt(btn.dataset.flavorPrice), btn.dataset.productImage, parseInt(btn.dataset.productMaxstock));
     }));
     
     document.querySelectorAll('.favorite-btn-option').forEach(btn => btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const productId = parseInt(btn.dataset.productId);
-        const variantId = parseInt(btn.dataset.variantId);
-        const productName = btn.dataset.productName;
-        const variantName = btn.dataset.variantName;
-        const price = parseInt(btn.dataset.price);
-        const image = btn.dataset.image;
-        const category = btn.dataset.category;
-        toggleFavorite(productName, variantName, price, image, category, productId, variantId, false);
+        toggleFavorite(btn.dataset.productName, btn.dataset.variantName, parseInt(btn.dataset.price), btn.dataset.image, btn.dataset.category, parseInt(btn.dataset.productId), parseInt(btn.dataset.variantId), false);
     }));
     
     if (highlightVariant) {
@@ -900,12 +712,10 @@ function openFlavors(parentItem, highlightVariant = null) {
         for (let item of items) {
             const nameEl = item.querySelector('.flavor-name');
             if (nameEl && nameEl.textContent.trim() === highlightVariant) {
-                item.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                break;
+                item.scrollIntoView({ behavior: 'smooth', block: 'center' }); break;
             }
         }
     }
-    
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -951,10 +761,10 @@ function performSearch(query) {
     const results = [];
     for (const [category, items] of Object.entries(allItems)) {
         for (const item of items) {
-            if (item.name.toLowerCase().includes(query)) results.push({ name: item.name, category: category, price: item.flavors ? `от ${Math.min(...item.flavors.map(f => f.price))} ₽` : `${item.price} ₽`, id: item.id, hasFlavors: !!item.flavors, item: item });
+            if (item.name.toLowerCase().includes(query)) results.push({ name: item.name, category, price: item.flavors ? `от ${Math.min(...item.flavors.map(f => f.price))} ₽` : `${item.price} ₽`, id: item.id, hasFlavors: !!item.flavors });
             else if (item.flavors) {
                 for (const flavor of item.flavors) {
-                    if (flavor.name.toLowerCase().includes(query)) { results.push({ name: `${item.name} — ${flavor.name}`, category: category, price: `${flavor.price} ₽`, id: item.id, hasFlavors: true, flavorName: flavor.name, item: item }); break; }
+                    if (flavor.name.toLowerCase().includes(query)) { results.push({ name: `${item.name} — ${flavor.name}`, category, price: `${flavor.price} ₽`, id: item.id, hasFlavors: true, flavorName: flavor.name }); break; }
                 }
             }
         }
@@ -972,12 +782,13 @@ function renderSearchResults(results) {
         document.getElementById('searchResults').classList.remove('show'); document.getElementById('searchInput').value = '';
         openCategory(category);
         if (hasFlavors) setTimeout(() => {
-            const items = allItems[category], item = items.find(i => i.id === id);
+            const item = allItems[category].find(i => i.id === id);
             if (item?.flavors) openFlavors(item, flavorName);
         }, 100);
     }));
 }
 
+// ========== ЗАПУСК ==========
 document.getElementById('backHomeBtn')?.addEventListener('click', goToHome);
 document.getElementById('backFlavorsHomeBtn')?.addEventListener('click', goBackToCategory);
 document.getElementById('homeLogoBtn')?.addEventListener('click', goToHome);
