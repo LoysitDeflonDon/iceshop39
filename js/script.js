@@ -310,17 +310,41 @@ async function loadCategoryFromBin(catName, binId) {
 }
 
 async function loadAllData() {
-    showToast("🔄 Загрузка...", false);
-    const proms = Object.entries(CATEGORY_BINS).map(async ([cn, bid]) => { const c = getCachedCategory(cn); if (c) allItems[cn] = c; const f = await loadCategoryFromBin(cn, bid); if (f.length > 0) allItems[cn] = f; });
+    // 1. Мгновенно грузим всё из кеша
+    let allCached = true;
+    for (const [catName, binId] of Object.entries(CATEGORY_BINS)) {
+        const cached = getCachedCategory(catName);
+        if (cached && cached.length > 0) {
+            allItems[catName] = cached;
+        } else {
+            allCached = false;
+        }
+    }
+    
+    // 2. Если есть кеш — сразу показываем
+    if (allCached) {
+        renderAll();
+        showToast("✅ Товары загружены", false);
+    }
+    
+    // 3. Фоновое обновление из JSONBin
+    const proms = Object.entries(CATEGORY_BINS).map(async ([catName, binId]) => {
+        const fresh = await loadCategoryFromBin(catName, binId);
+        if (fresh.length > 0) {
+            allItems[catName] = fresh;
+        }
+    });
+    
     await Promise.all(proms);
-    const total = Object.values(allItems).reduce((s, a) => s + a.length, 0);
+    
+    // 4. Перерисовываем с актуальными данными
     renderAll();
-    showToast(total > 0 ? `✅ ${total} товаров` : "❌ Ошибка загрузки", total === 0);
+    
+    const total = Object.values(allItems).reduce((s, a) => s + a.length, 0);
+    if (!allCached) {
+        showToast(total > 0 ? `✅ ${total} товаров` : "❌ Ошибка загрузки", total === 0);
+    }
 }
-
-function renderAll() { renderCategories(); renderManagers(); updateCartIcon(); loadFavorites(); renderHistoryBlock(); loadGlobalViews().catch(() => {}); }
-function renderManagers() { const c = document.getElementById('managersGrid'); if (c) c.innerHTML = managers.map(m => `<a href="https://t.me/${m.tg}" target="_blank" class="manager-card">${m.name}</a>`).join(''); }
-function getCount(cn) { return allItems[cn]?.length || 0; }
 
 function renderCategories() {
     const c = document.getElementById("categoriesGrid"); if (!c) return;
