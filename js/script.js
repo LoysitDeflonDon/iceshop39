@@ -735,27 +735,38 @@ async function loadCategoryFromBin(catName, binId) {
 }
 
 async function loadAllData() {
-    showToast("🔄 Загрузка...", false);
-    
-    const loadPromises = Object.entries(CATEGORY_BINS).map(async ([catName, binId]) => {
+    // 1. Мгновенно грузим кеш и показываем
+    let hasCache = false;
+    for (const [catName] of Object.entries(CATEGORY_BINS)) {
         const cached = getCachedCategory(catName);
-        if (cached) {
+        if (cached && cached.length > 0) {
             allItems[catName] = cached;
-            console.log(`📦 ${catName}: ${cached.length} из кеша`);
+            hasCache = true;
         }
+    }
+    
+    if (hasCache) {
+        renderAll();
+        showToast("✅ Товары загружены", false);
+    }
+    
+    // 2. Фоновое обновление
+    const proms = Object.entries(CATEGORY_BINS).map(async ([catName, binId]) => {
         const fresh = await loadCategoryFromBin(catName, binId);
         if (fresh.length > 0) {
             allItems[catName] = fresh;
         }
     });
     
-    await Promise.all(loadPromises);
+    await Promise.all(proms);
     
-    const totalItems = Object.values(allItems).reduce((sum, arr) => sum + arr.length, 0);
-    console.log('📊 Всего товаров:', totalItems);
-    
+    // 3. Финальный рендер со свежими данными
     renderAll();
-    showToast(totalItems > 0 ? `✅ ${totalItems} товаров` : "❌ Ошибка загрузки", totalItems === 0);
+    
+    if (!hasCache) {
+        const total = Object.values(allItems).reduce((s, a) => s + a.length, 0);
+        showToast(total > 0 ? `✅ ${total} товаров` : "❌ Ошибка загрузки", total === 0);
+    }
 }
 
 function renderAll() {
