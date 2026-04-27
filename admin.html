@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>Чо ахуел!? Ты как сюда попал уебан?</title>
+    <title>Админ-панель ICESHOP39</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: #0A0F1E; color: #EDF2FF; font-family: system-ui, -apple-system, sans-serif; padding: 12px; padding-bottom: 30px; }
@@ -51,7 +51,7 @@
         .product-meta { font-size: 11px; color: #94A3B8; }
         .product-actions { display: flex; gap: 8px; }
         .product-actions button { padding: 8px 12px; font-size: 12px; }
-        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #10B981; padding: 12px 24px; border-radius: 60px; z-index: 10000; font-size: 14px; box-shadow: 0 0 15px rgba(0,0,0,0.3); max-width: 90%; text-align: center; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #10B981; padding: 12px 24px; border-radius: 60px; z-index: 10000; font-size: 14px; box-shadow: 0 0 15px rgba(0,0,0,0.3); max-width: 90%; text-align: center; display: none; }
         .orders-table-container { background: #111827; border-radius: 20px; padding: 15px; margin: 20px 0; border: 1px solid #1F2A44; max-height: 400px; overflow-y: auto; }
         .orders-table { width: 100%; border-collapse: collapse; font-size: 12px; }
         .orders-table th { text-align: left; padding: 10px 5px; color: #94A3B8; border-bottom: 1px solid #1F2A44; position: sticky; top: 0; background: #111827; }
@@ -67,7 +67,7 @@
 <body>
 
 <div id="loginBox" class="login-box">
-    <h2>А ну нахуй с пляжа если пароль не знаешь инфузория ебанная >:(</h2>
+    <h2>Админ-панель</h2>
     <input type="password" id="password" placeholder="Пароль">
     <button onclick="login()">Войти</button>
 </div>
@@ -75,7 +75,7 @@
 <div id="adminPanel" class="admin-panel">
     <div class="admin-header">
         <h1>🛠️ Управление товарами</h1>
-        <button class="logout-btn" onclick="logout()">Выйти</button>
+        <button class="logout-btn" onclick="logout()">Уйти нахуй</button>
     </div>
 
     <div class="stats-row">
@@ -146,7 +146,6 @@ let currentCategory = null;
 let currentProducts = [];
 let editId = null;
 let currentFlavors = [];
-let productsLoaded = false;
 
 // ========== СТАТИСТИКА ==========
 let globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
@@ -156,137 +155,82 @@ async function loadGlobalStats() {
         const r = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
             headers: { 'X-Master-Key': JSONBIN_API_KEY }
         });
-        if (!r.ok) return;
-        const d = await r.json();
-        const rec = d.record || {};
-        globalStats = {
-            orders: rec.orders || [],
-            totalOrders: rec.totalOrders || 0,
-            totalRevenue: rec.totalRevenue || 0
-        };
-        updateStatsDisplay();
-        renderOrdersTable();
-    } catch(e) {}
+        if (r.ok) {
+            const d = await r.json();
+            const rec = d.record || {};
+            globalStats = { orders: rec.orders || [], totalOrders: rec.totalOrders || 0, totalRevenue: rec.totalRevenue || 0 };
+            updateStatsDisplay();
+            renderOrdersTable();
+        }
+    } catch(e) { console.error(e); }
 }
 
 async function clearStatistics() {
     if (confirm("Очистить статистику?")) {
         globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
         try {
-            const r = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
-                headers: { 'X-Master-Key': JSONBIN_API_KEY }
-            });
+            const r = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
             const rec = r.ok ? ((await r.json()).record || {}) : {};
             await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
-                body: JSON.stringify({
-                    views: rec.views || {},
-                    orders: [],
-                    totalOrders: 0,
-                    totalRevenue: 0,
-                    lastUpdated: new Date().toISOString()
-                })
+                method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+                body: JSON.stringify({ views: rec.views || {}, orders: [], totalOrders: 0, totalRevenue: 0, lastUpdated: new Date().toISOString() })
             });
         } catch(e) {}
-        updateStatsDisplay();
-        renderOrdersTable();
-        showToast("Очищено", false);
+        updateStatsDisplay(); renderOrdersTable(); showToast("Очищено");
     }
 }
 
 function updateStatsDisplay() {
     document.getElementById('totalOrders').textContent = globalStats.totalOrders || 0;
     document.getElementById('totalRevenue').textContent = (globalStats.totalRevenue || 0).toLocaleString();
-    const avg = globalStats.totalOrders > 0 ? Math.round(globalStats.totalRevenue / globalStats.totalOrders) : 0;
-    document.getElementById('avgOrder').textContent = avg.toLocaleString();
+    document.getElementById('avgOrder').textContent = (globalStats.totalOrders > 0 ? Math.round(globalStats.totalRevenue / globalStats.totalOrders) : 0).toLocaleString();
 }
 
 function renderOrdersTable() {
     const tbody = document.getElementById('ordersTableBody');
-    if (!globalStats.orders.length) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#94A3B8;">Нет заказов</td></tr>';
-        return;
-    }
-    const sorted = [...globalStats.orders].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 20);
-    tbody.innerHTML = sorted.map(o => {
-        const date = new Date(o.date).toLocaleString('ru-RU', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
-        const items = o.items.map(i => i.productName + (i.variantName && i.variantName !== i.productName ? ' (' + i.variantName + ')' : '') + ' ×' + i.quantity).join(', ');
-        return `<tr><td>${date}</td><td>@${o.manager||'?'}</td><td style="color:#FACC15;">${o.total} ₽</td><td title="${items.replace(/"/g,'&quot;')}">${items.substring(0,50)}${items.length>50?'...':''}</td></tr>`;
+    if (!globalStats.orders.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#94A3B8;">Нет заказов</td></tr>'; return; }
+    tbody.innerHTML = [...globalStats.orders].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0,20).map(o => {
+        const d = new Date(o.date).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        const items = o.items.map(i => i.productName + (i.variantName && i.variantName !== i.productName ? ' ('+i.variantName+')' : '') + ' ×'+i.quantity).join(', ');
+        return `<tr><td>${d}</td><td>@${o.manager||'?'}</td><td style="color:#FACC15;">${o.total} ₽</td><td title="${items.replace(/"/g,'&quot;')}">${items.substring(0,50)}${items.length>50?'...':''}</td></tr>`;
     }).join('');
 }
 
-// ========== ЗАГРУЗКА ТОВАРОВ ==========
-async function saveOrderToStats(cartItems, totalPrice, managerTg) {
+// ========== ТОВАРЫ ==========
+async function loadProducts() {
+    if (!currentCategory) { console.log('Нет категории'); return; }
+    const binId = CATEGORY_BINS[currentCategory];
+    console.log('Загружаем', currentCategory, binId);
+    
+    document.getElementById('productsList').innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;">Загрузка...</div>';
+    
     try {
-        const response = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
+        const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
             headers: { 'X-Master-Key': JSONBIN_API_KEY }
         });
-        
-        if (!response.ok) {
-            console.error('Ошибка получения статистики:', response.status);
-            return;
-        }
-        
-        const data = await response.json();
-        const record = data.record || {};
-        const currentViews = globalViews || record.views || {};
-        
-        const orders = record.orders || [];
-        orders.push({
-            id: Date.now(),
-            date: new Date().toISOString(),
-            items: cartItems.map(item => ({
-                productName: item.productName,
-                variantName: item.variantName,  // ← вариант товара
-                price: item.price,
-                quantity: item.quantity
-            })),
-            total: totalPrice,
-            manager: managerTg
-        });
-        
-        const totalOrders = orders.length;
-        const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
-        
-        await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Master-Key': JSONBIN_API_KEY
-            },
-            body: JSON.stringify({
-                views: currentViews,
-                orders: orders,
-                totalOrders: totalOrders,
-                totalRevenue: totalRevenue,
-                lastUpdated: new Date().toISOString()
-            })
-        });
-        
-        console.log('✅ Заказ сохранён. Всего заказов:', totalOrders);
-        
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const d = await r.json();
+        let items = d.record;
+        if (!items || !Array.isArray(items)) items = Array.isArray(d) ? d : [];
+        currentProducts = items;
+        renderProducts();
+        console.log('Загружено:', items.length);
     } catch(e) {
-        console.error('❌ Ошибка сохранения заказа:', e);
+        console.error('Ошибка:', e);
+        currentProducts = [];
+        renderProducts();
+        showToast('Ошибка загрузки', true);
     }
 }
 
 async function saveProducts() {
-    const binId = CATEGORY_BINS[currentCategory];
     try {
-        const ctrl = new AbortController();
-        const tid = setTimeout(() => ctrl.abort(), 5000);
-        await fetch(`https://api.jsonbin.io/v3/b/${binId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
-            body: JSON.stringify(currentProducts),
-            signal: ctrl.signal
+        await fetch(`https://api.jsonbin.io/v3/b/${CATEGORY_BINS[currentCategory]}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+            body: JSON.stringify(currentProducts)
         });
-        clearTimeout(tid);
-        showToast("✅ Сохранено!", false);
-    } catch(e) {
-        showToast("❌ Ошибка сохранения", true);
-    }
+        showToast('Сохранено!');
+    } catch(e) { showToast('Ошибка сохранения', true); }
 }
 
 // ========== UI ==========
@@ -296,223 +240,97 @@ function login() {
         document.getElementById('adminPanel').style.display = 'block';
         loadCategories();
         loadGlobalStats();
-        showToast("Добро пожаловать!", false);
-    } else alert("Неверный пароль!");
+    } else alert('Неверный пароль');
 }
+function logout() { document.getElementById('loginBox').style.display='block'; document.getElementById('adminPanel').style.display='none'; document.getElementById('password').value=''; }
 
-function logout() {
-    document.getElementById('loginBox').style.display = 'block';
-    document.getElementById('adminPanel').style.display = 'none';
-    document.getElementById('password').value = '';
-    productsLoaded = false;
-}
-
-function showToast(msg, isError) {
+function showToast(msg, err) {
     let t = document.getElementById('toastMsg');
-    if (!t) {
-        t = document.createElement('div');
-        t.id = 'toastMsg';
-        t.className = 'toast';
-        t.style.display = 'none';
-        document.body.appendChild(t);
-    }
-    t.textContent = msg;
-    t.style.background = isError ? '#EF4444' : '#10B981';
-    t.style.display = 'block';
-    setTimeout(() => { t.style.display = 'none'; }, 1500);
+    if (!t) { t = document.createElement('div'); t.id='toastMsg'; t.className='toast'; document.body.appendChild(t); }
+    t.textContent = msg; t.style.background = err ? '#EF4444' : '#10B981'; t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 1500);
 }
 
-function escapeHtml(s) {
-    if(!s) return '';
-    return String(s).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
-}
+function escapeHtml(s) { return s ? String(s).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) : ''; }
 
 function uploadFromGallery() {
-    const inp = document.createElement('input');
-    inp.type = 'file';
-    inp.accept = 'image/*';
-    inp.onchange = function(e) {
-        const f = e.target.files[0];
-        if (f) {
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                document.getElementById('productImage').value = ev.target.result;
-                document.getElementById('imagePreview').innerHTML = `<img src="${ev.target.result}" style="max-width:80px;border-radius:12px;">`;
-            };
-            reader.readAsDataURL(f);
-        }
-    };
-    inp.click();
+    const i = document.createElement('input'); i.type='file'; i.accept='image/*';
+    i.onchange = e => { const f = e.target.files[0]; if(f){ const r=new FileReader(); r.onload=ev=>{ document.getElementById('productImage').value=ev.target.result; document.getElementById('imagePreview').innerHTML=`<img src="${ev.target.result}" style="max-width:80px;border-radius:12px;">`; }; r.readAsDataURL(f); } };
+    i.click();
 }
 
 function loadCategories() {
-    const container = document.getElementById('categoriesBlock');
-    container.innerHTML = '';
+    const c = document.getElementById('categoriesBlock'); c.innerHTML = '';
     categories.forEach(cat => {
-        const btn = document.createElement('span');
-        btn.className = 'category-btn';
-        btn.textContent = cat.icon + ' ' + cat.name;
-        btn.onclick = async () => {
-            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
+        const b = document.createElement('span'); b.className='category-btn'; b.textContent=cat.icon+' '+cat.name;
+        b.onclick = () => {
+            document.querySelectorAll('.category-btn').forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
             currentCategory = cat.file;
             cancelEdit();
-            await loadProducts();
+            loadProducts();
         };
-        container.appendChild(btn);
+        c.appendChild(b);
     });
 }
 
 function renderProducts() {
-    const container = document.getElementById('productsList');
-    if (!currentProducts.length) {
-        container.innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;">📭 Нет товаров</div>';
-        return;
-    }
-    let html = '';
-    currentProducts.forEach(p => {
-        html += `<div class="product-card">
-            <div class="product-info">
-                <div class="product-name">${escapeHtml(p.name)}</div>
-                <div class="product-meta">ID: ${p.id} | ${p.flavors ? p.flavors.length+' вариантов' : p.price+' ₽'}</div>
-            </div>
-            <div class="product-actions">
-                <button onclick="editProduct(${p.id})">✏️</button>
-                <button class="danger" onclick="deleteProduct(${p.id})">🗑️</button>
-            </div>
-        </div>`;
-    });
-    container.innerHTML = html;
+    const c = document.getElementById('productsList');
+    if (!currentProducts.length) { c.innerHTML='<div style="text-align:center;padding:40px;color:#94A3B8;">📭 Нет товаров</div>'; return; }
+    c.innerHTML = currentProducts.map(p => `<div class="product-card"><div class="product-info"><div class="product-name">${escapeHtml(p.name)}</div><div class="product-meta">ID: ${p.id} | ${p.flavors?p.flavors.length+' вар.':p.price+' ₽'}</div></div><div class="product-actions"><button onclick="editProduct(${p.id})">✏️</button><button class="danger" onclick="deleteProduct(${p.id})">🗑️</button></div></div>`).join('');
 }
 
 function editProduct(id) {
-    const p = currentProducts.find(x => x.id === id);
-    if (!p) return;
-    editId = id;
-    document.getElementById('formTitle').textContent = '✏️ Редактировать';
-    document.getElementById('productName').value = p.name;
-    document.getElementById('productImage').value = p.image || '';
-    document.getElementById('productDesc').value = p.desc || '';
-    document.getElementById('imagePreview').innerHTML = p.image ? `<img src="${p.image}" style="max-width:80px;border-radius:12px;">` : '';
-    currentFlavors = p.flavors ? JSON.parse(JSON.stringify(p.flavors)) : [{ name: "Стандарт", price: p.price || 0, stock: p.stock || 0 }];
-    renderFlavors();
-    document.getElementById('cancelBtn').style.display = 'block';
+    const p = currentProducts.find(x => x.id===id); if(!p) return;
+    editId=id; document.getElementById('formTitle').textContent='✏️ Редактировать';
+    document.getElementById('productName').value=p.name; document.getElementById('productImage').value=p.image||''; document.getElementById('productDesc').value=p.desc||'';
+    document.getElementById('imagePreview').innerHTML=p.image?`<img src="${p.image}" style="max-width:80px;border-radius:12px;">`:'';
+    currentFlavors = p.flavors ? JSON.parse(JSON.stringify(p.flavors)) : [{name:"Стандарт",price:p.price||0,stock:p.stock||0}];
+    renderFlavors(); document.getElementById('cancelBtn').style.display='block';
 }
 
-function addFlavor() {
-    currentFlavors.push({ name: "", price: 0, stock: 0 });
-    renderFlavors();
-}
+function addFlavor() { currentFlavors.push({name:'',price:0,stock:0}); renderFlavors(); }
+function removeFlavor(i) { currentFlavors.splice(i,1); renderFlavors(); }
+function editFlavor(i,f,v) { if(currentFlavors[i]) currentFlavors[i][f]=v; }
 
 function renderFlavors() {
-    const container = document.getElementById('flavorsList');
-    if (!currentFlavors.length) {
-        container.innerHTML = '<div style="padding:12px;text-align:center;color:#94A3B8;">Нажмите "+"</div>';
-        return;
-    }
-    container.innerHTML = '';
-    currentFlavors.forEach((f, i) => {
-        const div = document.createElement('div');
-        div.className = 'flavor-row';
-        div.innerHTML = `
-            <input type="text" placeholder="Название" value="${escapeHtml(f.name)}" onchange="editFlavor(${i},'name',this.value)">
-            <input type="number" placeholder="Цена" value="${f.price}" onchange="editFlavor(${i},'price',+this.value)">
-            <input type="number" placeholder="Остаток" value="${f.stock}" onchange="editFlavor(${i},'stock',+this.value)">
-            <button class="danger" onclick="removeFlavor(${i})">❌</button>`;
-        container.appendChild(div);
+    const c = document.getElementById('flavorsList');
+    if(!currentFlavors.length) { c.innerHTML='<div style="padding:12px;text-align:center;color:#94A3B8;">Нажмите "+"</div>'; return; }
+    c.innerHTML = ''; currentFlavors.forEach((f,i) => {
+        const d=document.createElement('div'); d.className='flavor-row';
+        d.innerHTML=`<input type="text" placeholder="Название" value="${escapeHtml(f.name)}" onchange="editFlavor(${i},'name',this.value)"><input type="number" placeholder="Цена" value="${f.price}" onchange="editFlavor(${i},'price',+this.value)"><input type="number" placeholder="Остаток" value="${f.stock}" onchange="editFlavor(${i},'stock',+this.value)"><button class="danger" onclick="removeFlavor(${i})">❌</button>`;
+        c.appendChild(d);
     });
 }
 
-function editFlavor(idx, field, val) {
-    if (currentFlavors[idx]) currentFlavors[idx][field] = val;
-}
-
-function removeFlavor(i) {
-    currentFlavors.splice(i, 1);
-    renderFlavors();
-}
-
 async function saveProduct() {
-    const name = document.getElementById('productName').value.trim();
-    const image = document.getElementById('productImage').value.trim();
-    const desc = document.getElementById('productDesc').value.trim();
-    
-    if (!name) { showToast("Введи название!", true); return; }
-    if (!image) { showToast("Добавь картинку!", true); return; }
-    if (!currentFlavors.length) { showToast("Добавь вариант!", true); return; }
-    if (!currentCategory) { showToast("Выбери категорию!", true); return; }
-    
-    const catName = categories.find(c => c.file === currentCategory)?.name || currentCategory;
-    
-    if (editId) {
-        const p = currentProducts.find(x => x.id === editId);
-        if (!p) return;
-        p.name = name;
-        p.image = image;
-        p.desc = desc;
-        if (currentFlavors.length === 1 && currentFlavors[0].name === "Стандарт") {
-            delete p.flavors;
-            p.price = currentFlavors[0].price;
-            p.stock = currentFlavors[0].stock;
-        } else {
-            p.flavors = currentFlavors.filter(f => f.name.trim());
-            delete p.price;
-            delete p.stock;
-        }
+    const name=document.getElementById('productName').value.trim(), image=document.getElementById('productImage').value.trim(), desc=document.getElementById('productDesc').value.trim();
+    if(!name||!image||!currentFlavors.length||!currentCategory) { showToast('Заполни все поля!',true); return; }
+    if(editId) {
+        const p=currentProducts.find(x=>x.id===editId); if(!p) return;
+        p.name=name; p.image=image; p.desc=desc;
+        if(currentFlavors.length===1 && currentFlavors[0].name==='Стандарт') { delete p.flavors; p.price=currentFlavors[0].price; p.stock=currentFlavors[0].stock; }
+        else { p.flavors=currentFlavors.filter(f=>f.name.trim()); delete p.price; delete p.stock; }
     } else {
-        const newId = Math.max(0, ...currentProducts.map(p => p.id)) + 1;
-        const np = { id: newId, name, category: catName, image, desc };
-        if (currentFlavors.length === 1 && currentFlavors[0].name === "Стандарт") {
-            np.price = currentFlavors[0].price;
-            np.stock = currentFlavors[0].stock;
-        } else {
-            np.flavors = currentFlavors.filter(f => f.name.trim());
-        }
+        const nid=Math.max(0,...currentProducts.map(p=>p.id))+1;
+        const np={id:nid,name,category:categories.find(c=>c.file===currentCategory)?.name||'',image,desc};
+        if(currentFlavors.length===1 && currentFlavors[0].name==='Стандарт') { np.price=currentFlavors[0].price; np.stock=currentFlavors[0].stock; }
+        else np.flavors=currentFlavors.filter(f=>f.name.trim());
         currentProducts.push(np);
     }
-    
-    await saveProducts();
-    cancelEdit();
-    await loadProducts();
+    await saveProducts(); cancelEdit(); await loadProducts();
 }
 
-async function deleteProduct(id) {
-    if (!confirm("Удалить товар?")) return;
-    currentProducts = currentProducts.filter(p => p.id !== id);
-    await saveProducts();
-    if (editId === id) cancelEdit();
-    await loadProducts();
-    showToast("Удалено!", false);
-}
+async function deleteProduct(id) { if(!confirm('Удалить?')) return; currentProducts=currentProducts.filter(p=>p.id!==id); await saveProducts(); if(editId===id) cancelEdit(); await loadProducts(); showToast('Удалено!'); }
 
-function cancelEdit() {
-    editId = null;
-    currentFlavors = [];
-    document.getElementById('formTitle').textContent = '➕ Новый товар';
-    document.getElementById('productName').value = '';
-    document.getElementById('productImage').value = '';
-    document.getElementById('productDesc').value = '';
-    document.getElementById('flavorsList').innerHTML = '';
-    document.getElementById('imagePreview').innerHTML = '';
-    document.getElementById('cancelBtn').style.display = 'none';
-}
+function cancelEdit() { editId=null; currentFlavors=[]; document.getElementById('formTitle').textContent='➕ Новый товар'; document.getElementById('productName').value=''; document.getElementById('productImage').value=''; document.getElementById('productDesc').value=''; document.getElementById('flavorsList').innerHTML=''; document.getElementById('imagePreview').innerHTML=''; document.getElementById('cancelBtn').style.display='none'; }
 
-document.getElementById('productImage').addEventListener('input', function() {
-    document.getElementById('imagePreview').innerHTML = this.value ? `<img src="${this.value}" style="max-width:80px;border-radius:12px;">` : '';
-});
-
+document.getElementById('productImage').addEventListener('input', function(){ document.getElementById('imagePreview').innerHTML=this.value?`<img src="${this.value}" style="max-width:80px;border-radius:12px;">`:''; });
 document.getElementById('clearStatsBtn')?.addEventListener('click', clearStatistics);
 
-window.addFlavor = addFlavor;
-window.removeFlavor = removeFlavor;
-window.editFlavor = editFlavor;
-window.saveProduct = saveProduct;
-window.deleteProduct = deleteProduct;
-window.editProduct = editProduct;
-window.cancelEdit = cancelEdit;
-window.login = login;
-window.logout = logout;
-window.uploadFromGallery = uploadFromGallery;
+window.addFlavor=addFlavor; window.removeFlavor=removeFlavor; window.editFlavor=editFlavor;
+window.saveProduct=saveProduct; window.deleteProduct=deleteProduct; window.editProduct=editProduct;
+window.cancelEdit=cancelEdit; window.login=login; window.logout=logout; window.uploadFromGallery=uploadFromGallery;
 </script>
 </body>
 </html>
