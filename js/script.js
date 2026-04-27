@@ -570,7 +570,7 @@ async function saveOrderToStats(cartItems, totalPrice, managerTg) {
             date: new Date().toISOString(),
             items: cartItems.map(item => ({
                 productName: item.productName,
-                variantName: item.variantName,
+                variantName: item.variantName,  // ← вариант товара
                 price: item.price,
                 quantity: item.quantity
             })),
@@ -602,6 +602,8 @@ async function saveOrderToStats(cartItems, totalPrice, managerTg) {
         console.error('❌ Ошибка сохранения заказа:', e);
     }
 }
+
+
 async function sendCartToTelegram(managerTg) {
     let message = "🛒 *НОВЫЙ ЗАКАЗ* 🛒\n\n";
     let totalPrice = 0;
