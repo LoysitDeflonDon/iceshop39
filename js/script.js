@@ -549,57 +549,36 @@ function showAgeConfirmForCart(managerTg) {
     modalDiv.querySelector('#cancelOrderBtn').onclick = () => modalDiv.remove();
 }
 
-async function saveOrderToStats(cartItems, totalPrice, managerTg) {
+async function loadProducts() {
+    if (!currentCategory) return;
+    const binId = CATEGORY_BINS[currentCategory];
+    
     try {
-        const response = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
-            headers: { 'X-Master-Key': JSONBIN_API_KEY }
+        const ctrl = new AbortController();
+        const tid = setTimeout(() => ctrl.abort(), 5000);
+        const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+            headers: { 'X-Master-Key': JSONBIN_API_KEY },
+            signal: ctrl.signal
         });
+        clearTimeout(tid);
         
-        if (!response.ok) {
-            console.error('Ошибка получения статистики:', response.status);
-            return;
+        if (!r.ok) throw new Error('Ошибка');
+        const d = await r.json();
+        
+        // ПРОБЛЕМА БЫЛА ТУТ: data.record может быть null, а сам data — массив
+        let items = d.record;
+        if (!items || !Array.isArray(items)) {
+            items = Array.isArray(d) ? d : [];
         }
         
-        const data = await response.json();
-        const record = data.record || {};
-        const currentViews = globalViews || record.views || {};
-        
-        const orders = record.orders || [];
-        orders.push({
-            id: Date.now(),
-            date: new Date().toISOString(),
-            items: cartItems.map(item => ({
-                productName: item.productName,
-                variantName: item.variantName,
-                price: item.price,
-                quantity: item.quantity
-            })),
-            total: totalPrice,
-            manager: managerTg
-        });
-        
-        const totalOrders = orders.length;
-        const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
-        
-        await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Master-Key': JSONBIN_API_KEY
-            },
-            body: JSON.stringify({
-                views: currentViews,
-                orders: orders,
-                totalOrders: totalOrders,
-                totalRevenue: totalRevenue,
-                lastUpdated: new Date().toISOString()
-            })
-        });
-        
-        console.log('✅ Заказ сохранён, просмотры не потеряны');
-        
+        currentProducts = items;
+        renderProducts();
+        console.log(`✅ ${currentCategory}: ${currentProducts.length} товаров`);
     } catch(e) {
-        console.error('❌ Ошибка сохранения заказа:', e);
+        console.error('Ошибка загрузки:', e);
+        currentProducts = [];
+        renderProducts();
+        showToast("❌ Ошибка загрузки", true);
     }
 }
 
