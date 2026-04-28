@@ -817,7 +817,7 @@ button, .category-card, .product-card, .favorite-card, .history-card, .popular-c
     outline: none !important;
     user-select: none !important;
 }
-/* ========== ФИКС КНОПКИ В КОРЗИНУ (НЕ СЪЕЗЖАЕТ) ========== */
+/* ========== КНОПКА В КОРЗИНУ ========== */
 .product-card {
     display: flex;
     flex-direction: column;
