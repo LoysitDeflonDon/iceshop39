@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>Админ-панель ICESHOP39</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: #0A0F1E; color: #EDF2FF; font-family: system-ui, -apple-system, sans-serif; padding: 12px; padding-bottom: 30px; }
+        .login-box { max-width: 350px; margin: 80px auto; background: #111827; padding: 28px; border-radius: 28px; text-align: center; border: 1px solid #1F2A44; }
+        .login-box h2 { margin-bottom: 20px; color: #3B82F6; }
+        .login-box input { width: 100%; padding: 14px; margin: 15px 0; background: #1E293B; border: 1px solid #334155; border-radius: 14px; color: white; font-size: 16px; }
+        .login-box button { background: #3B82F6; color: white; padding: 14px; border: none; border-radius: 14px; cursor: pointer; font-weight: 600; width: 100%; font-size: 16px; }
+        .admin-panel { display: none; max-width: 1400px; margin: 0 auto; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #1F2A44; }
+        .admin-header h1 { font-size: 1.5rem; color: #3B82F6; }
+        .logout-btn { background: #EF4444; padding: 8px 20px; border-radius: 40px; font-size: 14px; border: none; color: white; cursor: pointer; }
+        .categories-wrapper { overflow-x: auto; margin: 15px 0; -webkit-overflow-scrolling: touch; }
+        .category-buttons { display: flex; gap: 10px; flex-wrap: nowrap; padding-bottom: 8px; }
+        .category-btn { background: #1E293B; padding: 10px 20px; border-radius: 40px; cursor: pointer; white-space: nowrap; font-size: 14px; font-weight: 500; border: 1px solid #334155; color: white; }
+        .category-btn.active { background: #3B82F6; border-color: #3B82F6; }
+        .stats-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+        .stat-card { background: #111827; padding: 12px 20px; border-radius: 20px; flex: 1; min-width: 100px; text-align: center; border: 1px solid #1F2A44; }
+        .stat-number { font-size: 1.6rem; font-weight: bold; color: #3B82F6; }
+        .stat-label { font-size: 0.7rem; color: #94A3B8; }
+        .clear-stats-btn { background: #EF4444; border: none; border-radius: 40px; padding: 10px 20px; color: white; cursor: pointer; font-weight: 600; font-size: 14px; width: 100%; margin-top: 15px; }
+        .product-form { background: #111827; padding: 20px; border-radius: 24px; margin: 20px 0; border: 1px solid #1F2A44; }
+        .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+        .form-row input, .form-row textarea { flex: 1; min-width: 150px; }
+        input, textarea { width: 100%; padding: 12px; background: #1E293B; border: 1px solid #334155; border-radius: 12px; color: white; font-size: 14px; }
+        textarea { resize: vertical; min-height: 70px; font-family: inherit; }
+        .image-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 12px 0; }
+        .image-row input { flex: 1; margin: 0; }
+        .image-row button { background: #334155; width: auto; padding: 12px 16px; margin: 0; white-space: nowrap; }
+        .image-preview { margin-top: 10px; }
+        .image-preview img { max-width: 80px; max-height: 80px; border-radius: 12px; }
+        .flavors-list { margin: 15px 0; }
+        .flavor-row { background: #1E293B; padding: 12px; margin: 10px 0; border-radius: 16px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .flavor-row input { flex: 1; min-width: 100px; margin: 0; }
+        .flavor-row button { background: #EF4444; width: auto; padding: 10px 16px; }
+        button { background: #3B82F6; border: none; padding: 12px 20px; border-radius: 12px; color: white; cursor: pointer; font-weight: 600; font-size: 14px; }
+        button.danger { background: #EF4444; }
+        button.success { background: #10B981; }
+        button.secondary { background: #334155; }
+        .action-buttons { display: flex; gap: 12px; margin-top: 15px; flex-wrap: wrap; }
+        .action-buttons button { flex: 1; }
+        .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin-top: 15px; }
+        .product-card { background: #111827; padding: 14px; border-radius: 20px; border: 1px solid #1F2A44; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+        .product-info { flex: 1; }
+        .product-name { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+        .product-meta { font-size: 11px; color: #94A3B8; }
+        .product-actions { display: flex; gap: 8px; }
+        .product-actions button { padding: 8px 12px; font-size: 12px; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #10B981; padding: 12px 24px; border-radius: 60px; z-index: 10000; font-size: 14px; box-shadow: 0 0 15px rgba(0,0,0,0.3); max-width: 90%; text-align: center; display: none; }
+        .orders-table-container { background: #111827; border-radius: 20px; padding: 15px; margin: 20px 0; border: 1px solid #1F2A44; max-height: 400px; overflow-y: auto; }
+        .orders-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .orders-table th { text-align: left; padding: 10px 5px; color: #94A3B8; border-bottom: 1px solid #1F2A44; position: sticky; top: 0; background: #111827; }
+        .orders-table td { padding: 8px 5px; border-bottom: 1px solid #1F2A44; }
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .products-grid { grid-template-columns: 1fr; }
+            .flavor-row { flex-direction: column; }
+            .action-buttons { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="loginBox" class="login-box">
+    <h2>Админ-панель</h2>
+    <input type="password" id="password" placeholder="Пароль">
+    <button onclick="login()">Войти</button>
+</div>
+
+<div id="adminPanel" class="admin-panel">
+    <div class="admin-header">
+        <h1>🛠️ Управление товарами</h1>
+        <button class="logout-btn" onclick="logout()">Уйти нахуй</button>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-card"><div class="stat-number" id="totalOrders">0</div><div class="stat-label">Заказов</div></div>
+        <div class="stat-card"><div class="stat-number" id="totalRevenue" style="color:#FACC15;">0</div><div class="stat-label">Выручка</div></div>
+        <div class="stat-card"><div class="stat-number" id="avgOrder" style="color:#10B981;">0</div><div class="stat-label">Средний чек</div></div>
+    </div>
+    
+    <button id="clearStatsBtn" class="clear-stats-btn">🗑️ Очистить статистику</button>
+
+    <div class="orders-table-container">
+        <h3 style="margin-bottom: 15px;">📋 Последние заказы</h3>
+        <table class="orders-table" id="ordersTable">
+            <thead><tr><th>Дата</th><th>Менеджер</th><th>Сумма</th><th>Товары</th></tr></thead>
+            <tbody id="ordersTableBody"></tbody>
+        </table>
+    </div>
+
+    <div class="categories-wrapper">
+        <div id="categoriesBlock" class="category-buttons"></div>
+    </div>
+
+    <div class="product-form">
+        <h3 id="formTitle">➕ Новый товар</h3>
+        <div class="form-row"><input type="text" id="productName" placeholder="Название товара"></div>
+        <div class="image-row">
+            <input type="text" id="productImage" placeholder="URL картинки">
+            <button onclick="uploadFromGallery()">📱 Выбрать фото</button>
+        </div>
+        <div class="image-preview" id="imagePreview"></div>
+        <div class="form-row"><textarea id="productDesc" placeholder="Описание товара" rows="2"></textarea></div>
+        <div id="flavorsList"></div>
+        <button class="secondary" onclick="addFlavor()" style="width:100%; margin:8px 0;">+ Добавить вариант</button>
+        <div class="action-buttons">
+            <button class="success" onclick="saveProduct()">💾 Сохранить</button>
+            <button class="danger" onclick="cancelEdit()" id="cancelBtn" style="display:none;">Отмена</button>
+        </div>
+    </div>
+
+    <h3 style="margin: 15px 0 10px;">📦 Товары</h3>
+    <div id="productsList" class="products-grid"></div>
+</div>
+
+<script>
+const PASSWORD_ENCODED = "PAF|0Anv54bZiKhwkhOo1*PSNQdjnQ";
+const JSONBIN_API_KEY = "$2a$10$.WLmojbymqt9b3tkTDcdb.I/rik/eRUr55qq2N5SeOTEP0BAMcyGq";
+const STATS_BIN_ID = "69de65c836566621a8b1fd5b";
+
+const CATEGORY_BINS = {
+    "Zhitkosty":   "69ecfff9aaba88219738d922",
+    "Snus":        "69ed003736566621a8ef3796",
+    "Vapes":       "69ed0016aaba88219738d9bb",
+    "Ispariteli":  "69ed0049aaba88219738da71",
+    "Kartdritzhy": "69ed005c36566621a8ef37fc",
+    "Odnorazki":   "69ed007436566621a8ef382b"
+};
+
+const categories = [
+    { file: "Zhitkosty", name: "Жидкости", icon: "💧" },
+    { file: "Snus", name: "Шайбы", icon: "👅" },
+    { file: "Vapes", name: "Вейпы", icon: "💨" },
+    { file: "Ispariteli", name: "Испарители", icon: "🔥" },
+    { file: "Kartdritzhy", name: "Картриджи", icon: "⚡" },
+    { file: "Odnorazki", name: "Одноразки", icon: "🔄" }
+];
+
+let currentCategory = null;
+let currentProducts = [];
+let editId = null;
+let currentFlavors = [];
+
+// ========== СТАТИСТИКА ==========
+let globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
+
+async function loadGlobalStats() {
+    try {
+        const r = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
+            headers: { 'X-Master-Key': JSONBIN_API_KEY }
+        });
+        if (r.ok) {
+            const d = await r.json();
+            const rec = d.record || {};
+            globalStats = { orders: rec.orders || [], totalOrders: rec.totalOrders || 0, totalRevenue: rec.totalRevenue || 0 };
+            updateStatsDisplay();
+            renderOrdersTable();
+        }
+    } catch(e) { console.error(e); }
+}
+
+async function clearStatistics() {
+    if (confirm("Очистить статистику?")) {
+        globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
+        try {
+            const r = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
+            const rec = r.ok ? ((await r.json()).record || {}) : {};
+            await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+                body: JSON.stringify({ views: rec.views || {}, orders: [], totalOrders: 0, totalRevenue: 0, lastUpdated: new Date().toISOString() })
+            });
+        } catch(e) {}
+        updateStatsDisplay(); renderOrdersTable(); showToast("Очищено");
+    }
+}
+
+function updateStatsDisplay() {
+    document.getElementById('totalOrders').textContent = globalStats.totalOrders || 0;
+    document.getElementById('totalRevenue').textContent = (globalStats.totalRevenue || 0).toLocaleString();
+    document.getElementById('avgOrder').textContent = (globalStats.totalOrders > 0 ? Math.round(globalStats.totalRevenue / globalStats.totalOrders) : 0).toLocaleString();
+}
+
+function renderOrdersTable() {
+    const tbody = document.getElementById('ordersTableBody');
+    if (!globalStats.orders.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#94A3B8;">Нет заказов</td></tr>'; return; }
+    tbody.innerHTML = [...globalStats.orders].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0,20).map(o => {
+        const d = new Date(o.date).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        const items = o.items.map(i => i.productName + (i.variantName && i.variantName !== i.productName ? ' ('+i.variantName+')' : '') + ' ×'+i.quantity).join(', ');
+        return `<tr><td>${d}</td><td>@${o.manager||'?'}</td><td style="color:#FACC15;">${o.total} ₽</td><td title="${items.replace(/"/g,'&quot;')}">${items.substring(0,50)}${items.length>50?'...':''}</td></tr>`;
+    }).join('');
+}
+
+// ========== ТОВАРЫ ==========
+async function loadProducts() {
+    if (!currentCategory) { console.log('Нет категории'); return; }
+    const binId = CATEGORY_BINS[currentCategory];
+    console.log('Загружаем', currentCategory, binId);
+    
+    document.getElementById('productsList').innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;">Загрузка...</div>';
+    
+    try {
+        const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
+            headers: { 'X-Master-Key': JSONBIN_API_KEY }
+        });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const d = await r.json();
+        let items = d.record;
+        if (!items || !Array.isArray(items)) items = Array.isArray(d) ? d : [];
+        currentProducts = items;
+        renderProducts();
+        console.log('Загружено:', items.length);
+    } catch(e) {
+        console.error('Ошибка:', e);
+        currentProducts = [];
+        renderProducts();
+        showToast('Ошибка загрузки', true);
+    }
+}
+
+async function saveProducts() {
+    try {
+        await fetch(`https://api.jsonbin.io/v3/b/${CATEGORY_BINS[currentCategory]}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+            body: JSON.stringify(currentProducts)
+        });
+        showToast('Сохранено!');
+    } catch(e) { showToast('Ошибка сохранения', true); }
+}
+
+// ========== UI ==========
+function login() {
+    if (btoa(document.getElementById('password').value) === PASSWORD_ENCODED) {
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        loadCategories();
+        loadGlobalStats();
+    } else alert('Неверный пароль');
+}
+function logout() { document.getElementById('loginBox').style.display='block'; document.getElementById('adminPanel').style.display='none'; document.getElementById('password').value=''; }
+
+function showToast(msg, err) {
+    let t = document.getElementById('toastMsg');
+    if (!t) { t = document.createElement('div'); t.id='toastMsg'; t.className='toast'; document.body.appendChild(t); }
+    t.textContent = msg; t.style.background = err ? '#EF4444' : '#10B981'; t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', 1500);
+}
+
+function escapeHtml(s) { return s ? String(s).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) : ''; }
+
+function uploadFromGallery() {
+    const i = document.createElement('input'); i.type='file'; i.accept='image/*';
+    i.onchange = e => { const f = e.target.files[0]; if(f){ const r=new FileReader(); r.onload=ev=>{ document.getElementById('productImage').value=ev.target.result; document.getElementById('imagePreview').innerHTML=`<img src="${ev.target.result}" style="max-width:80px;border-radius:12px;">`; }; r.readAsDataURL(f); } };
+    i.click();
+}
+
+function loadCategories() {
+    const c = document.getElementById('categoriesBlock'); c.innerHTML = '';
+    categories.forEach(cat => {
+        const b = document.createElement('span'); b.className='category-btn'; b.textContent=cat.icon+' '+cat.name;
+        b.onclick = () => {
+            document.querySelectorAll('.category-btn').forEach(x => x.classList.remove('active'));
+            b.classList.add('active');
+            currentCategory = cat.file;
+            cancelEdit();
+            loadProducts();
+        };
+        c.appendChild(b);
+    });
+}
+
+function renderProducts() {
+    const c = document.getElementById('productsList');
+    if (!currentProducts.length) { c.innerHTML='<div style="text-align:center;padding:40px;color:#94A3B8;">📭 Нет товаров</div>'; return; }
+    c.innerHTML = currentProducts.map(p => `<div class="product-card"><div class="product-info"><div class="product-name">${escapeHtml(p.name)}</div><div class="product-meta">ID: ${p.id} | ${p.flavors?p.flavors.length+' вар.':p.price+' ₽'}</div></div><div class="product-actions"><button onclick="editProduct(${p.id})">✏️</button><button class="danger" onclick="deleteProduct(${p.id})">🗑️</button></div></div>`).join('');
+}
+
+function editProduct(id) {
+    const p = currentProducts.find(x => x.id===id); if(!p) return;
+    editId=id; document.getElementById('formTitle').textContent='✏️ Редактировать';
+    document.getElementById('productName').value=p.name; document.getElementById('productImage').value=p.image||''; document.getElementById('productDesc').value=p.desc||'';
+    document.getElementById('imagePreview').innerHTML=p.image?`<img src="${p.image}" style="max-width:80px;border-radius:12px;">`:'';
+    currentFlavors = p.flavors ? JSON.parse(JSON.stringify(p.flavors)) : [{name:"Стандарт",price:p.price||0,stock:p.stock||0}];
+    renderFlavors(); document.getElementById('cancelBtn').style.display='block';
+}
+
+function addFlavor() { currentFlavors.push({name:'',price:0,stock:0}); renderFlavors(); }
+function removeFlavor(i) { currentFlavors.splice(i,1); renderFlavors(); }
+function editFlavor(i,f,v) { if(currentFlavors[i]) currentFlavors[i][f]=v; }
+
+function renderFlavors() {
+    const c = document.getElementById('flavorsList');
+    if(!currentFlavors.length) { c.innerHTML='<div style="padding:12px;text-align:center;color:#94A3B8;">Нажмите "+"</div>'; return; }
+    c.innerHTML = ''; currentFlavors.forEach((f,i) => {
+        const d=document.createElement('div'); d.className='flavor-row';
+        d.innerHTML=`<input type="text" placeholder="Название" value="${escapeHtml(f.name)}" onchange="editFlavor(${i},'name',this.value)"><input type="number" placeholder="Цена" value="${f.price}" onchange="editFlavor(${i},'price',+this.value)"><input type="number" placeholder="Остаток" value="${f.stock}" onchange="editFlavor(${i},'stock',+this.value)"><button class="danger" onclick="removeFlavor(${i})">❌</button>`;
+        c.appendChild(d);
+    });
+}
+
+async function saveProduct() {
+    const name=document.getElementById('productName').value.trim(), image=document.getElementById('productImage').value.trim(), desc=document.getElementById('productDesc').value.trim();
+    if(!name||!image||!currentFlavors.length||!currentCategory) { showToast('Заполни все поля!',true); return; }
+    if(editId) {
+        const p=currentProducts.find(x=>x.id===editId); if(!p) return;
+        p.name=name; p.image=image; p.desc=desc;
+        if(currentFlavors.length===1 && currentFlavors[0].name==='Стандарт') { delete p.flavors; p.price=currentFlavors[0].price; p.stock=currentFlavors[0].stock; }
+        else { p.flavors=currentFlavors.filter(f=>f.name.trim()); delete p.price; delete p.stock; }
+    } else {
+        const nid=Math.max(0,...currentProducts.map(p=>p.id))+1;
+        const np={id:nid,name,category:categories.find(c=>c.file===currentCategory)?.name||'',image,desc};
+        if(currentFlavors.length===1 && currentFlavors[0].name==='Стандарт') { np.price=currentFlavors[0].price; np.stock=currentFlavors[0].stock; }
+        else np.flavors=currentFlavors.filter(f=>f.name.trim());
+        currentProducts.push(np);
+    }
+    await saveProducts(); cancelEdit(); await loadProducts();
+}
+
+async function deleteProduct(id) { if(!confirm('Удалить?')) return; currentProducts=currentProducts.filter(p=>p.id!==id); await saveProducts(); if(editId===id) cancelEdit(); await loadProducts(); showToast('Удалено!'); }
+
+function cancelEdit() { editId=null; currentFlavors=[]; document.getElementById('formTitle').textContent='➕ Новый товар'; document.getElementById('productName').value=''; document.getElementById('productImage').value=''; document.getElementById('productDesc').value=''; document.getElementById('flavorsList').innerHTML=''; document.getElementById('imagePreview').innerHTML=''; document.getElementById('cancelBtn').style.display='none'; }
+
+document.getElementById('productImage').addEventListener('input', function(){ document.getElementById('imagePreview').innerHTML=this.value?`<img src="${this.value}" style="max-width:80px;border-radius:12px;">`:''; });
+document.getElementById('clearStatsBtn')?.addEventListener('click', clearStatistics);
+
+window.addFlavor=addFlavor; window.removeFlavor=removeFlavor; window.editFlavor=editFlavor;
+window.saveProduct=saveProduct; window.deleteProduct=deleteProduct; window.editProduct=editProduct;
+window.cancelEdit=cancelEdit; window.login=login; window.logout=logout; window.uploadFromGallery=uploadFromGallery;
+</script>
+</body>
+</html>
