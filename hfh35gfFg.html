@@ -127,117 +127,74 @@
 </div>
 
 <script>
+
 // ========== НАСТРОЙКИ ==========
 const AUTH_BOT_TOKEN = "8877977058:AAGtngZJDOnKJncuk97z10D6jFVmAS_26Z0";
 const ALLOWED_USERS = ["6282505786", "1753006927", "1405095426"];
 const JSONBIN_API_KEY = "$2a$10$.WLmojbymqt9b3tkTDcdb.I/rik/eRUr55qq2N5SeOTEP0BAMcyGq";
 const STATS_BIN_ID = "69de65c836566621a8b1fd5b";
 
-// Восстанавливаем данные после обновления
-let currentCode = localStorage.getItem('auth_code') || null;
-let codeExpires = parseInt(localStorage.getItem('auth_code_expires') || '0');
-let lastCodeMessageIds = JSON.parse(localStorage.getItem('auth_msg_ids') || '{}');
-
-// Проверяем не истёк ли код
-if (currentCode && Date.now() > codeExpires) {
-    currentCode = null;
-    codeExpires = 0;
-    lastCodeMessageIds = {};
-    localStorage.removeItem('auth_code');
-    localStorage.removeItem('auth_code_expires');
-    localStorage.removeItem('auth_msg_ids');
-}
-
-// Если код ещё жив — сразу показываем поле ввода
-if (currentCode && Date.now() < codeExpires) {
-    document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('getCodeBtn').style.display = 'none';
-        document.getElementById('codeInput').style.display = 'block';
-        document.getElementById('loginBtn').style.display = 'block';
-    });
-}
-
-function saveCodeState() {
-    if (currentCode) {
-        localStorage.setItem('auth_code', currentCode);
-        localStorage.setItem('auth_code_expires', codeExpires.toString());
-        localStorage.setItem('auth_msg_ids', JSON.stringify(lastCodeMessageIds));
-    } else {
-        localStorage.removeItem('auth_code');
-        localStorage.removeItem('auth_code_expires');
-        localStorage.removeItem('auth_msg_ids');
-    }
-}
-
-function clearCodeState() {
-    currentCode = null;
-    codeExpires = 0;
-    lastCodeMessageIds = {};
-    saveCodeState();
-    
-    document.getElementById('getCodeBtn').style.display = 'block';
-    document.getElementById('getCodeBtn').textContent = '📱 Получить код в Telegram';
-    document.getElementById('getCodeBtn').disabled = false;
-    document.getElementById('codeInput').style.display = 'none';
-    document.getElementById('codeInput').value = '';
-    document.getElementById('loginBtn').style.display = 'none';
-}
+let currentCode = null;
+let codeExpires = 0;
 
 async function requestCode() {
     document.getElementById('errorMsg').style.display = 'none';
     document.getElementById('getCodeBtn').textContent = 'Отправка...';
     document.getElementById('getCodeBtn').disabled = true;
 
-    // Если старый код ещё жив — не отправляем новый
-    if (currentCode && Date.now() < codeExpires) {
-        document.getElementById('getCodeBtn').style.display = 'none';
-        document.getElementById('codeInput').style.display = 'block';
-        document.getElementById('loginBtn').style.display = 'block';
-        document.getElementById('codeInput').focus();
-        return;
+    // Удаляем старые сообщения у всех
+    for (const userId of ALLOWED_USERS) {
+        try {
+            // Получаем последние сообщения от бота
+            const r = await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/getUpdates?offset=-10`);
+            const d = await r.json();
+            if (d.result) {
+                for (const update of d.result) {
+                    if (update.message && update.message.chat.id.toString() === userId && update.message.from.username === 'iceshop39_admin_bot') {
+                        await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/deleteMessage`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ chat_id: userId, message_id: update.message.message_id })
+                        });
+                    }
+                }
+            }
+        } catch(e) {}
     }
 
     // Генерируем новый код
     currentCode = Math.floor(100000 + Math.random() * 900000).toString();
     codeExpires = Date.now() + 5 * 60 * 1000;
 
-    // Удаляем старые сообщения
-    for (const [userId, msgId] of Object.entries(lastCodeMessageIds)) {
-        try {
-            await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/deleteMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: userId, message_id: msgId })
-            });
-        } catch(e) {}
-    }
-    lastCodeMessageIds = {};
-
     // Отправляем новый код
     for (const userId of ALLOWED_USERS) {
         try {
-            const r = await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/sendMessage`, {
+            await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chat_id: userId,
-                    text: '🔐 *Код входа:* `' + currentCode + '`\nДействует 5 минут',
+                    text: '🔐 *Код входа:* `' + currentCode + '`',
                     parse_mode: 'Markdown'
                 })
             });
-            const d = await r.json();
-            if (d.result && d.result.message_id) {
-                lastCodeMessageIds[userId] = d.result.message_id;
-            }
         } catch(e) {}
     }
-
-    saveCodeState();
 
     document.getElementById('getCodeBtn').style.display = 'none';
     document.getElementById('codeInput').style.display = 'block';
     document.getElementById('loginBtn').style.display = 'block';
+    document.getElementById('codeInput').value = '';
     document.getElementById('codeInput').focus();
+
+    setTimeout(() => {
+        currentCode = null;
+        document.getElementById('getCodeBtn').style.display = 'block';
+        document.getElementById('getCodeBtn').textContent = '📱 Получить код в Telegram';
+        document.getElementById('getCodeBtn').disabled = false;
+        document.getElementById('codeInput').style.display = 'none';
+        document.getElementById('loginBtn').style.display = 'none';
+    }, 5 * 60 * 1000);
 }
 
 function loginWithCode() {
@@ -245,11 +202,9 @@ function loginWithCode() {
     if (!currentCode || Date.now() > codeExpires) {
         document.getElementById('errorMsg').textContent = 'Код истёк. Запроси новый.';
         document.getElementById('errorMsg').style.display = 'block';
-        clearCodeState();
         return;
     }
     if (entered === currentCode) {
-        clearCodeState();
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
         loadCategories();
@@ -261,9 +216,15 @@ function loginWithCode() {
 }
 
 function logout() {
-    clearCodeState();
+    currentCode = null;
     document.getElementById('loginBox').style.display = 'block';
     document.getElementById('adminPanel').style.display = 'none';
+    document.getElementById('getCodeBtn').style.display = 'block';
+    document.getElementById('getCodeBtn').textContent = '📱 Получить код в Telegram';
+    document.getElementById('getCodeBtn').disabled = false;
+    document.getElementById('codeInput').style.display = 'none';
+    document.getElementById('codeInput').value = '';
+    document.getElementById('loginBtn').style.display = 'none';
 }
 // ========== СТАТИСТИКА ==========
 let globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
