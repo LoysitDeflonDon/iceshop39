@@ -234,6 +234,13 @@ async function saveProducts() {
 
 // ========== UI ==========
 function login() {
+    // Проверка секретного ключа в ссылке
+    if (!window.location.search.includes('key=qdimLucMvjQ~yqA|WwM1nTBEcKpbOCynu7cgsojQj#LqVFaTD}d%Q4GPoAfW')) {
+        alert('Неверная ссылка');
+        window.location.href = 'about:blank';
+        return;
+    }
+    
     const entered = document.getElementById('password').value;
     if (PASSWORDS.includes(entered)) {
         document.getElementById('loginBox').style.display = 'none';
