@@ -133,13 +133,14 @@ const ALLOWED_USERS = ["6282505786", "1753006927", "1405095426"];
 const JSONBIN_API_KEY = "$2a$10$.WLmojbymqt9b3tkTDcdb.I/rik/eRUr55qq2N5SeOTEP0BAMcyGq";
 const STATS_BIN_ID = "69de65c836566621a8b1fd5b";
 
+// Не трогай — нужно для статистики и очистки
 const CATEGORY_BINS = {
-    "Zhitkosty":   "69ecfff9aaba88219738d922",
-    "Snus":        "69ed003736566621a8ef3796",
-    "Vapes":       "69ed0016aaba88219738d9bb",
-    "Ispariteli":  "69ed0049aaba88219738da71",
+    "Zhitkosty": "69ecfff9aaba88219738d922",
+    "Snus": "69ed003736566621a8ef3796",
+    "Vapes": "69ed0016aaba88219738d9bb",
+    "Ispariteli": "69ed0049aaba88219738da71",
     "Kartdritzhy": "69ed005c36566621a8ef37fc",
-    "Odnorazki":   "69ed007436566621a8ef382b"
+    "Odnorazki": "69ed007436566621a8ef382b"
 };
 
 const categories = [
@@ -153,33 +154,62 @@ const categories = [
 
 let currentCategory = null, currentProducts = [], editId = null, currentFlavors = [];
 let currentCode = null, codeExpires = 0;
+let lastMessageIds = {};
 
 // ========== ВХОД ==========
-let currentCode = null, codeExpires = 0;
-
 async function requestCode() {
     document.getElementById('errorMsg').style.display = 'none';
-    document.getElementById('getCodeBtn').textContent = 'Отправка...';
-    document.getElementById('getCodeBtn').disabled = true;
+    const btn = document.getElementById('getCodeBtn');
+    btn.textContent = 'Отправка...';
+    btn.disabled = true;
 
     currentCode = Math.floor(100000 + Math.random() * 900000).toString();
     codeExpires = Date.now() + 5 * 60 * 1000;
 
     for (const userId of ALLOWED_USERS) {
         try {
-            await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: userId,
-                    text: '🔐 *Код входа:* `' + currentCode + '`',
-                    parse_mode: 'Markdown'
-                })
-            });
-        } catch(e) {}
+            if (lastMessageIds[userId]) {
+                await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/editMessageText`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: userId,
+                        message_id: lastMessageIds[userId],
+                        text: '🔐 *Код входа:* `' + currentCode + '`',
+                        parse_mode: 'Markdown'
+                    })
+                });
+            } else {
+                const r = await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: userId,
+                        text: '🔐 *Код входа:* `' + currentCode + '`',
+                        parse_mode: 'Markdown'
+                    })
+                });
+                const d = await r.json();
+                if (d.result && d.result.message_id) lastMessageIds[userId] = d.result.message_id;
+            }
+        } catch(e) {
+            try {
+                const r = await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: userId,
+                        text: '🔐 *Код входа:* `' + currentCode + '`',
+                        parse_mode: 'Markdown'
+                    })
+                });
+                const d = await r.json();
+                if (d.result && d.result.message_id) lastMessageIds[userId] = d.result.message_id;
+            } catch(e2) {}
+        }
     }
 
-    document.getElementById('getCodeBtn').style.display = 'none';
+    btn.style.display = 'none';
     document.getElementById('codeInput').style.display = 'block';
     document.getElementById('loginBtn').style.display = 'block';
     document.getElementById('codeInput').value = '';
@@ -187,9 +217,9 @@ async function requestCode() {
 
     setTimeout(() => {
         currentCode = null;
-        document.getElementById('getCodeBtn').style.display = 'block';
-        document.getElementById('getCodeBtn').textContent = '📱 Получить код в Telegram';
-        document.getElementById('getCodeBtn').disabled = false;
+        btn.style.display = 'block';
+        btn.textContent = '📱 Получить код в Telegram';
+        btn.disabled = false;
         document.getElementById('codeInput').style.display = 'none';
         document.getElementById('loginBtn').style.display = 'none';
     }, 5 * 60 * 1000);
@@ -217,13 +247,15 @@ function logout() {
     currentCode = null;
     document.getElementById('loginBox').style.display = 'block';
     document.getElementById('adminPanel').style.display = 'none';
-    document.getElementById('getCodeBtn').style.display = 'block';
-    document.getElementById('getCodeBtn').textContent = '📱 Получить код в Telegram';
-    document.getElementById('getCodeBtn').disabled = false;
+    const btn = document.getElementById('getCodeBtn');
+    btn.style.display = 'block';
+    btn.textContent = '📱 Получить код в Telegram';
+    btn.disabled = false;
     document.getElementById('codeInput').style.display = 'none';
     document.getElementById('codeInput').value = '';
     document.getElementById('loginBtn').style.display = 'none';
 }
+
 // ========== СТАТИСТИКА ==========
 let globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
 
@@ -231,13 +263,26 @@ async function loadGlobalStats() {
     try {
         const r = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
         if (r.ok) {
-            const d = await r.json();
-            const rec = d.record || {};
+            const d = await r.json(), rec = d.record || {};
             globalStats = { orders: rec.orders || [], totalOrders: rec.totalOrders || 0, totalRevenue: rec.totalRevenue || 0 };
-            updateStatsDisplay();
-            renderOrdersTable();
+            updateStatsDisplay(); renderOrdersTable();
         }
-    } catch(e) { console.error(e); }
+    } catch(e) {}
+}
+
+async function clearStatistics() {
+    if (confirm("Очистить статистику?")) {
+        globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
+        try {
+            const r = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
+            const rec = r.ok ? ((await r.json()).record || {}) : {};
+            await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
+                method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+                body: JSON.stringify({ views: rec.views || {}, orders: [], totalOrders: 0, totalRevenue: 0, lastUpdated: new Date().toISOString() })
+            });
+        } catch(e) {}
+        updateStatsDisplay(); renderOrdersTable(); showToast("Очищено");
+    }
 }
 
 function updateStatsDisplay() {
@@ -249,9 +294,9 @@ function updateStatsDisplay() {
 function renderOrdersTable() {
     const tbody = document.getElementById('ordersTableBody');
     if (!globalStats.orders.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#94A3B8;">Нет заказов</td></tr>'; return; }
-    tbody.innerHTML = [...globalStats.orders].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0,20).map(o => {
-        const d = new Date(o.date).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-        const items = o.items.map(i => i.productName + (i.variantName && i.variantName !== i.productName ? ' ('+i.variantName+')' : '') + ' ×'+i.quantity).join(', ');
+    tbody.innerHTML = [...globalStats.orders].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,20).map(o=>{
+        const d=new Date(o.date).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        const items=o.items.map(i=>i.productName+(i.variantName&&i.variantName!==i.productName?' ('+i.variantName+')':'')+' ×'+i.quantity).join(', ');
         return `<tr><td>${d}</td><td>@${o.manager||'?'}</td><td style="color:#FACC15;">${o.total} ₽</td><td>${items.substring(0,50)}</td></tr>`;
     }).join('');
 }
@@ -259,10 +304,9 @@ function renderOrdersTable() {
 // ========== ТОВАРЫ ==========
 async function loadProducts() {
     if (!currentCategory) return;
-    const binId = CATEGORY_BINS[currentCategory];
     document.getElementById('productsList').innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;">Загрузка...</div>';
     try {
-        const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
+        const r = await fetch(`https://api.jsonbin.io/v3/b/${CATEGORY_BINS[currentCategory]}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
         if (!r.ok) throw new Error('Ошибка');
         const d = await r.json();
         let items = d.record;
@@ -302,13 +346,7 @@ function loadCategories() {
     const c = document.getElementById('categoriesBlock'); c.innerHTML = '';
     categories.forEach(cat => {
         const b = document.createElement('span'); b.className='category-btn'; b.textContent=cat.icon+' '+cat.name;
-        b.onclick = () => {
-            document.querySelectorAll('.category-btn').forEach(x => x.classList.remove('active'));
-            b.classList.add('active');
-            currentCategory = cat.file;
-            cancelEdit();
-            loadProducts();
-        };
+        b.onclick = () => { document.querySelectorAll('.category-btn').forEach(x=>x.classList.remove('active')); b.classList.add('active'); currentCategory=cat.file; cancelEdit(); loadProducts(); };
         c.appendChild(b);
     });
 }
@@ -319,15 +357,7 @@ function renderProducts() {
     c.innerHTML = currentProducts.map(p => `<div class="product-card"><div class="product-info"><div class="product-name">${escapeHtml(p.name)}</div><div class="product-meta">ID: ${p.id} | ${p.flavors?p.flavors.length+' вар.':p.price+' ₽'}</div></div><div class="product-actions"><button onclick="editProduct(${p.id})">✏️</button><button class="danger" onclick="deleteProduct(${p.id})">🗑️</button></div></div>`).join('');
 }
 
-function editProduct(id) {
-    const p = currentProducts.find(x => x.id===id); if(!p) return;
-    editId=id; document.getElementById('formTitle').textContent='✏️ Редактировать';
-    document.getElementById('productName').value=p.name; document.getElementById('productImage').value=p.image||''; document.getElementById('productDesc').value=p.desc||'';
-    document.getElementById('imagePreview').innerHTML=p.image?`<img src="${p.image}" style="max-width:80px;border-radius:12px;">`:'';
-    currentFlavors = p.flavors ? JSON.parse(JSON.stringify(p.flavors)) : [{name:"Стандарт",price:p.price||0,stock:p.stock||0}];
-    renderFlavors(); document.getElementById('cancelBtn').style.display='block';
-}
-
+function editProduct(id) { const p=currentProducts.find(x=>x.id===id); if(!p) return; editId=id; document.getElementById('formTitle').textContent='✏️ Редактировать'; document.getElementById('productName').value=p.name; document.getElementById('productImage').value=p.image||''; document.getElementById('productDesc').value=p.desc||''; document.getElementById('imagePreview').innerHTML=p.image?`<img src="${p.image}" style="max-width:80px;border-radius:12px;">`:''; currentFlavors=p.flavors?JSON.parse(JSON.stringify(p.flavors)):[{name:"Стандарт",price:p.price||0,stock:p.stock||0}]; renderFlavors(); document.getElementById('cancelBtn').style.display='block'; }
 function addFlavor() { currentFlavors.push({name:'',price:0,stock:0}); renderFlavors(); }
 function removeFlavor(i) { currentFlavors.splice(i,1); renderFlavors(); }
 function editFlavor(i,f,v) { if(currentFlavors[i]) currentFlavors[i][f]=v; }
@@ -335,42 +365,16 @@ function editFlavor(i,f,v) { if(currentFlavors[i]) currentFlavors[i][f]=v; }
 function renderFlavors() {
     const c = document.getElementById('flavorsList');
     if(!currentFlavors.length) { c.innerHTML='<div style="padding:12px;text-align:center;color:#94A3B8;">Нажмите "+"</div>'; return; }
-    c.innerHTML = ''; currentFlavors.forEach((f,i) => {
-        const d=document.createElement('div'); d.className='flavor-row';
-        d.innerHTML=`<input type="text" placeholder="Название" value="${escapeHtml(f.name)}" onchange="editFlavor(${i},'name',this.value)"><input type="number" placeholder="Цена" value="${f.price}" onchange="editFlavor(${i},'price',+this.value)"><input type="number" placeholder="Остаток" value="${f.stock}" onchange="editFlavor(${i},'stock',+this.value)"><button class="danger" onclick="removeFlavor(${i})">❌</button>`;
-        c.appendChild(d);
-    });
+    c.innerHTML = ''; currentFlavors.forEach((f,i)=>{ const d=document.createElement('div'); d.className='flavor-row'; d.innerHTML=`<input type="text" placeholder="Название" value="${escapeHtml(f.name)}" onchange="editFlavor(${i},'name',this.value)"><input type="number" placeholder="Цена" value="${f.price}" onchange="editFlavor(${i},'price',+this.value)"><input type="number" placeholder="Остаток" value="${f.stock}" onchange="editFlavor(${i},'stock',+this.value)"><button class="danger" onclick="removeFlavor(${i})">❌</button>`; c.appendChild(d); });
 }
 
-async function saveProduct() {
-    const name=document.getElementById('productName').value.trim(), image=document.getElementById('productImage').value.trim(), desc=document.getElementById('productDesc').value.trim();
-    if(!name||!image||!currentFlavors.length||!currentCategory) { showToast('Заполни все поля!',true); return; }
-    if(editId) {
-        const p=currentProducts.find(x=>x.id===editId); if(!p) return;
-        p.name=name; p.image=image; p.desc=desc;
-        if(currentFlavors.length===1 && currentFlavors[0].name==='Стандарт') { delete p.flavors; p.price=currentFlavors[0].price; p.stock=currentFlavors[0].stock; }
-        else { p.flavors=currentFlavors.filter(f=>f.name.trim()); delete p.price; delete p.stock; }
-    } else {
-        const nid=Math.max(0,...currentProducts.map(p=>p.id))+1;
-        const np={id:nid,name,category:categories.find(c=>c.file===currentCategory)?.name||'',image,desc};
-        if(currentFlavors.length===1 && currentFlavors[0].name==='Стандарт') { np.price=currentFlavors[0].price; np.stock=currentFlavors[0].stock; }
-        else np.flavors=currentFlavors.filter(f=>f.name.trim());
-        currentProducts.push(np);
-    }
-    await saveProducts(); cancelEdit(); await loadProducts();
-}
-
+async function saveProduct() { const name=document.getElementById('productName').value.trim(), image=document.getElementById('productImage').value.trim(), desc=document.getElementById('productDesc').value.trim(); if(!name||!image||!currentFlavors.length||!currentCategory) { showToast('Заполни все поля!',true); return; } if(editId) { const p=currentProducts.find(x=>x.id===editId); p.name=name; p.image=image; p.desc=desc; if(currentFlavors.length===1&&currentFlavors[0].name==='Стандарт') { delete p.flavors; p.price=currentFlavors[0].price; p.stock=currentFlavors[0].stock; } else { p.flavors=currentFlavors.filter(f=>f.name.trim()); delete p.price; delete p.stock; } } else { const nid=Math.max(0,...currentProducts.map(p=>p.id))+1; const np={id:nid,name,category:categories.find(c=>c.file===currentCategory)?.name||'',image,desc}; if(currentFlavors.length===1&&currentFlavors[0].name==='Стандарт') { np.price=currentFlavors[0].price; np.stock=currentFlavors[0].stock; } else np.flavors=currentFlavors.filter(f=>f.name.trim()); currentProducts.push(np); } await saveProducts(); cancelEdit(); await loadProducts(); }
 async function deleteProduct(id) { if(!confirm('Удалить?')) return; currentProducts=currentProducts.filter(p=>p.id!==id); await saveProducts(); if(editId===id) cancelEdit(); await loadProducts(); showToast('Удалено!'); }
 
 function cancelEdit() { editId=null; currentFlavors=[]; document.getElementById('formTitle').textContent='➕ Новый товар'; document.getElementById('productName').value=''; document.getElementById('productImage').value=''; document.getElementById('productDesc').value=''; document.getElementById('flavorsList').innerHTML=''; document.getElementById('imagePreview').innerHTML=''; document.getElementById('cancelBtn').style.display='none'; }
 
 document.getElementById('productImage').addEventListener('input', function(){ document.getElementById('imagePreview').innerHTML=this.value?`<img src="${this.value}" style="max-width:80px;border-radius:12px;">`:''; });
-document.getElementById('clearStatsBtn')?.addEventListener('click', clearStatistics);
-
-window.addFlavor=addFlavor; window.removeFlavor=removeFlavor; window.editFlavor=editFlavor;
-window.saveProduct=saveProduct; window.deleteProduct=deleteProduct; window.editProduct=editProduct;
-window.cancelEdit=cancelEdit; window.loginWithCode=loginWithCode; window.requestCode=requestCode;
-window.logout=logout; window.uploadFromGallery=uploadFromGallery;
+document.getElementById('clearStatsBtn').addEventListener('click', clearStatistics);
 </script>
 </body>
 </html>
