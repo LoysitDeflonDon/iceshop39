@@ -169,7 +169,8 @@ async function requestCode() {
     for (const userId of ALLOWED_USERS) {
         try {
             if (lastMessageIds[userId]) {
-                await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/editMessageText`, {
+                // Пробуем редактировать
+                const editR = await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/editMessageText`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -179,6 +180,8 @@ async function requestCode() {
                         parse_mode: 'Markdown'
                     })
                 });
+                const editD = await editR.json();
+                if (!editD.ok) throw new Error('Не удалось редактировать');
             } else {
                 const r = await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/sendMessage`, {
                     method: 'POST',
@@ -190,9 +193,12 @@ async function requestCode() {
                     })
                 });
                 const d = await r.json();
-                if (d.result && d.result.message_id) lastMessageIds[userId] = d.result.message_id;
+                if (d.result && d.result.message_id) {
+                    lastMessageIds[userId] = d.result.message_id;
+                }
             }
         } catch(e) {
+            // Если не удалось — отправляем новое
             try {
                 const r = await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/sendMessage`, {
                     method: 'POST',
@@ -204,7 +210,9 @@ async function requestCode() {
                     })
                 });
                 const d = await r.json();
-                if (d.result && d.result.message_id) lastMessageIds[userId] = d.result.message_id;
+                if (d.result && d.result.message_id) {
+                    lastMessageIds[userId] = d.result.message_id;
+                }
             } catch(e2) {}
         }
     }
