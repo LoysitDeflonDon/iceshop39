@@ -120,7 +120,7 @@
 </div>
 
 <script>
-const PASSWORD = "PAF|0Anv54bZiKhwkhOo1*PSNQdjnQ";
+const PASSWORD_ENCODED = "PAF|0Anv54bZiKhwkhOo1*PSNQdjnQ";
 const JSONBIN_API_KEY = "$2a$10$02JoCoxrhI2J2COQIvNbM.G5Yh5iYDRA96V93DNU27viKWcqf.g5a";
 const STATS_BIN_ID = "69de65c836566621a8b1fd5b";
 
@@ -235,7 +235,7 @@ async function saveProducts() {
 
 // ========== UI ==========
 function login() {
-    if (document.getElementById('password').value === PASSWORD) {
+    if (btoa(document.getElementById('password').value) === PASSWORD_ENCODED) {
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
         loadCategories();
