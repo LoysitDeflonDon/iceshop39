@@ -236,8 +236,6 @@ async function saveProducts() {
 // ========== UI ==========
 function login() {
     const entered = document.getElementById('password').value;
-    alert('Ты ввёл: [' + entered + '] Длина: ' + entered.length + '\nОжидаю: [' + PASSWORD + '] Длина: ' + PASSWORD.length + '\nСовпадают: ' + (entered === PASSWORD));
-    
     if (entered === PASSWORD) {
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
