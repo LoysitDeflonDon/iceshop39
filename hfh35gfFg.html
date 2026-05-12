@@ -155,34 +155,61 @@ let currentCategory = null, currentProducts = [], editId = null, currentFlavors 
 let currentCode = null;
 
 // ========== ВХОД ЧЕРЕЗ ТГ
+let lastCodeMessageIds = {};
+
 async function requestCode() {
     document.getElementById('errorMsg').style.display = 'none';
     document.getElementById('getCodeBtn').textContent = 'Отправка...';
     document.getElementById('getCodeBtn').disabled = true;
-    
+
+    // Если старый код ещё жив просто показываем поле ввода
+    if (currentCode) {
+        document.getElementById('getCodeBtn').style.display = 'none';
+        document.getElementById('codeInput').style.display = 'block';
+        document.getElementById('loginBtn').style.display = 'block';
+        document.getElementById('codeInput').focus();
+        return;
+    }
+
     currentCode = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Отправляем всем троим
+
+    // Удаляем старые сообщения с кодом
+    for (const [userId, msgId] of Object.entries(lastCodeMessageIds)) {
+        try {
+            await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/deleteMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: userId, message_id: msgId })
+            });
+        } catch(e) {}
+    }
+    lastCodeMessageIds = {};
+
+    // Сообщение всем троим
     for (const userId of ALLOWED_USERS) {
         try {
-            await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/sendMessage`, {
+            const r = await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     chat_id: userId,
-                    text: ' *Код входа:* `' + currentCode + '`\nДействует 5 минут',
+                    text: '🔐 *Код входа:* `' + currentCode + '`\nДействует 5 минут',
                     parse_mode: 'Markdown'
                 })
             });
+            const d = await r.json();
+            if (d.result && d.result.message_id) {
+                lastCodeMessageIds[userId] = d.result.message_id;
+            }
         } catch(e) {}
     }
-    
+
     document.getElementById('getCodeBtn').style.display = 'none';
     document.getElementById('codeInput').style.display = 'block';
     document.getElementById('loginBtn').style.display = 'block';
     document.getElementById('codeInput').focus();
-    
-    // Сброс через 5 минут
+
+    // Через 5 минут сбрасывается
     setTimeout(() => {
         currentCode = null;
         document.getElementById('getCodeBtn').style.display = 'block';
