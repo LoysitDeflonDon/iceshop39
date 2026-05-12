@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>Админ-панель ICESHOP39</title>
+    <meta name="robots" content="noindex, nofollow">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: #0A0F1E; color: #EDF2FF; font-family: system-ui, -apple-system, sans-serif; padding: 12px; padding-bottom: 30px; }
@@ -75,7 +76,7 @@
 <div id="adminPanel" class="admin-panel">
     <div class="admin-header">
         <h1>🛠️ Управление товарами</h1>
-        <button class="logout-btn" onclick="logout()">Уйти нахуй</button>
+        <button class="logout-btn" onclick="logout()">Выйти</button>
     </div>
 
     <div class="stats-row">
@@ -83,7 +84,7 @@
         <div class="stat-card"><div class="stat-number" id="totalRevenue" style="color:#FACC15;">0</div><div class="stat-label">Выручка</div></div>
         <div class="stat-card"><div class="stat-number" id="avgOrder" style="color:#10B981;">0</div><div class="stat-label">Средний чек</div></div>
     </div>
-    
+
     <button id="clearStatsBtn" class="clear-stats-btn">🗑️ Очистить статистику</button>
 
     <div class="orders-table-container">
@@ -120,12 +121,19 @@
 </div>
 
 <script>
-    
-const P = "QnjdQNSP*1oOhkwhKiZb45vnA0|FAP";
-const PASSWORD = P.split('').reverse().join('');
-    
+// ========== ПАРОЛИ  ==========
+const _p1 = "QnjdQNSP*1oOhkwhKiZb45vnA0|FAP";           // v
+const _p2 = "mbZUZh~}@HOQH1xjY0rtxpPjjGMyQ#D";          // h
+const _p3 = "4#%ZfEb7lV0~bP{lJgshbILIfboRjn";           // m
+
+const PASSWORDS = [
+    _p1.split('').reverse().join(''),
+    _p2.split('').reverse().join(''),
+    _p3.split('').reverse().join('')
+];
+
+// ========== НАСТРОЙКИ ==========
 const JSONBIN_API_KEY = "$2a$10$.WLmojbymqt9b3tkTDcdb.I/rik/eRUr55qq2N5SeOTEP0BAMcyGq";
-    
 const STATS_BIN_ID = "69de65c836566621a8b1fd5b";
 
 const CATEGORY_BINS = {
@@ -156,9 +164,7 @@ let globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
 
 async function loadGlobalStats() {
     try {
-        const r = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, {
-            headers: { 'X-Master-Key': JSONBIN_API_KEY }
-        });
+        const r = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
         if (r.ok) {
             const d = await r.json();
             const rec = d.record || {};
@@ -196,35 +202,24 @@ function renderOrdersTable() {
     tbody.innerHTML = [...globalStats.orders].sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0,20).map(o => {
         const d = new Date(o.date).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
         const items = o.items.map(i => i.productName + (i.variantName && i.variantName !== i.productName ? ' ('+i.variantName+')' : '') + ' ×'+i.quantity).join(', ');
-        return `<tr><td>${d}</td><td>@${o.manager||'?'}</td><td style="color:#FACC15;">${o.total} ₽</td><td title="${items.replace(/"/g,'&quot;')}">${items.substring(0,50)}${items.length>50?'...':''}</td></tr>`;
+        return `<tr><td>${d}</td><td>@${o.manager||'?'}</td><td style="color:#FACC15;">${o.total} ₽</td><td title="${items.replace(/"/g,'"')}">${items.substring(0,50)}${items.length>50?'...':''}</td></tr>`;
     }).join('');
 }
 
 // ========== ТОВАРЫ ==========
 async function loadProducts() {
-    if (!currentCategory) { console.log('Нет категории'); return; }
+    if (!currentCategory) return;
     const binId = CATEGORY_BINS[currentCategory];
-    console.log('Загружаем', currentCategory, binId);
-    
     document.getElementById('productsList').innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;">Загрузка...</div>';
-    
     try {
-        const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
-            headers: { 'X-Master-Key': JSONBIN_API_KEY }
-        });
-        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const r = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
+        if (!r.ok) throw new Error('Ошибка');
         const d = await r.json();
         let items = d.record;
         if (!items || !Array.isArray(items)) items = Array.isArray(d) ? d : [];
         currentProducts = items;
         renderProducts();
-        console.log('Загружено:', items.length);
-    } catch(e) {
-        console.error('Ошибка:', e);
-        currentProducts = [];
-        renderProducts();
-        showToast('Ошибка загрузки', true);
-    }
+    } catch(e) { currentProducts = []; renderProducts(); showToast('Ошибка загрузки', true); }
 }
 
 async function saveProducts() {
@@ -240,7 +235,7 @@ async function saveProducts() {
 // ========== UI ==========
 function login() {
     const entered = document.getElementById('password').value;
-    if (entered === PASSWORD) {
+    if (PASSWORDS.includes(entered)) {
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
         loadCategories();
@@ -249,7 +244,7 @@ function login() {
         alert('Неверный пароль');
     }
 }
-    
+
 function logout() { document.getElementById('loginBox').style.display='block'; document.getElementById('adminPanel').style.display='none'; document.getElementById('password').value=''; }
 
 function showToast(msg, err) {
