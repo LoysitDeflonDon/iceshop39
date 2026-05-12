@@ -157,40 +157,57 @@ let currentCode = null;
 // ========== ВХОД ЧЕРЕЗ ТГ
 async function requestCode() {
     document.getElementById('errorMsg').style.display = 'none';
-    document.getElementById('getCodeBtn').style.display = 'none';
+    document.getElementById('getCodeBtn').textContent = 'Отправка...';
+    document.getElementById('getCodeBtn').disabled = true;
     
-    // Генерируем код
     currentCode = Math.floor(100000 + Math.random() * 900000).toString();
     
+    // Отправляем всем троим
+    for (const userId of ALLOWED_USERS) {
+        try {
+            await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: userId,
+                    text: ' *Код входа:* `' + currentCode + '`\nДействует 5 минут',
+                    parse_mode: 'Markdown'
+                })
+            });
+        } catch(e) {}
+    }
+    
+    document.getElementById('getCodeBtn').style.display = 'none';
     document.getElementById('codeInput').style.display = 'block';
     document.getElementById('loginBtn').style.display = 'block';
-    document.getElementById('codeInput').placeholder = 'Введи код И свой Telegram ID';
     document.getElementById('codeInput').focus();
     
-    // Код сгорит через 5 минут
-    setTimeout(() => { currentCode = null; }, 5 * 60 * 1000);
+    // Сброс через 5 минут
+    setTimeout(() => {
+        currentCode = null;
+        document.getElementById('getCodeBtn').style.display = 'block';
+        document.getElementById('getCodeBtn').textContent = '📱 Получить код в Telegram';
+        document.getElementById('getCodeBtn').disabled = false;
+        document.getElementById('codeInput').style.display = 'none';
+        document.getElementById('codeInput').value = '';
+        document.getElementById('loginBtn').style.display = 'none';
+    }, 5 * 60 * 1000);
 }
 
 function loginWithCode() {
-    const input = document.getElementById('codeInput').value.trim();
-    // Формат: 123456 84829384935 (код + пробел + ID)
-    const parts = input.split(' ');
-    const enteredCode = parts[0];
-    const enteredId = parts[1];
-    
+    const entered = document.getElementById('codeInput').value.trim();
     if (!currentCode) {
-        document.getElementById('errorMsg').textContent = 'Код истёк';
+        document.getElementById('errorMsg').textContent = 'Код истёк. Запроси новый.';
         document.getElementById('errorMsg').style.display = 'block';
         return;
     }
-    
-    if (enteredCode === currentCode && ALLOWED_USERS.includes(enteredId)) {
+    if (entered === currentCode) {
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
         loadCategories();
         loadGlobalStats();
     } else {
-        document.getElementById('errorMsg').textContent = 'Неверный код или ID';
+        document.getElementById('errorMsg').textContent = 'Неверный код';
         document.getElementById('errorMsg').style.display = 'block';
     }
 }
