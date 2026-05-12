@@ -235,13 +235,17 @@ async function saveProducts() {
 
 // ========== UI ==========
 function login() {
-    if (btoa(document.getElementById('password').value) === PASSWORD) {
+    const entered = document.getElementById('password').value;
+    if (entered === PASSWORD) {
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
         loadCategories();
         loadGlobalStats();
-    } else alert('Неверный пароль');
+    } else {
+        alert('Неверный пароль');
+    }
 }
+    
 function logout() { document.getElementById('loginBox').style.display='block'; document.getElementById('adminPanel').style.display='none'; document.getElementById('password').value=''; }
 
 function showToast(msg, err) {
