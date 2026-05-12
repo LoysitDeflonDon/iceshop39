@@ -38,7 +38,7 @@ const CATEGORY_BINS = {
 };
 
 // ========== TELEGRAM ==========
-const ADMIN_BOT_TOKEN = "8552470788:AAGB1Q36M-gPlnTebMXJWw8e8GmcCXk00y4";
+const ADMIN_BOT_TOKEN = "8552470788:AAEY1HA8n4uIRrN2vQnZDvTX-mPU0q6WOhg";
 const ADMIN_CHAT_ID = "6919484181";
 
 // ========== КЕШ ==========
