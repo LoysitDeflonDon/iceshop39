@@ -8,10 +8,13 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { background: #0A0F1E; color: #EDF2FF; font-family: system-ui, -apple-system, sans-serif; padding: 12px; padding-bottom: 30px; }
-        .login-box { max-width: 350px; margin: 80px auto; background: #111827; padding: 28px; border-radius: 28px; text-align: center; border: 1px solid #1F2A44; }
-        .login-box h2 { margin-bottom: 20px; color: #3B82F6; }
-        .login-box input { width: 100%; padding: 14px; margin: 15px 0; background: #1E293B; border: 1px solid #334155; border-radius: 14px; color: white; font-size: 16px; }
-        .login-box button { background: #3B82F6; color: white; padding: 14px; border: none; border-radius: 14px; cursor: pointer; font-weight: 600; width: 100%; font-size: 16px; }
+        .login-box { max-width: 420px; margin: 80px auto; background: #111827; padding: 28px; border-radius: 28px; text-align: center; border: 1px solid #1F2A44; }
+        .login-box h2 { margin-bottom: 10px; color: #3B82F6; }
+        .login-box p { color: #94A3B8; font-size: 13px; margin-bottom: 20px; }
+        .login-box input { width: 100%; padding: 14px; margin: 10px 0; background: #1E293B; border: 1px solid #334155; border-radius: 14px; color: white; font-size: 16px; text-align: center; letter-spacing: 4px; display: none; }
+        .login-box button { background: #3B82F6; color: white; padding: 14px; border: none; border-radius: 14px; cursor: pointer; font-weight: 600; width: 100%; font-size: 16px; margin-top: 10px; display: none; }
+        .login-box .getcode-btn { display: block; background: #10B981; }
+        .login-box .error-msg { color: #EF4444; font-size: 13px; margin-top: 10px; display: none; }
         .admin-panel { display: none; max-width: 1400px; margin: 0 auto; }
         .admin-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #1F2A44; }
         .admin-header h1 { font-size: 1.5rem; color: #3B82F6; }
@@ -68,9 +71,12 @@
 <body>
 
 <div id="loginBox" class="login-box">
-    <h2>Админ-панель</h2>
-    <input type="password" id="password" placeholder="Пароль">
-    <button onclick="login()">Войти</button>
+    <h2>🔐 Вход через Telegram</h2>
+    <p>Код придёт в Telegram</p>
+    <button class="getcode-btn" id="getCodeBtn" onclick="requestCode()">📱 Получить код в Telegram</button>
+    <input type="text" id="codeInput" placeholder="Введи код из бота" maxlength="6">
+    <button id="loginBtn" onclick="loginWithCode()">Войти</button>
+    <p class="error-msg" id="errorMsg"></p>
 </div>
 
 <div id="adminPanel" class="admin-panel">
@@ -121,18 +127,9 @@
 </div>
 
 <script>
-// ========== ПАРОЛИ  ==========
-const _p1 = "QnjdQNSP*1oOhkwhKiZb45vnA0|FAP";           // v
-const _p2 = "mbZUZh~}@HOQH1xjY0rtxpPjjGMyQ#D";          // h
-const _p3 = "4#%ZfEb7lV0~bP{lJgshbILIfboRjn";           // m
-
-const PASSWORDS = [
-    _p1.split('').reverse().join(''),
-    _p2.split('').reverse().join(''),
-    _p3.split('').reverse().join('')
-];
-
 // ========== НАСТРОЙКИ ==========
+const AUTH_BOT_TOKEN = "8877977058:AAGtngZJDOnKJncuk97z10D6jFVmAS_26Z0";
+const ALLOWED_USERS = ["6919484181", "1753006927", "1405095426"];
 const JSONBIN_API_KEY = "$2a$10$.WLmojbymqt9b3tkTDcdb.I/rik/eRUr55qq2N5SeOTEP0BAMcyGq";
 const STATS_BIN_ID = "69de65c836566621a8b1fd5b";
 
@@ -154,10 +151,60 @@ const categories = [
     { file: "Odnorazki", name: "Одноразки", icon: "🔄" }
 ];
 
-let currentCategory = null;
-let currentProducts = [];
-let editId = null;
-let currentFlavors = [];
+let currentCategory = null, currentProducts = [], editId = null, currentFlavors = [];
+let currentCode = null;
+
+// ========== ВХОД ЧЕРЕЗ ТГ
+async function requestCode() {
+    document.getElementById('errorMsg').style.display = 'none';
+    document.getElementById('getCodeBtn').style.display = 'none';
+    
+    // Генерируем код
+    currentCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    document.getElementById('codeInput').style.display = 'block';
+    document.getElementById('loginBtn').style.display = 'block';
+    document.getElementById('codeInput').placeholder = 'Введи код И свой Telegram ID';
+    document.getElementById('codeInput').focus();
+    
+    // Код сгорит через 5 минут
+    setTimeout(() => { currentCode = null; }, 5 * 60 * 1000);
+}
+
+function loginWithCode() {
+    const input = document.getElementById('codeInput').value.trim();
+    // Формат: 123456 84829384935 (код + пробел + ID)
+    const parts = input.split(' ');
+    const enteredCode = parts[0];
+    const enteredId = parts[1];
+    
+    if (!currentCode) {
+        document.getElementById('errorMsg').textContent = 'Код истёк';
+        document.getElementById('errorMsg').style.display = 'block';
+        return;
+    }
+    
+    if (enteredCode === currentCode && ALLOWED_USERS.includes(enteredId)) {
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        loadCategories();
+        loadGlobalStats();
+    } else {
+        document.getElementById('errorMsg').textContent = 'Неверный код или ID';
+        document.getElementById('errorMsg').style.display = 'block';
+    }
+}
+
+function logout() {
+    document.getElementById('loginBox').style.display = 'block';
+    document.getElementById('adminPanel').style.display = 'none';
+    document.getElementById('getCodeBtn').style.display = 'block';
+    document.getElementById('codeInput').style.display = 'none';
+    document.getElementById('codeInput').value = '';
+    document.getElementById('loginBtn').style.display = 'none';
+    document.getElementById('errorMsg').style.display = 'none';
+    currentCode = null;
+}
 
 // ========== СТАТИСТИКА ==========
 let globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
@@ -233,27 +280,6 @@ async function saveProducts() {
 }
 
 // ========== UI ==========
-function login() {
-    // Проверка секретного ключа в ссылке
-    if (!window.location.search.includes('key=qdimLucMvjQ~yqA|WwM1nTBEcKpbOCynu7cgsojQj#LqVFaTD}d%Q4GPoAfW')) {
-        alert('Неверная ссылка');
-        window.location.href = 'about:blank';
-        return;
-    }
-    
-    const entered = document.getElementById('password').value;
-    if (PASSWORDS.includes(entered)) {
-        document.getElementById('loginBox').style.display = 'none';
-        document.getElementById('adminPanel').style.display = 'block';
-        loadCategories();
-        loadGlobalStats();
-    } else {
-        alert('Неверный пароль');
-    }
-}
-
-function logout() { document.getElementById('loginBox').style.display='block'; document.getElementById('adminPanel').style.display='none'; document.getElementById('password').value=''; }
-
 function showToast(msg, err) {
     let t = document.getElementById('toastMsg');
     if (!t) { t = document.createElement('div'); t.id='toastMsg'; t.className='toast'; document.body.appendChild(t); }
@@ -340,7 +366,8 @@ document.getElementById('clearStatsBtn')?.addEventListener('click', clearStatist
 
 window.addFlavor=addFlavor; window.removeFlavor=removeFlavor; window.editFlavor=editFlavor;
 window.saveProduct=saveProduct; window.deleteProduct=deleteProduct; window.editProduct=editProduct;
-window.cancelEdit=cancelEdit; window.login=login; window.logout=logout; window.uploadFromGallery=uploadFromGallery;
+window.cancelEdit=cancelEdit; window.loginWithCode=loginWithCode; window.requestCode=requestCode;
+window.logout=logout; window.uploadFromGallery=uploadFromGallery;
 </script>
 </body>
 </html>
