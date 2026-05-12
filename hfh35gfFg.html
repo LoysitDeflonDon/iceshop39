@@ -156,12 +156,7 @@ let currentCode = null, codeExpires = 0;
 
 // ========== ВХОД ==========
 let currentCode = null, codeExpires = 0;
-let lastMessageIds = {}; // храним ID сообщений для каждого пользователя
-
-// Восстанавливаем ID сообщений из localStorage
-try { lastMessageIds = JSON.parse(localStorage.getItem('auth_msg_ids') || '{}'); } catch(e) { lastMessageIds = {}; }
-
-function saveMsgIds() { try { localStorage.setItem('auth_msg_ids', JSON.stringify(lastMessageIds)); } catch(e) {} }
+let lastMessageIds = {};
 
 async function requestCode() {
     document.getElementById('errorMsg').style.display = 'none';
@@ -174,7 +169,6 @@ async function requestCode() {
     for (const userId of ALLOWED_USERS) {
         try {
             if (lastMessageIds[userId]) {
-                // Редактируем существующее сообщение
                 await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/editMessageText`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -186,7 +180,6 @@ async function requestCode() {
                     })
                 });
             } else {
-                // Отправляем новое и запоминаем ID
                 const r = await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/sendMessage`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -202,7 +195,7 @@ async function requestCode() {
                 }
             }
         } catch(e) {
-            // Если редактирование не удалось (сообщение удалено вручную) — отправляем новое
+            // Если не удалось — отправляем новое
             try {
                 const r = await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/sendMessage`, {
                     method: 'POST',
@@ -220,8 +213,6 @@ async function requestCode() {
             } catch(e2) {}
         }
     }
-    
-    saveMsgIds();
 
     document.getElementById('getCodeBtn').style.display = 'none';
     document.getElementById('codeInput').style.display = 'block';
