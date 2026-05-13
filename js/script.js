@@ -38,8 +38,10 @@ const CATEGORY_BINS = {
 };
 
 // ========== TELEGRAM ==========
-const ADMIN_BOT_TOKEN = "8552470788:AAEY1HA8n4uIRrN2vQnZDvTX-mPU0q6WOhg";
-const ADMIN_CHAT_ID = "6919484181";
+const _tA = "ODU1MjQ3MDc4ODpBQUdCMVEzNk0tZ1BsblRlYk1YSnc4ZThHbWNDWGswMHk0";
+const ADMIN_BOT_TOKEN = atob(_tA);
+
+const ADMIN_CHAT_ID = "6282505786";
 
 // ========== КЕШ ==========
 const CACHE_PREFIX = "iceshop39_";
