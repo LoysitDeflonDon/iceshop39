@@ -171,42 +171,39 @@ async function requestCode() {
     codeExpires = Date.now() + 5 * 60 * 1000;
 
     for (const userId of ALLOWED_USERS) {
-        try {
-            if (lastMessageIds[userId]) {
-                await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/editMessageText`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: userId,
-                        message_id: lastMessageIds[userId],
-                        text: '🔐 *Код входа:* `' + currentCode + '`',
-                        parse_mode: 'Markdown'
-                    })
-                });
-            } else {
-                const r = await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/sendMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: userId,
-                        text: '🔐 *Код входа:* `' + currentCode + '`',
-                        parse_mode: 'Markdown'
-                    })
-                });
-                const d = await r.json();
-                if (d.result && d.result.message_id) lastMessageIds[userId] = d.result.message_id;
-            }
-        } catch(e) {
+        // Пробуем удалить старое сообщение
+        const storageKey = 'msg_id_' + userId;
+        const oldMsgId = localStorage.getItem(storageKey);
+        
+        if (oldMsgId) {
             try {
-                const r = await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/sendMessage`, {
+                await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/deleteMessage`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_id: userId, text: '🔐 *Код входа:* `' + currentCode + '`', parse_mode: 'Markdown' })
+                    body: JSON.stringify({
+                        chat_id: userId,
+                        message_id: parseInt(oldMsgId)
+                    })
                 });
-                const d = await r.json();
-                if (d.result && d.result.message_id) lastMessageIds[userId] = d.result.message_id;
-            } catch(e2) {}
+            } catch(e) {}
         }
+        
+        // Отправляем новое
+        try {
+            const r = await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: userId,
+                    text: '🔐 *Код входа:* `' + currentCode + '`',
+                    parse_mode: 'Markdown'
+                })
+            });
+            const d = await r.json();
+            if (d.result && d.result.message_id) {
+                localStorage.setItem(storageKey, d.result.message_id);
+            }
+        } catch(e) {}
     }
 
     btn.style.display = 'none';
