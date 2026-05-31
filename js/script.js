@@ -29,7 +29,7 @@ const JSONBIN_API_KEY = "$2a$10$Y3Bvspn5CW0kIKhSPjwmn.vCT3aK4XdU9F0ejiihLjC68NLF
 const STATS_BIN_ID = "69de65c836566621a8b1fd5b";
 
 const CATEGORY_BINS = {
-    "Жидкости":   "69ecfff9aaba88219738d922",
+    "Жидкости":   "6a1c6365ddf5aa59f77c4987",
     "Шайбы":     "6a1c637621f9ee59d2a1ac06",
     "Вейпы":     "6a1c638621f9ee59d2a1ac2d",
     "Испарители": "6a1c63a3ddf5aa59f77c4a0a",
