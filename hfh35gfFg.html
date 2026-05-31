@@ -237,20 +237,11 @@ function renderOrdersTable() {
 async function loadProducts() {
     if (!currentCategory) return;
     
-    // 1. Мгновенно показываем кэш (если есть)
-    const cached = localStorage.getItem(`admin_${currentCategory}`);
-    if (cached) {
-        try {
-            currentProducts = JSON.parse(cached);
-            renderProducts();
-            console.log(`📦 ${currentCategory}: загружено из кэша (${currentProducts.length} товаров)`);
-        } catch(e) {}
-    }
+    document.getElementById('productsList').innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;">⏳ Загрузка товаров с сервера...</div>';
     
-    // 2. Фоновое обновление с JSONBin (короткий таймаут)
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 секунды
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
         
         const r = await fetch(`https://api.jsonbin.io/v3/b/${CATEGORY_BINS[currentCategory]}/latest`, { 
             headers: { 'X-Master-Key': JSONBIN_API_KEY },
@@ -264,27 +255,21 @@ async function loadProducts() {
         let items = d.record;
         if (!items || !Array.isArray(items)) items = Array.isArray(d) ? d : [];
         
-        if (items.length > 0) {
-            currentProducts = items;
-            localStorage.setItem(`admin_${currentCategory}`, JSON.stringify(currentProducts));
-            renderProducts();
-            console.log(`✅ ${currentCategory}: JSONBin (${currentProducts.length} товаров)`);
-        } else if (!cached) {
-            currentProducts = [];
-            renderProducts();
-        }
-    } catch(e) {
-        console.warn(`⚠️ ${currentCategory}: ошибка JSONBin (${e.message})`);
-        if (!cached) {
-            currentProducts = [];
-            renderProducts();
-            showToast('Ошибка загрузки, попробуй позже', true);
-        } else {
-            showToast('Загружены кэшированные данные', false);
-        }
+        currentProducts = items;
+        renderProducts();
+        
+        // Удаляем старый кэш для этой категории, если он был
+        localStorage.removeItem(`admin_${currentCategory}`);
+        
+        console.log(`✅ ${currentCategory}: загружено ${currentProducts.length} товаров`);
+        
+    } catch(e) { 
+        console.error('Ошибка загрузки:', e);
+        currentProducts = [];
+        renderProducts();
+        showToast('❌ Ошибка загрузки с сервера', true);
     }
 }
-
 async function saveProducts() {
     const name = document.getElementById('productName').value.trim();
     const image = document.getElementById('productImage').value.trim();
