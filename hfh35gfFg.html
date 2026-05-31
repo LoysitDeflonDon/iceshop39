@@ -11,9 +11,8 @@
         .login-box { max-width: 420px; margin: 80px auto; background: #111827; padding: 28px; border-radius: 28px; text-align: center; border: 1px solid #1F2A44; }
         .login-box h2 { margin-bottom: 10px; color: #3B82F6; }
         .login-box p { color: #94A3B8; font-size: 13px; margin-bottom: 20px; }
-        .login-box input { width: 100%; padding: 14px; margin: 10px 0; background: #1E293B; border: 1px solid #334155; border-radius: 14px; color: white; font-size: 16px; text-align: center; letter-spacing: 4px; display: none; }
-        .login-box button { background: #3B82F6; color: white; padding: 14px; border: none; border-radius: 14px; cursor: pointer; font-weight: 600; width: 100%; font-size: 16px; margin-top: 10px; display: none; }
-        .login-box .getcode-btn { display: block; background: #10B981; }
+        .login-box input { width: 100%; padding: 14px; margin: 10px 0; background: #1E293B; border: 1px solid #334155; border-radius: 14px; color: white; font-size: 16px; }
+        .login-box button { background: #3B82F6; color: white; padding: 14px; border: none; border-radius: 14px; cursor: pointer; font-weight: 600; width: 100%; font-size: 16px; margin-top: 10px; }
         .login-box .error-msg { color: #EF4444; font-size: 13px; margin-top: 10px; display: none; }
         .admin-panel { display: none; max-width: 1400px; margin: 0 auto; }
         .admin-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #1F2A44; }
@@ -70,15 +69,16 @@
 </head>
 <body>
 
+<!-- ОКНО ВХОДА ПО ПАРОЛЮ -->
 <div id="loginBox" class="login-box">
-    <h2>🔐 Вход через Telegram</h2>
-    <p>Код придёт в Telegram</p>
-    <button class="getcode-btn" id="getCodeBtn" onclick="requestCode()">📱 Получить код в Telegram</button>
-    <input type="text" id="codeInput" placeholder="Введи код из бота" maxlength="6">
-    <button id="loginBtn" onclick="loginWithCode()">Войти</button>
+    <h2>🔐 Вход в админ-панель</h2>
+    <p>Введите пароль для доступа</p>
+    <input type="password" id="passwordInput" placeholder="Введите пароль">
+    <button id="loginBtn" onclick="loginWithPassword()">Войти</button>
     <p class="error-msg" id="errorMsg"></p>
 </div>
 
+<!-- ПАНЕЛЬ АДМИНИСТРАТОРА -->
 <div id="adminPanel" class="admin-panel">
     <div class="admin-header">
         <h1>🛠️ Управление товарами</h1>
@@ -128,16 +128,11 @@
 
 <script>
 // ========== НАСТРОЙКИ ==========
-const _b1 = "ODg3Nzk3NzA1ODpBQUd0bmdaSkRPbktKbmN1azk3ejEwRDZqRlZtQVNfMjZaMA==";
-const AUTH_BOT_TOKEN = atob(_b1);
-    
-const ALLOWED_USERS = ["6282505786", "1405095426", "1753006927" ]; //v h m
-    
-const JSONBIN_API_KEY = "$2a$10$Y3Bvspn5CW0kIKhSPjwmn.vCT3aK4XdU9F0ejiihLjC68NLFPDkES";
-    
-const STATS_BIN_ID = "69de65c836566621a8b1fd5b";
+const ADMIN_PASSWORD = "admin123";
 
-// Не трогай — нужно для статистики и очистки
+// Данные для JSONBin (НЕ ТРОГАЙ)
+const JSONBIN_API_KEY = "$2a$10$Y3Bvspn5CW0kIKhSPjwmn.vCT3aK4XdU9F0ejiihLjC68NLFPDkES";
+const STATS_BIN_ID = "69de65c836566621a8b1fd5b";
 const CATEGORY_BINS = {
     "Zhitkosty": "6a1c6365ddf5aa59f77c4987",
     "Snus": "6a1c637621f9ee59d2a1ac06",
@@ -146,7 +141,6 @@ const CATEGORY_BINS = {
     "Kartdritzhy": "6a1c63a3ddf5aa59f77c4a0a",
     "Odnorazki": "6a1c63ad21f9ee59d2a1ac82"
 };
-
 const categories = [
     { file: "Zhitkosty", name: "Жидкости", icon: "💧" },
     { file: "Snus", name: "Шайбы", icon: "👅" },
@@ -157,105 +151,33 @@ const categories = [
 ];
 
 let currentCategory = null, currentProducts = [], editId = null, currentFlavors = [];
-let currentCode = null, codeExpires = 0;
-let lastMessageIds = {};
+let globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
 
-// ========== ВХОД ==========
-async function requestCode() {
-    document.getElementById('errorMsg').style.display = 'none';
-    const btn = document.getElementById('getCodeBtn');
-    btn.textContent = 'Отправка...';
-    btn.disabled = true;
-
-    currentCode = Math.floor(100000 + Math.random() * 900000).toString();
-    codeExpires = Date.now() + 5 * 60 * 1000;
-
-    for (const userId of ALLOWED_USERS) {
-        // Пробуем удалить старое сообщение
-        const storageKey = 'msg_id_' + userId;
-        const oldMsgId = localStorage.getItem(storageKey);
-        
-        if (oldMsgId) {
-            try {
-                await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/deleteMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: userId,
-                        message_id: parseInt(oldMsgId)
-                    })
-                });
-            } catch(e) {}
-        }
-        
-        // Отправляем новое
-        try {
-            const r = await fetch(`https://api.telegram.org/bot${AUTH_BOT_TOKEN}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: userId,
-                    text: '🔐 *Код входа:* `' + currentCode + '`',
-                    parse_mode: 'Markdown'
-                })
-            });
-            const d = await r.json();
-            if (d.result && d.result.message_id) {
-                localStorage.setItem(storageKey, d.result.message_id);
-            }
-        } catch(e) {}
-    }
-
-    btn.style.display = 'none';
-    document.getElementById('codeInput').style.display = 'block';
-    document.getElementById('loginBtn').style.display = 'block';
-    document.getElementById('codeInput').value = '';
-    document.getElementById('codeInput').focus();
-
-    setTimeout(() => {
-        currentCode = null;
-        btn.style.display = 'block';
-        btn.textContent = '📱 Получить код в Telegram';
-        btn.disabled = false;
-        document.getElementById('codeInput').style.display = 'none';
-        document.getElementById('loginBtn').style.display = 'none';
-    }, 5 * 60 * 1000);
-}
-
-function loginWithCode() {
-    const entered = document.getElementById('codeInput').value.trim();
-    if (!currentCode || Date.now() > codeExpires) {
-        document.getElementById('errorMsg').textContent = 'Код истёк. Запроси новый.';
-        document.getElementById('errorMsg').style.display = 'block';
-        return;
-    }
-    if (entered === currentCode) {
+// ========== ВХОД ПО ПАРОЛЮ ==========
+function loginWithPassword() {
+    const password = document.getElementById('passwordInput').value;
+    const errorMsg = document.getElementById('errorMsg');
+    
+    if (password === ADMIN_PASSWORD) {
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
         loadCategories();
         loadGlobalStats();
+        errorMsg.style.display = 'none';
     } else {
-        document.getElementById('errorMsg').textContent = 'Неверный код';
-        document.getElementById('errorMsg').style.display = 'block';
+        errorMsg.textContent = 'Неверный пароль!';
+        errorMsg.style.display = 'block';
     }
 }
 
 function logout() {
-    currentCode = null;
     document.getElementById('loginBox').style.display = 'block';
     document.getElementById('adminPanel').style.display = 'none';
-    const btn = document.getElementById('getCodeBtn');
-    btn.style.display = 'block';
-    btn.textContent = '📱 Получить код в Telegram';
-    btn.disabled = false;
-    document.getElementById('codeInput').style.display = 'none';
-    document.getElementById('codeInput').value = '';
-    document.getElementById('loginBtn').style.display = 'none';
+    document.getElementById('passwordInput').value = '';
+    document.getElementById('errorMsg').style.display = 'none';
 }
 
 // ========== СТАТИСТИКА ==========
-let globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
-
 async function loadGlobalStats() {
     try {
         const r = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
@@ -365,7 +287,7 @@ function renderFlavors() {
     c.innerHTML = ''; currentFlavors.forEach((f,i)=>{ const d=document.createElement('div'); d.className='flavor-row'; d.innerHTML=`<input type="text" placeholder="Название" value="${escapeHtml(f.name)}" onchange="editFlavor(${i},'name',this.value)"><input type="number" placeholder="Цена" value="${f.price}" onchange="editFlavor(${i},'price',+this.value)"><input type="number" placeholder="Остаток" value="${f.stock}" onchange="editFlavor(${i},'stock',+this.value)"><button class="danger" onclick="removeFlavor(${i})">❌</button>`; c.appendChild(d); });
 }
 
-async function saveProduct() { const name=document.getElementById('productName').value.trim(), image=document.getElementById('productImage').value.trim(), desc=document.getElementById('productDesc').value.trim(); if(!name||!image||!currentFlavors.length||!currentCategory) { showToast('Заполни все поля!',true); return; } if(editId) { const p=currentProducts.find(x=>x.id===editId); p.name=name; p.image=image; p.desc=desc; if(currentFlavors.length===1&&currentFlavors[0].name==='Стандарт') { delete p.flavors; p.price=currentFlavors[0].price; p.stock=currentFlavors[0].stock; } else { p.flavors=currentFlavors.filter(f=>f.name.trim()); delete p.price; delete p.stock; } } else { const nid=Math.max(0,...currentProducts.map(p=>p.id))+1; const np={id:nid,name,category:categories.find(c=>c.file===currentCategory)?.name||'',image,desc}; if(currentFlavors.length===1&&currentFlavors[0].name==='Стандарт') { np.price=currentFlavors[0].price; np.stock=currentFlavors[0].stock; } else np.flavors=currentFlavors.filter(f=>f.name.trim()); currentProducts.push(np); } await saveProducts(); cancelEdit(); await loadProducts(); }
+async function saveProduct() { const name=document.getElementById('productName').value.trim(), image=document.getElementById('productImage').value.trim(), desc=document.getElementById('productDesc').value.trim(); if(!name||!image||!currentFlavors.length||!currentCategory) { showToast('Заполни все поля!',true); return; } if(editId) { const p=currentProducts.find(x=>x.id===editId); p.name=name; p.image=image; p.desc=desc; if(currentFlavors.length===1 && currentFlavors[0].name==='Стандарт') { delete p.flavors; p.price=currentFlavors[0].price; p.stock=currentFlavors[0].stock; } else { p.flavors=currentFlavors.filter(f=>f.name.trim()); delete p.price; delete p.stock; } } else { const nid=Math.max(0,...currentProducts.map(p=>p.id))+1; const np={id:nid,name,category:categories.find(c=>c.file===currentCategory)?.name||'',image,desc}; if(currentFlavors.length===1 && currentFlavors[0].name==='Стандарт') { np.price=currentFlavors[0].price; np.stock=currentFlavors[0].stock; } else np.flavors=currentFlavors.filter(f=>f.name.trim()); currentProducts.push(np); } await saveProducts(); cancelEdit(); await loadProducts(); }
 async function deleteProduct(id) { if(!confirm('Удалить?')) return; currentProducts=currentProducts.filter(p=>p.id!==id); await saveProducts(); if(editId===id) cancelEdit(); await loadProducts(); showToast('Удалено!'); }
 
 function cancelEdit() { editId=null; currentFlavors=[]; document.getElementById('formTitle').textContent='➕ Новый товар'; document.getElementById('productName').value=''; document.getElementById('productImage').value=''; document.getElementById('productDesc').value=''; document.getElementById('flavorsList').innerHTML=''; document.getElementById('imagePreview').innerHTML=''; document.getElementById('cancelBtn').style.display='none'; }
