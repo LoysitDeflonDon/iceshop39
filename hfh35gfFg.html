@@ -69,7 +69,6 @@
 </head>
 <body>
 
-<!-- ОКНО ВХОДА ПО ПАРОЛЮ -->
 <div id="loginBox" class="login-box">
     <h2>🔐 Вход в админ-панель</h2>
     <p>Введите пароль для доступа</p>
@@ -78,7 +77,6 @@
     <p class="error-msg" id="errorMsg"></p>
 </div>
 
-<!-- ПАНЕЛЬ АДМИНИСТРАТОРА -->
 <div id="adminPanel" class="admin-panel">
     <div class="admin-header">
         <h1>🛠️ Управление товарами</h1>
@@ -95,23 +93,15 @@
 
     <div class="orders-table-container">
         <h3 style="margin-bottom: 15px;">📋 Последние заказы</h3>
-        <table class="orders-table" id="ordersTable">
-            <thead><tr><th>Дата</th><th>Менеджер</th><th>Сумма</th><th>Товары</th></tr></thead>
-            <tbody id="ordersTableBody"></tbody>
-        </table>
+        <table class="orders-table" id="ordersTable"><thead><th>Дата</th><th>Менеджер</th><th>Сумма</th><th>Товары</th></thead><tbody id="ordersTableBody"></tbody></table>
     </div>
 
-    <div class="categories-wrapper">
-        <div id="categoriesBlock" class="category-buttons"></div>
-    </div>
+    <div class="categories-wrapper"><div id="categoriesBlock" class="category-buttons"></div></div>
 
     <div class="product-form">
         <h3 id="formTitle">➕ Новый товар</h3>
         <div class="form-row"><input type="text" id="productName" placeholder="Название товара"></div>
-        <div class="image-row">
-            <input type="text" id="productImage" placeholder="URL картинки">
-            <button onclick="uploadFromGallery()">📱 Выбрать фото</button>
-        </div>
+        <div class="image-row"><input type="text" id="productImage" placeholder="URL картинки"><button onclick="uploadFromGallery()">📱 Выбрать фото</button></div>
         <div class="image-preview" id="imagePreview"></div>
         <div class="form-row"><textarea id="productDesc" placeholder="Описание товара" rows="2"></textarea></div>
         <div id="flavorsList"></div>
@@ -129,54 +119,64 @@
 <script>
 // ========== НАСТРОЙКИ ==========
 const ADMIN_PASSWORD = "admin123";
-
-// Данные для JSONBin (НЕ ТРОГАЙ)
 const JSONBIN_API_KEY = "$2a$10$Y3Bvspn5CW0kIKhSPjwmn.vCT3aK4XdU9F0ejiihLjC68NLFPDkES";
+const STATS_BIN_ID = "6a1c6f2621f9ee59d2a1cb6f";
+const CATEGORY_BINS = {
+    "Zhitkosty": "6a1c6365ddf5aa59f77c4987", "Snus": "6a1c637621f9ee59d2a1ac06",
+    "Vapes": "6a1c638621f9ee59d2a1ac2d", "Ispariteli": "6a1c639721f9ee59d2a1ac4f",
+    "Kartdritzhy": "6a1c63a3ddf5aa59f77c4a0a", "Odnorazki": "6a1c63ad21f9ee59d2a1ac82"
+};
+const categories = [
+    { file: "Zhitkosty", name: "Жидкости", icon: "💧" }, { file: "Snus", name: "Шайбы", icon: "👅" },
+    { file: "Vapes", name: "Вейпы", icon: "💨" }, { file: "Ispariteli", name: "Испарители", icon: "🔥" },
+    { file: "Kartdritzhy", name: "Картриджи", icon: "⚡" }, { file: "Odnorazki", name: "Одноразки", icon: "🔄" }
+];
 
-// GitHub настройки
+// === GitHub настройки ===
 const GITHUB_TOKEN = "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";
 const GITHUB_OWNER = "LoysitDeflonDon";
 const GITHUB_REPO = "iceshop39-data";
 
-
-const STATS_BIN_ID = "6a1c6f2621f9ee59d2a1cb6f";
-const CATEGORY_BINS = {
-    "Zhitkosty": "6a1c6365ddf5aa59f77c4987",
-    "Snus": "6a1c637621f9ee59d2a1ac06",
-    "Vapes": "6a1c638621f9ee59d2a1ac2d",
-    "Ispariteli": "6a1c639721f9ee59d2a1ac4f",
-    "Kartdritzhy": "6a1c63a3ddf5aa59f77c4a0a",
-    "Odnorazki": "6a1c63ad21f9ee59d2a1ac82"
-};
-const categories = [
-    { file: "Zhitkosty", name: "Жидкости", icon: "💧" },
-    { file: "Snus", name: "Шайбы", icon: "👅" },
-    { file: "Vapes", name: "Вейпы", icon: "💨" },
-    { file: "Ispariteli", name: "Испарители", icon: "🔥" },
-    { file: "Kartdritzhy", name: "Картриджи", icon: "⚡" },
-    { file: "Odnorazki", name: "Одноразки", icon: "🔄" }
-];
-
 let currentCategory = null, currentProducts = [], editId = null, currentFlavors = [];
 let globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
 
-// ========== ВХОД ПО ПАРОЛЮ ==========
+// ========== ФУНКЦИЯ СОХРАНЕНИЯ В GITHUB ==========
+async function saveToGitHub(filename, data) {
+    if (!GITHUB_TOKEN || GITHUB_TOKEN === "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") {
+        console.warn("GitHub токен не настроен");
+        return false;
+    }
+    const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${filename}`;
+    const content = JSON.stringify(data, null, 2);
+    const encodedContent = btoa(unescape(encodeURIComponent(content)));
+    
+    try {
+        let sha = null;
+        try {
+            const getRes = await fetch(url, { headers: { 'Authorization': `token ${GITHUB_TOKEN}` } });
+            if (getRes.ok) { const fileData = await getRes.json(); sha = fileData.sha; }
+        } catch(e) {}
+        
+        const response = await fetch(url, {
+            method: 'PUT', headers: { 'Authorization': `token ${GITHUB_TOKEN}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: `Update ${filename} from admin panel`, content: encodedContent, sha: sha })
+        });
+        if (response.ok) { console.log(`✅ GitHub: ${filename} сохранён`); return true; }
+        else { console.error(`❌ GitHub: ошибка ${response.status}`); return false; }
+    } catch(e) { console.error(`❌ GitHub: ${e.message}`); return false; }
+}
+
+// ========== ВХОД ==========
 function loginWithPassword() {
     const password = document.getElementById('passwordInput').value;
     const errorMsg = document.getElementById('errorMsg');
-    
     if (password === ADMIN_PASSWORD) {
         document.getElementById('loginBox').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
-        loadCategories();
-        loadGlobalStats();
+        loadCategories(); loadGlobalStats();
         errorMsg.style.display = 'none';
-    } else {
-        errorMsg.textContent = 'Неверный пароль!';
-        errorMsg.style.display = 'block';
-    }
+    } else { errorMsg.textContent = 'Неверный пароль!'; errorMsg.style.display = 'block'; }
 }
-
 function logout() {
     document.getElementById('loginBox').style.display = 'block';
     document.getElementById('adminPanel').style.display = 'none';
@@ -195,36 +195,26 @@ async function loadGlobalStats() {
         }
     } catch(e) {}
 }
-
 async function clearStatistics() {
     if (confirm("Очистить статистику?")) {
         globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
         try {
             const r = await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
             const rec = r.ok ? ((await r.json()).record || {}) : {};
-            await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, {
-                method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
-                body: JSON.stringify({ views: rec.views || {}, orders: [], totalOrders: 0, totalRevenue: 0, lastUpdated: new Date().toISOString() })
-            });
+            await fetch(`https://api.jsonbin.io/v3/b/${STATS_BIN_ID}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY }, body: JSON.stringify({ views: rec.views || {}, orders: [], totalOrders: 0, totalRevenue: 0, lastUpdated: new Date().toISOString() }) });
         } catch(e) {}
         updateStatsDisplay(); renderOrdersTable(); showToast("Очищено");
     }
 }
-
 function updateStatsDisplay() {
     document.getElementById('totalOrders').textContent = globalStats.totalOrders || 0;
     document.getElementById('totalRevenue').textContent = (globalStats.totalRevenue || 0).toLocaleString();
     document.getElementById('avgOrder').textContent = (globalStats.totalOrders > 0 ? Math.round(globalStats.totalRevenue / globalStats.totalOrders) : 0).toLocaleString();
 }
-
 function renderOrdersTable() {
     const tbody = document.getElementById('ordersTableBody');
     if (!globalStats.orders.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#94A3B8;">Нет заказов</td></tr>'; return; }
-    tbody.innerHTML = [...globalStats.orders].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,20).map(o=>{
-        const d=new Date(o.date).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
-        const items=o.items.map(i=>i.productName+(i.variantName&&i.variantName!==i.productName?' ('+i.variantName+')':'')+' ×'+i.quantity).join(', ');
-        return `<tr><td>${d}</td><td>@${o.manager||'?'}</td><td style="color:#FACC15;">${o.total} ₽</td><td>${items.substring(0,50)}</td></tr>`;
-    }).join('');
+    tbody.innerHTML = [...globalStats.orders].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,20).map(o=>{ const d=new Date(o.date).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}); const items=o.items.map(i=>i.productName+(i.variantName&&i.variantName!==i.productName?' ('+i.variantName+')':'')+' ×'+i.quantity).join(', '); return `<tr><td>${d}</td><td>@${o.manager||'?'}</td><td style="color:#FACC15;">${o.total} ₽</td><td>${items.substring(0,50)}</td></tr>`; }).join('');
 }
 
 // ========== ТОВАРЫ ==========
@@ -243,31 +233,14 @@ async function loadProducts() {
 }
 
 async function saveProducts() {
-    // Сохраняем в JSONBin
     try {
-        await fetch(`https://api.jsonbin.io/v3/b/${CATEGORY_BINS[currentCategory]}`, {
-            method: 'PUT', 
-            headers: { 
-                'Content-Type': 'application/json', 
-                'X-Master-Key': JSONBIN_API_KEY 
-            },
-            body: JSON.stringify(currentProducts)
-        });
+        await fetch(`https://api.jsonbin.io/v3/b/${CATEGORY_BINS[currentCategory]}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY }, body: JSON.stringify(currentProducts) });
         showToast('✅ Сохранено в JSONBin');
-        
-        // Сохраняем в GitHub (асинхронно, не блокируем)
         const fileName = `${currentCategory}.json`;
-        saveToGitHub(fileName, currentProducts).then(success => {
-            if (success) showToast('✅ Сохранено в GitHub', false);
-            else showToast('⚠️ GitHub не сохранился', true);
-        });
-        
-    } catch(e) { 
-        showToast('❌ Ошибка сохранения', true); 
-    }
+        saveToGitHub(fileName, currentProducts).then(success => { if (success) showToast('✅ Сохранено в GitHub', false); else showToast('⚠️ GitHub не сохранился', true); });
+    } catch(e) { showToast('❌ Ошибка сохранения', true); }
 }
 
-// ========== UI ==========
 function showToast(msg, err) {
     let t = document.getElementById('toastMsg');
     if (!t) { t = document.createElement('div'); t.id='toastMsg'; t.className='toast'; document.body.appendChild(t); }
@@ -276,13 +249,11 @@ function showToast(msg, err) {
 }
 
 function escapeHtml(s) { return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''; }
-
 function uploadFromGallery() {
     const i = document.createElement('input'); i.type='file'; i.accept='image/*';
     i.onchange = e => { const f = e.target.files[0]; if(f){ const r=new FileReader(); r.onload=ev=>{ document.getElementById('productImage').value=ev.target.result; document.getElementById('imagePreview').innerHTML=`<img src="${ev.target.result}" style="max-width:80px;border-radius:12px;">`; }; r.readAsDataURL(f); } };
     i.click();
 }
-
 function loadCategories() {
     const c = document.getElementById('categoriesBlock'); c.innerHTML = '';
     categories.forEach(cat => {
@@ -291,29 +262,23 @@ function loadCategories() {
         c.appendChild(b);
     });
 }
-
 function renderProducts() {
     const c = document.getElementById('productsList');
     if (!currentProducts.length) { c.innerHTML='<div style="text-align:center;padding:40px;color:#94A3B8;">📭 Нет товаров</div>'; return; }
     c.innerHTML = currentProducts.map(p => `<div class="product-card"><div class="product-info"><div class="product-name">${escapeHtml(p.name)}</div><div class="product-meta">ID: ${p.id} | ${p.flavors?p.flavors.length+' вар.':p.price+' ₽'}</div></div><div class="product-actions"><button onclick="editProduct(${p.id})">✏️</button><button class="danger" onclick="deleteProduct(${p.id})">🗑️</button></div></div>`).join('');
 }
-
 function editProduct(id) { const p=currentProducts.find(x=>x.id===id); if(!p) return; editId=id; document.getElementById('formTitle').textContent='✏️ Редактировать'; document.getElementById('productName').value=p.name; document.getElementById('productImage').value=p.image||''; document.getElementById('productDesc').value=p.desc||''; document.getElementById('imagePreview').innerHTML=p.image?`<img src="${p.image}" style="max-width:80px;border-radius:12px;">`:''; currentFlavors=p.flavors?JSON.parse(JSON.stringify(p.flavors)):[{name:"Стандарт",price:p.price||0,stock:p.stock||0}]; renderFlavors(); document.getElementById('cancelBtn').style.display='block'; }
 function addFlavor() { currentFlavors.push({name:'',price:0,stock:0}); renderFlavors(); }
 function removeFlavor(i) { currentFlavors.splice(i,1); renderFlavors(); }
 function editFlavor(i,f,v) { if(currentFlavors[i]) currentFlavors[i][f]=v; }
-
 function renderFlavors() {
     const c = document.getElementById('flavorsList');
     if(!currentFlavors.length) { c.innerHTML='<div style="padding:12px;text-align:center;color:#94A3B8;">Нажмите "+"</div>'; return; }
     c.innerHTML = ''; currentFlavors.forEach((f,i)=>{ const d=document.createElement('div'); d.className='flavor-row'; d.innerHTML=`<input type="text" placeholder="Название" value="${escapeHtml(f.name)}" onchange="editFlavor(${i},'name',this.value)"><input type="number" placeholder="Цена" value="${f.price}" onchange="editFlavor(${i},'price',+this.value)"><input type="number" placeholder="Остаток" value="${f.stock}" onchange="editFlavor(${i},'stock',+this.value)"><button class="danger" onclick="removeFlavor(${i})">❌</button>`; c.appendChild(d); });
 }
-
 async function saveProduct() { const name=document.getElementById('productName').value.trim(), image=document.getElementById('productImage').value.trim(), desc=document.getElementById('productDesc').value.trim(); if(!name||!image||!currentFlavors.length||!currentCategory) { showToast('Заполни все поля!',true); return; } if(editId) { const p=currentProducts.find(x=>x.id===editId); p.name=name; p.image=image; p.desc=desc; if(currentFlavors.length===1 && currentFlavors[0].name==='Стандарт') { delete p.flavors; p.price=currentFlavors[0].price; p.stock=currentFlavors[0].stock; } else { p.flavors=currentFlavors.filter(f=>f.name.trim()); delete p.price; delete p.stock; } } else { const nid=Math.max(0,...currentProducts.map(p=>p.id))+1; const np={id:nid,name,category:categories.find(c=>c.file===currentCategory)?.name||'',image,desc}; if(currentFlavors.length===1 && currentFlavors[0].name==='Стандарт') { np.price=currentFlavors[0].price; np.stock=currentFlavors[0].stock; } else np.flavors=currentFlavors.filter(f=>f.name.trim()); currentProducts.push(np); } await saveProducts(); cancelEdit(); await loadProducts(); }
 async function deleteProduct(id) { if(!confirm('Удалить?')) return; currentProducts=currentProducts.filter(p=>p.id!==id); await saveProducts(); if(editId===id) cancelEdit(); await loadProducts(); showToast('Удалено!'); }
-
 function cancelEdit() { editId=null; currentFlavors=[]; document.getElementById('formTitle').textContent='➕ Новый товар'; document.getElementById('productName').value=''; document.getElementById('productImage').value=''; document.getElementById('productDesc').value=''; document.getElementById('flavorsList').innerHTML=''; document.getElementById('imagePreview').innerHTML=''; document.getElementById('cancelBtn').style.display='none'; }
-
 document.getElementById('productImage').addEventListener('input', function(){ document.getElementById('imagePreview').innerHTML=this.value?`<img src="${this.value}" style="max-width:80px;border-radius:12px;">`:''; });
 document.getElementById('clearStatsBtn').addEventListener('click', clearStatistics);
 </script>
