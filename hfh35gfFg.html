@@ -116,6 +116,9 @@
     <div id="productsList" class="products-grid"></div>
 </div>
 
+<button onclick="clearAdminCache()" style="background:#334155; margin-left:10px;">🗑️ Сбросить кэш</button>
+
+
 <script>
 // ========== НАСТРОЙКИ ==========
 const ADMIN_PASSWORD = "admin123";
@@ -140,6 +143,8 @@ const GITHUB_REPO = "iceshop39-data";
 let currentCategory = null, currentProducts = [], editId = null, currentFlavors = [];
 let globalStats = { orders: [], totalOrders: 0, totalRevenue: 0 };
 
+
+/*
 // ========== ФУНКЦИЯ СОХРАНЕНИЯ В GITHUB ==========
 async function saveToGitHub(filename, data) {
     if (!GITHUB_TOKEN || GITHUB_TOKEN === "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") {
@@ -165,6 +170,7 @@ async function saveToGitHub(filename, data) {
         else { console.error(`❌ GitHub: ошибка ${response.status}`); return false; }
     } catch(e) { console.error(`❌ GitHub: ${e.message}`); return false; }
 }
+*/
 
 // ========== ВХОД ==========
 function loginWithPassword() {
@@ -183,6 +189,16 @@ function logout() {
     document.getElementById('passwordInput').value = '';
     document.getElementById('errorMsg').style.display = 'none';
 }
+
+//ОЧИСТКА КЭША В АДМИНКЕ
+function clearAdminCache() {
+    for (let cat of categories) {
+        localStorage.removeItem(`admin_${cat.file}`);
+    }
+    showToast('Кэш очищен, перезагрузи категорию', false);
+    if (currentCategory) loadProducts();
+}
+
 
 // ========== СТАТИСТИКА ==========
 async function loadGlobalStats() {
@@ -220,25 +236,101 @@ function renderOrdersTable() {
 // ========== ТОВАРЫ ==========
 async function loadProducts() {
     if (!currentCategory) return;
-    document.getElementById('productsList').innerHTML = '<div style="text-align:center;padding:40px;color:#94A3B8;">Загрузка...</div>';
+    
+    // 1. Мгновенно показываем кэш (если есть)
+    const cached = localStorage.getItem(`admin_${currentCategory}`);
+    if (cached) {
+        try {
+            currentProducts = JSON.parse(cached);
+            renderProducts();
+            console.log(`📦 ${currentCategory}: загружено из кэша (${currentProducts.length} товаров)`);
+        } catch(e) {}
+    }
+    
+    // 2. Фоновое обновление с JSONBin (короткий таймаут)
     try {
-        const r = await fetch(`https://api.jsonbin.io/v3/b/${CATEGORY_BINS[currentCategory]}/latest`, { headers: { 'X-Master-Key': JSONBIN_API_KEY } });
-        if (!r.ok) throw new Error('Ошибка');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 секунды
+        
+        const r = await fetch(`https://api.jsonbin.io/v3/b/${CATEGORY_BINS[currentCategory]}/latest`, { 
+            headers: { 'X-Master-Key': JSONBIN_API_KEY },
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        
         const d = await r.json();
         let items = d.record;
         if (!items || !Array.isArray(items)) items = Array.isArray(d) ? d : [];
-        currentProducts = items;
-        renderProducts();
-    } catch(e) { currentProducts = []; renderProducts(); showToast('Ошибка загрузки', true); }
+        
+        if (items.length > 0) {
+            currentProducts = items;
+            localStorage.setItem(`admin_${currentCategory}`, JSON.stringify(currentProducts));
+            renderProducts();
+            console.log(`✅ ${currentCategory}: JSONBin (${currentProducts.length} товаров)`);
+        } else if (!cached) {
+            currentProducts = [];
+            renderProducts();
+        }
+    } catch(e) {
+        console.warn(`⚠️ ${currentCategory}: ошибка JSONBin (${e.message})`);
+        if (!cached) {
+            currentProducts = [];
+            renderProducts();
+            showToast('Ошибка загрузки, попробуй позже', true);
+        } else {
+            showToast('Загружены кэшированные данные', false);
+        }
+    }
 }
 
 async function saveProducts() {
+    if (!currentCategory) {
+        showToast('Выбери категорию!', true);
+        return;
+    }
+    
+    // Показываем индикатор сохранения
+    const saveBtn = document.querySelector('.success');
+    const originalText = saveBtn.textContent;
+    saveBtn.textContent = '⏳ Сохранение...';
+    saveBtn.disabled = true;
+    
     try {
-        await fetch(`https://api.jsonbin.io/v3/b/${CATEGORY_BINS[currentCategory]}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY }, body: JSON.stringify(currentProducts) });
-        showToast('✅ Сохранено в JSONBin');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        const response = await fetch(`https://api.jsonbin.io/v3/b/${CATEGORY_BINS[currentCategory]}`, {
+            method: 'PUT', 
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-Master-Key': JSONBIN_API_KEY 
+            },
+            body: JSON.stringify(currentProducts),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        // Обновляем кэш
+        localStorage.setItem(`admin_${currentCategory}`, JSON.stringify(currentProducts));
+        
+        showToast('✅ Сохранено!', false);
+        console.log(`✅ ${currentCategory}: сохранено (${currentProducts.length} товаров)`);
+        
+        // (опционально) синхронизация с GitHub в фоне, не блокирует
         const fileName = `${currentCategory}.json`;
-        saveToGitHub(fileName, currentProducts).then(success => { if (success) showToast('✅ Сохранено в GitHub', false); else showToast('⚠️ GitHub не сохранился', true); });
-    } catch(e) { showToast('❌ Ошибка сохранения', true); }
+        saveToGitHub(fileName, currentProducts).catch(e => console.warn('GitHub sync error:', e));
+        
+    } catch(e) {
+        console.error('Ошибка сохранения:', e);
+        showToast('❌ Ошибка сохранения', true);
+    } finally {
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
+    }
 }
 
 function showToast(msg, err) {
