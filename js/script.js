@@ -311,7 +311,7 @@ function renderPopularBlock() {
 
 // ========== ИСТОРИЯ ПРОСМОТРОВ ==========
 const HISTORY_KEY = "view_history";
-const MAX_HISTORY = 12;
+const MAX_HISTORY = 5;
 
 function saveToHistory(item, variantName = null) {
     let history = getHistory();
@@ -738,7 +738,6 @@ async function loadCategoryFromBin(catName, binId) {
 }
 
 async function loadAllData() {
-    // 1. Мгновенно грузим кеш и показываем
     let hasCache = false;
     for (const [catName] of Object.entries(CATEGORY_BINS)) {
         const cached = getCachedCategory(catName);
@@ -747,29 +746,28 @@ async function loadAllData() {
             hasCache = true;
         }
     }
-    
+
     if (hasCache) {
         renderAll();
         showToast("✅ Товары загружены", false);
     }
-    
-    // 2. Фоновое обновление
-    const proms = Object.entries(CATEGORY_BINS).map(async ([catName, binId]) => {
-        const fresh = await loadCategoryFromBin(catName, binId);
-        if (fresh.length > 0) {
-            allItems[catName] = fresh;
+
+    // Фоновое обновление — теперь устойчивое к ошибкам
+    for (const [catName, binId] of Object.entries(CATEGORY_BINS)) {
+        try {
+            const fresh = await loadCategoryFromBin(catName, binId);
+            if (fresh && fresh.length > 0) {
+                allItems[catName] = fresh;
+                setCachedCategory(catName, fresh);
+            }
+        } catch (e) {
+            console.warn(`⚠️ Категория ${catName} не загрузилась:`, e);
         }
-    });
-    
-    await Promise.all(proms);
-    
-    // 3. Финальный рендер со свежими данными
-    renderAll();
-    
-    if (!hasCache) {
-        const total = Object.values(allItems).reduce((s, a) => s + a.length, 0);
-        showToast(total > 0 ? `✅ ${total} товаров` : "❌ Ошибка загрузки", total === 0);
     }
+
+    renderAll();
+    const total = Object.values(allItems).reduce((s, a) => s + (a?.length || 0), 0);
+    showToast(total > 0 ? `✅ ${total} товаров` : "⚠️ Ничего не загрузилось", total === 0);
 }
 
 function renderAll() {
