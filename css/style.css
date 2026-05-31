@@ -51,6 +51,8 @@ body {
     background-repeat: no-repeat;
     transition: background-image 1.2s ease-in-out;
     background-image: url('https://i.ibb.co/5hYz909b/istockphoto-1399967405-612x612.jpg');
+    background-image: url('https://avatars.mds.yandex.net/i?id=f3d782252918903a263747e374bea1ec_l-3608855-images-thumbs&n=13');
+    background-image: url('https://avatars.mds.yandex.net/i?id=319e3ae257af289cd1eaa8cbfb53633b_l-4916254-images-thumbs&n=13');
 }
 
 .hero-section::before {
