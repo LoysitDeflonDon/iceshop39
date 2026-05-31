@@ -755,6 +755,9 @@ async function loadCategoryFromBin(catName, binId) {
 }
 
 async function loadAllData() {
+    if (!navigator.onLine) {
+        showToast("📱 Нет интернета. Загружаю сохранённые товары...", true);
+    }
     let hasCache = false;
     for (const [catName] of Object.entries(CATEGORY_BINS)) {
         const cached = getCachedCategory(catName);
