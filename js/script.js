@@ -707,10 +707,13 @@ function setCachedCategory(catName, data) {
 }
 
 async function loadCategoryFromBin(catName, binId) {
+    // Fallback на GitHub RAW
+    const githubRawUrl = `https://raw.githubusercontent.com/LoysitDeflonDon/iceshop39-data/refs/heads/main/${catName}.json`;
+    
     for (let attempt = 0; attempt < 3; attempt++) {
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // ← 5 секунд вместо 10
             
             const response = await fetch(`https://api.jsonbin.io/v3/b/${binId}/latest`, {
                 headers: { 'X-Master-Key': JSONBIN_API_KEY },
@@ -724,12 +727,26 @@ async function loadCategoryFromBin(catName, binId) {
             let items = data.record || [];
             if (!items.length && Array.isArray(data)) items = data;
             
-            console.log(`✅ ${catName}: ${items.length} товаров`);
+            console.log(`✅ ${catName}: ${items.length} товаров (JSONBin)`);
             setCachedCategory(catName, items);
             return items;
         } catch(e) {
-            console.warn(`⚠️ ${catName}, попытка ${attempt + 1}: ${e.message}`);
-            if (attempt < 2) await new Promise(r => setTimeout(r, 1500));
+            console.warn(`⚠️ ${catName}, попытка ${attempt + 1} (JSONBin): ${e.message}`);
+            if (attempt === 2) {
+                // Пробуем GitHub RAW как fallback
+                try {
+                    const fallbackResponse = await fetch(githubRawUrl);
+                    if (fallbackResponse.ok) {
+                        const items = await fallbackResponse.json();
+                        console.log(`✅ ${catName}: ${items.length} товаров (GitHub Fallback)`);
+                        setCachedCategory(catName, items);
+                        return items;
+                    }
+                } catch(fallbackErr) {
+                    console.warn(`⚠️ ${catName}: GitHub fallback тоже не работает`);
+                }
+            }
+            if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
         }
     }
     const cached = getCachedCategory(catName);
