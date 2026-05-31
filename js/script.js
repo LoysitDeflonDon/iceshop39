@@ -25,7 +25,7 @@ let allItems = {
 let currentCategory = null;
 
 // ========== JSONBIN ==========
-const JSONBIN_API_KEY = "$2a$10$.WLmojbymqt9b3tkTDcdb.I/rik/eRUr55qq2N5SeOTEP0BAMcyGq";
+const JSONBIN_API_KEY = "$2a$10$Y3Bvspn5CW0kIKhSPjwmn.vCT3aK4XdU9F0ejiihLjC68NLFPDkES";
 const STATS_BIN_ID = "69de65c836566621a8b1fd5b";
 
 const CATEGORY_BINS = {
