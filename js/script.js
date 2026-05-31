@@ -26,7 +26,7 @@ let currentCategory = null;
 
 // ========== JSONBIN ==========
 const JSONBIN_API_KEY = "$2a$10$Y3Bvspn5CW0kIKhSPjwmn.vCT3aK4XdU9F0ejiihLjC68NLFPDkES";
-const STATS_BIN_ID = "69de65c836566621a8b1fd5b";
+const STATS_BIN_ID = "6a1c6f2621f9ee59d2a1cb6f";
 
 const CATEGORY_BINS = {
     "Жидкости":   "6a1c6365ddf5aa59f77c4987",
