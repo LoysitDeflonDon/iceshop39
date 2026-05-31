@@ -267,10 +267,11 @@ async function saveProduct() {
     const name = document.getElementById('productName').value.trim();
     const image = document.getElementById('productImage').value.trim();
     const desc = document.getElementById('productDesc').value.trim();
-    if(!name || !image || !currentFlavors.length || !currentCategory) { 
-        showToast('Заполни все поля!', true); 
-        return; 
-    }
+    if(!name || !currentFlavors.length || !currentCategory) { 
+    showToast('Заполни название и вариант товара!', true); 
+    return; 
+}
+const productImage = image || 'https://placehold.co/400x300/1E293B/3B82F6?text=No+Image'; //заглушка
     
     let newProducts = [...currentProducts];
     if(editId) { 
