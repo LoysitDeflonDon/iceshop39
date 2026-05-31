@@ -92,6 +92,58 @@ function toggleFavorite(productName, variantName, price, image, category, produc
     saveFavorites();
 }
 
+
+async function saveToGitHub(filename, data) {
+    if (!GITHUB_TOKEN || GITHUB_TOKEN === "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") {
+        console.warn("GitHub токен не настроен");
+        return false;
+    }
+    
+    const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${filename}`;
+    const content = JSON.stringify(data, null, 2);
+    const encodedContent = btoa(unescape(encodeURIComponent(content)));
+    
+    try {
+        
+        let sha = null;
+        try {
+            const getRes = await fetch(url, {
+                headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+            });
+            if (getRes.ok) {
+                const fileData = await getRes.json();
+                sha = fileData.sha;
+            }
+        } catch(e) {}
+        
+        // Обновляем или создаём файл
+        const response = await fetch(url, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${GITHUB_TOKEN}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                message: `Update ${filename} from admin panel`,
+                content: encodedContent,
+                sha: sha
+            })
+        });
+        
+        if (response.ok) {
+            console.log(`✅ GitHub: ${filename} сохранён`);
+            return true;
+        } else {
+            console.error(`❌ GitHub: ошибка ${response.status}`);
+            return false;
+        }
+    } catch(e) {
+        console.error(`❌ GitHub: ${e.message}`);
+        return false;
+    }
+}
+
+
 function isFavorite(productId, variantId, isSimple = false) {
     const uniqueId = isSimple ? `simple_${productId}` : `${productId}_${variantId}`;
     return favorites.some(f => f.uniqueId === uniqueId);
