@@ -945,7 +945,7 @@ function handleScroll() {
     }
 }
 
-const backgrounds = ["https://i.ibb.co/5hYz909b/istockphoto-1399967405-612x612.jpg", "https://i.ibb.co/mrGR4qTc/2026-04-05-122820613.png", "https://i.ibb.co/YBH1vwHc/2026-04-05-122925535.png"];
+const backgrounds = ["https://i.ibb.co/5hYz909b/istockphoto-1399967405-612x612.jpg", "https://avatars.mds.yandex.net/i?id=f3d782252918903a263747e374bea1ec_l-3608855-images-thumbs&n=13", "https://avatars.mds.yandex.net/i?id=319e3ae257af289cd1eaa8cbfb53633b_l-4916254-images-thumbs&n=13"];
 let bgIndex = 0;
 const hero = document.getElementById('heroSection');
 if (hero) setInterval(() => { bgIndex = (bgIndex + 1) % backgrounds.length; hero.style.backgroundImage = `url('${backgrounds[bgIndex]}')`; }, 4500);
