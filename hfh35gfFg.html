@@ -243,13 +243,28 @@ async function loadProducts() {
 }
 
 async function saveProducts() {
+    // Сохраняем в JSONBin
     try {
         await fetch(`https://api.jsonbin.io/v3/b/${CATEGORY_BINS[currentCategory]}`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-Master-Key': JSONBIN_API_KEY },
+            method: 'PUT', 
+            headers: { 
+                'Content-Type': 'application/json', 
+                'X-Master-Key': JSONBIN_API_KEY 
+            },
             body: JSON.stringify(currentProducts)
         });
-        showToast('Сохранено!');
-    } catch(e) { showToast('Ошибка сохранения', true); }
+        showToast('✅ Сохранено в JSONBin');
+        
+        // Сохраняем в GitHub (асинхронно, не блокируем)
+        const fileName = `${currentCategory}.json`;
+        saveToGitHub(fileName, currentProducts).then(success => {
+            if (success) showToast('✅ Сохранено в GitHub', false);
+            else showToast('⚠️ GitHub не сохранился', true);
+        });
+        
+    } catch(e) { 
+        showToast('❌ Ошибка сохранения', true); 
+    }
 }
 
 // ========== UI ==========
